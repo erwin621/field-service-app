@@ -1,0 +1,86 @@
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+app.use(express.json());
+app.use(express.static('public'));
+
+const DB_FILE = path.join(__dirname, 'database.json');
+
+// Helper function para magbasa sa JSON database
+const readDatabase = () => {
+    if (!fs.existsSync(DB_FILE)) {
+        fs.writeFileSync(DB_FILE, JSON.stringify([]));
+        return [];
+    }
+    const data = fs.readFileSync(DB_FILE, 'utf8');
+    return JSON.parse(data || '[]');
+};
+
+// Helper function para magsulat sa JSON database
+const writeDatabase = (data) => {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+};
+
+// API: Admin Batch Upload (JSON Edition with De-duplication)
+app.post('/api/admin/batch-upload', (req, res) => {
+    const { sites } = req.body;
+    if (!sites || !Array.isArray(sites)) {
+        return res.status(400).json({ error: 'Invalid data format.' });
+    }
+
+    let tickets = readDatabase();
+    let createdCount = 0;
+    let escalatedCount = 0;
+
+    sites.forEach(site => {
+        // Tignan kung existing na ang site_id na ang status ay 'OPEN' pa
+        const existingIndex = tickets.findIndex(t => t.site_id === site.site_id && t.status === 'OPEN');
+
+        if (existingIndex !== -1) {
+            // RULE: Kung existing pa sa OPEN tab, i-escalate ang priority sa HIGH
+            tickets[existingIndex].priority = 'HIGH';
+            escalatedCount++;
+        } else {
+            // Kung wala pa, gumawa ng bagong ticket
+            const ticketId = `TKT-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const newTicket = {
+                ticket_id: ticketId,
+                site_id: site.site_id,
+                site_name: site.site_name,
+                locality: site.locality,
+                address: site.address,
+                coordinates: site.coordinates,
+                status: 'OPEN',
+                priority: site.priority.toUpperCase(),
+                assigned_to: null,
+                proof_url: null
+            };
+            tickets.push(newTicket);
+            createdCount++;
+        }
+    });
+
+    writeDatabase(tickets);
+    res.json({ message: `Batch process complete. Created: ${createdCount}, Escalated to HIGH: ${escalatedCount}` });
+});
+
+// API: Get Open Tickets (Naka-sort base sa Priority: HIGH -> MEDIUM -> LOW)
+app.get('/api/tickets/open', (req, res) => {
+    const tickets = readDatabase();
+    
+    // I-filter lang ang mga status ay OPEN at walang naka-assign
+    const openTickets = tickets.filter(t => t.status === 'OPEN' && t.assigned_to === null);
+
+    // I-sort (HIGH=1, MEDIUM=2, LOW=3)
+    openTickets.sort((a, b) => {
+        const priorityOrder = { 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+        return (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+    });
+
+    res.json(openTickets);
+});
+
+app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+

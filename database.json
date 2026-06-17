@@ -1,0 +1,197 @@
+[
+  {
+    "ticket_id": "TKT-0842-4360",
+    "site_id": "SITE-101",
+    "site_name": "Alpha Tower",
+    "locality": "Meycauayan",
+    "address": "Malhacan Road",
+    "coordinates": "14.735, 120.961",
+    "status": "COMPLETED",
+    "priority": "HIGH",
+    "assigned_to": "Tech_Juan",
+    "proof_url": "/uploads/1780065073886-1000008193.jpg"
+  },
+  {
+    "ticket_id": "TKT-0853-1718",
+    "site_id": "SITE-102",
+    "site_name": "Beta Hub",
+    "locality": "Marilao",
+    "address": "McArthur Highway",
+    "coordinates": "14.755, 120.958",
+    "status": "COMPLETED",
+    "priority": "HIGH",
+    "assigned_to": "Tech_Juan",
+    "proof_url": "/uploads/1780065634953-1000008183.jpg"
+  },
+  {
+    "ticket_id": "TKT-0853-4386",
+    "site_id": "SITE-103",
+    "site_name": "Gamma Station",
+    "locality": "Bocaue",
+    "address": "Gov Halili Ave",
+    "coordinates": "14.792, 120.929",
+    "status": "COMPLETED",
+    "priority": "HIGH",
+    "assigned_to": "Tech_Pedro",
+    "proof_url": "/uploads/1780065508643-1000008157.jpg"
+  },
+  {
+    "ticket_id": "TKT-0853-1189",
+    "site_id": "SITE-104",
+    "site_name": "Delta Store",
+    "locality": "Malolos",
+    "address": "Paseo del Congreso",
+    "coordinates": "14.843, 120.811",
+    "status": "COMPLETED",
+    "priority": "HIGH",
+    "assigned_to": "Tech_Juan",
+    "proof_url": "/uploads/1780066280332-1000008191.jpg"
+  },
+  {
+    "ticket_id": "TKT-0227-2398",
+    "site_id": "SITE-101",
+    "site_name": "Alpha Tower",
+    "locality": "Meycauayan",
+    "address": "Malhacan Road",
+    "coordinates": "14.735, 120.961",
+    "status": "COMPLETED",
+    "priority": "HIGH",
+    "assigned_to": "Tech_Juan",
+    "proof_url": "/uploads/1780066742394-1000008199.jpg"
+  },
+  {
+    "ticket_id": "TKT-0228-1527",
+    "site_id": "SITE-102",
+    "site_name": "Beta Hub",
+    "locality": "Marilao",
+    "address": "McArthur Highway",
+    "coordinates": "14.755, 120.958",
+    "status": "COMPLETED",
+    "priority": "MEDIUM",
+    "assigned_to": "Tech_Juan",
+    "proof_url": "/uploads/1780191069605-1000008208.jpg"
+  },
+  {
+    "ticket_id": "TKT-0240-9269",
+    "site_id": "SITE-103",
+    "site_name": "Gamma Station",
+    "locality": "Bocaue",
+    "address": "Gov Halili Ave",
+    "coordinates": "14.792, 120.929",
+    "status": "COMPLETED",
+    "priority": "HIGH",
+    "assigned_to": "Tech_Juan",
+    "proof_url": "/uploads/1780067048401-1000008179.mp4"
+  },
+  {
+    "ticket_id": "TKT-4052-5482",
+    "site_id": "SITE-101",
+    "site_name": "Alpha Tower",
+    "locality": "Meycauayan",
+    "address": "Malhacan Road",
+    "coordinates": "14.735, 120.961",
+    "status": "COMPLETED",
+    "priority": "HIGH",
+    "assigned_to": "Tech_Juan",
+    "proof_url": "/uploads/1780193956781-1000008203.jpg"
+  },
+  {
+    "ticket_id": "TKT-4052-4886",
+    "site_id": "SITE-102",
+    "site_name": "Beta Hub",
+    "locality": "Marilao",
+    "address": "McArthur Highway",
+    "coordinates": "14.755, 120.958",
+    "status": "COMPLETED",
+    "priority": "MEDIUM",
+    "assigned_to": "Tech_Juan",
+    "proof_url": "/uploads/1780196671516-1000008208.jpg"
+  },
+  {
+    "ticket_id": "TKT-4052-3503",
+    "site_id": "SITE-103",
+    "site_name": "Gamma Station",
+    "locality": "Bocaue",
+    "address": "Gov Halili Ave",
+    "coordinates": "14.792, 120.929",
+    "status": "COMPLETED",
+    "priority": "HIGH",
+    "assigned_to": "Tech_Juan",
+    "proof_url": [
+      "/uploads/1780205206812-1000008208.jpg",
+      "/uploads/1780205207359-1000008206.jpg",
+      "/uploads/1780205207634-1000008203.jpg",
+      "/uploads/1780205207701-1000008200.jpg",
+      "/uploads/1780205207740-1000008205.jpg"
+    ]
+  },
+  {
+    "ticket_id": "TKT-4052-8417",
+    "site_id": "SITE-104",
+    "site_name": "Delta Store",
+    "locality": "Malolos",
+    "address": "Paseo del Congreso",
+    "coordinates": "14.843, 120.811",
+    "status": "COMPLETED",
+    "priority": "LOW",
+    "assigned_to": "Tech_Juan",
+    "proof_url": [
+      "/uploads/1780491450212-1000008278.jpg",
+      "/uploads/1780491450793-1000008275.jpg",
+      "/uploads/1780491450817-1000008277.jpg"
+    ]
+  },
+  {
+    "ticket_id": "TKT-8302-7354",
+    "site_id": "SITE-101",
+    "site_name": "Alpha Tower",
+    "locality": "Meycauayan",
+    "address": "Malhacan Road",
+    "coordinates": "14.735, 120.961",
+    "status": "COMPLETED",
+    "priority": "HIGH",
+    "assigned_to": "Tech_Juan",
+    "proof_url": [
+      "/uploads/1780491642921-1000008274.jpg",
+      "/uploads/1780491643215-1000008271.jpg",
+      "/uploads/1780491643316-1000008272.jpg",
+      "/uploads/1780491643387-1000008270.jpg"
+    ]
+  },
+  {
+    "ticket_id": "TKT-8303-5952",
+    "site_id": "SITE-102",
+    "site_name": "Beta Hub",
+    "locality": "Marilao",
+    "address": "McArthur Highway",
+    "coordinates": "14.755, 120.958",
+    "status": "OPEN",
+    "priority": "MEDIUM",
+    "assigned_to": null,
+    "proof_url": []
+  },
+  {
+    "ticket_id": "TKT-8303-6376",
+    "site_id": "SITE-103",
+    "site_name": "Gamma Station",
+    "locality": "Bocaue",
+    "address": "Gov Halili Ave",
+    "coordinates": "14.792, 120.929",
+    "status": "OPEN",
+    "priority": "HIGH",
+    "assigned_to": null,
+    "proof_url": []
+  },
+  {
+    "ticket_id": "TKT-8303-8212",
+    "site_id": "SITE-104",
+    "site_name": "Delta Store",
+    "locality": "Malolos",
+    "address": "Paseo del Congreso",
+    "coordinates": "14.843, 120.811",
+    "status": "OPEN",
+    "priority": "LOW",
+    "assigned_to": null,
+    "proof_url": []
+  }
+]
