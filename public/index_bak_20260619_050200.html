@@ -231,10 +231,8 @@ button{cursor:pointer}
 .search-inner svg{flex-shrink:0;color:var(--tx3)}
 .search-inner input{flex:1;border:none;background:transparent;font-size:13.5px;color:var(--tx);outline:none;min-width:0}
 .search-inner input::placeholder{color:var(--tx3)}
-.filter-btn{width:30px;height:30px;border-radius:10px;background:var(--primary);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .22s cubic-bezier(.34,1.4,.64,1)}
+.filter-btn{width:30px;height:30px;border-radius:10px;background:var(--primary);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .filter-btn:active{transform:scale(.9)}
-.filter-btn.locating{background:var(--teal);animation:spin .9s linear infinite}
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 .segment-sticky{position:sticky;z-index:54;background:rgba(255,255,255,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:10px 16px 8px;flex-shrink:0}
 .segment{display:flex;background:var(--bg);border:1.5px solid var(--bd);border-radius:16px;padding:4px;gap:2px}
@@ -337,16 +335,6 @@ button{cursor:pointer}
 .tc-meta span{display:flex;align-items:center;gap:4px}
 .tc-meta .dvd{width:3px;height:3px;border-radius:50%;background:var(--bd2);flex-shrink:0}
 .tc-addr{font-size:.72rem;color:var(--tx3);margin-top:4px;line-height:1.4}
-.tc-distance{display:flex;align-items:center;gap:4px;font-size:.7rem;color:var(--tx3);margin-top:5px;font-weight:600;letter-spacing:.01em}
-.tc-distance svg{flex-shrink:0;opacity:.75}
-.tc-distance.near{color:var(--teal-dk)}
-
-.geo-banner{display:flex;align-items:flex-start;gap:10px;background:var(--amber-lt);border:1px solid var(--amber-bd);border-radius:16px;padding:12px 14px;margin-bottom:14px;font-size:.78rem;color:var(--amber-dk);line-height:1.5}
-.geo-banner svg{flex-shrink:0;margin-top:1px}
-.geo-banner .gb-act{background:none;border:none;color:var(--amber-dk);font-weight:700;text-decoration:underline;cursor:pointer;padding:0;font-size:.78rem;font-family:var(--ff)}
-.sort-pill{display:inline-flex;align-items:center;gap:5px;font-size:.66rem;font-weight:700;color:var(--tx2);background:var(--srf2);border:1px solid var(--bd);border-radius:20px;padding:3px 10px;letter-spacing:.02em;margin-left:auto}
-.sort-pill svg{flex-shrink:0}
-.sort-pill.live{color:var(--teal-dk);background:var(--teal-lt);border-color:#99F0E4}
 .tc-callout{margin-top:12px;padding:11px 14px;border-radius:14px;font-size:.75rem;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
 .tc-callout.canc{background:var(--violet-lt);border:1px solid var(--violet-bd);color:var(--violet-dk)}
 .tc-callout.proof{background:var(--green-lt);border:1px solid var(--green-bd);color:var(--green-dk);align-items:center}
@@ -644,7 +632,7 @@ SITE-202,Hub Beta,Valenzuela,McArthur Hwy,14.70 120.97,MEDIUM"></textarea>
     <div class="search-inner">
       <span id="ico-srch"></span>
       <input class="srchinp-app" id="open-search" type="search" placeholder="Search by site, location, or address…" oninput="filterOpen(this.value)" style="border:none;background:transparent;flex:1;outline:none;font-size:13.5px;color:var(--tx)">
-      <button class="filter-btn" id="ico-filter-btn" onclick="manualGeoRefresh()"></button>
+      <button class="filter-btn" id="ico-filter-btn"></button>
     </div>
   </div>
 
@@ -658,11 +646,7 @@ SITE-202,Hub Beta,Valenzuela,McArthur Hwy,14.70 120.97,MEDIUM"></textarea>
 
   <div class="app-scroll">
     <div id="tp-open-panel" class="tpanel on">
-      <div class="section-label" id="open-label">
-        <span id="open-label-text">Open Jobs</span>
-        <span class="sort-pill" id="sort-pill" style="display:none"></span>
-      </div>
-      <div id="geo-banner-slot"></div>
+      <div class="section-label" id="open-label">Open Jobs</div>
       <div id="open-list"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div>
     </div>
     <div id="tp-mine" class="tpanel"><div class="section-label">My On-Going Jobs</div><div id="mine-list"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div></div>
@@ -759,7 +743,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('m-hd').prepend(icEl('ban',20));
   document.getElementById('adm-err').prepend(icEl('x',13));
   document.getElementById('tch-err').prepend(icEl('x',13));
-  document.getElementById('ico-filter-btn').innerHTML=ic('pin',14);
+  document.getElementById('ico-filter-btn').innerHTML=ic('filter',13);
   document.getElementById('bell-btn').innerHTML=ic('bell',19)+'<span class="nbadge">3</span>';
   document.getElementById('navico-open').innerHTML=ic('folder',21);
   document.getElementById('navico-tasks').innerHTML=ic('clipboard',21);
@@ -768,139 +752,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[];
-
-/* ══════════════════════════════════════════════════════════════════════
-   GEO / PROXIMITY ENGINE
-   Self-contained module: distance math, geolocation acquisition with
-   permission handling, and task annotation/sorting. Kept separate from
-   render logic so it can later move server-side (Supabase/PostGIS) or
-   gain radius filters, zones, and alternate sort modes without touching
-   the rest of the app.
-══════════════════════════════════════════════════════════════════════ */
-const GeoEngine=(()=>{
-  const SIGNIFICANT_MOVE_M=300;      // re-sort if tech moves >300m
-  const WATCH_OPTS={enableHighAccuracy:true,maximumAge:15000,timeout:10000};
-
-  let coords=null;                   // {lat,lng,accuracy} | null
-  let status='idle';                 // idle | locating | granted | denied | unsupported | error
-  let watchId=null;
-  let listeners=[];                  // fns called on status/coords change
-
-  function onChange(fn){listeners.push(fn);}
-  function emit(){listeners.forEach(fn=>{try{fn({status,coords});}catch(e){}});}
-
-  /** Haversine great-circle distance in km between two {lat,lng} points. */
-  function distanceKm(a,b){
-    if(!a||!b)return null;
-    const R=6371;
-    const dLat=toRad(b.lat-a.lat),dLng=toRad(b.lng-a.lng);
-    const s=Math.sin(dLat/2)**2+Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
-    return R*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));
-  }
-  function toRad(deg){return deg*Math.PI/180;}
-
-  /** Parses the app's "lat, lng" coordinate string into {lat,lng}. */
-  function parseCoords(str){
-    if(!str)return null;
-    const parts=String(str).split(',').map(s=>parseFloat(s.trim()));
-    if(parts.length<2||parts.some(isNaN))return null;
-    return{lat:parts[0],lng:parts[1]};
-  }
-
-  function hasMovedSignificantly(prev,next){
-    if(!prev)return true;
-    return distanceKm(prev,next)*1000>SIGNIFICANT_MOVE_M;
-  }
-
-  /** One-shot location request — requests permission only on call, not on load. */
-  function locate(){
-    return new Promise(resolve=>{
-      if(!('geolocation' in navigator)){
-        status='unsupported';emit();resolve(null);return;
-      }
-      status='locating';emit();
-      navigator.geolocation.getCurrentPosition(
-        pos=>{
-          const next={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy};
-          coords=next;status='granted';emit();resolve(next);
-        },
-        err=>{
-          status=err.code===err.PERMISSION_DENIED?'denied':'error';
-          coords=null;emit();resolve(null);
-        },
-        WATCH_OPTS
-      );
-    });
-  }
-
-  /** Starts a background watch; only re-emits when the tech moves a meaningful distance. */
-  function startWatch(){
-    if(!('geolocation' in navigator)||watchId!==null)return;
-    watchId=navigator.geolocation.watchPosition(
-      pos=>{
-        const next={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy};
-        if(hasMovedSignificantly(coords,next)){coords=next;status='granted';emit();}
-      },
-      err=>{ /* keep last known coords on transient watch errors */ },
-      WATCH_OPTS
-    );
-  }
-  function stopWatch(){if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}}
-
-  /**
-   * Annotates each task with `.distanceKm` (number|null) and returns a
-   * NEW array sorted nearest-first. Tasks without parsable coordinates,
-   * or when tech location is unavailable, sort to the end and keep
-   * their original relative order (stable fallback).
-   */
-  function annotateAndSort(tasks){
-    if(!coords)return tasks.map(t=>({...t,distanceKm:null}));
-    return tasks
-      .map(t=>{
-        const tc=parseCoords(t.coordinates);
-        const d=tc?distanceKm(coords,tc):null;
-        return{...t,distanceKm:d};
-      })
-      .sort((a,b)=>{
-        if(a.distanceKm==null&&b.distanceKm==null)return 0;
-        if(a.distanceKm==null)return 1;
-        if(b.distanceKm==null)return -1;
-        return a.distanceKm-b.distanceKm;
-      });
-  }
-
-  /** Future scaffolding: filter to tasks within a radius (km). Not yet wired into UI. */
-  function withinRadius(tasks,radiusKm){
-    return tasks.filter(t=>t.distanceKm!=null&&t.distanceKm<=radiusKm);
-  }
-
-  function formatDistance(km){
-    if(km==null)return null;
-    if(km<1)return Math.round(km*1000)+' m away';
-    return km.toFixed(1)+' km away';
-  }
-
-  return{
-    onChange,locate,startWatch,stopWatch,annotateAndSort,withinRadius,
-    formatDistance,distanceKm,parseCoords,
-    get status(){return status;},
-    get coords(){return coords;},
-  };
-})();
-
-/* Future sort-mode scaffolding (proximity is the only active mode today).
-   Wiring a UI toggle later just needs to call setOpenSortMode() then re-render. */
-let openSortMode='proximity'; // 'proximity' | 'newest' | 'priority'
-function setOpenSortMode(mode){openSortMode=mode;renderOpen(applyOpenSort(openCache));}
-function applyOpenSort(tasks){
-  if(openSortMode==='proximity')return GeoEngine.annotateAndSort(tasks);
-  if(openSortMode==='priority'){
-    const rank={HIGH:0,MEDIUM:1,LOW:2};
-    return [...tasks].sort((a,b)=>(rank[a.priority]??9)-(rank[b.priority]??9));
-  }
-  return tasks; // 'newest' relies on server-provided order
-}
-
 
 function go(id){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
@@ -1090,11 +941,8 @@ const navHide=(()=>{
 
 function logout(){
   CU=null;CR=null;
-  GeoEngine.stopWatch();
   ['adm-u','adm-p','tch-pin','adm-dn-in','adm-un-in','adm-pw-in','adm-cp-in','tch-dn-in','tch-pi-in','tch-cp-in']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  const slot=document.getElementById('geo-banner-slot');if(slot)slot.innerHTML='';
-  const pill=document.getElementById('sort-pill');if(pill)pill.style.display='none';
   showAdmLogin();showTchLogin();
   document.getElementById('adm-err').classList.remove('show');
   document.getElementById('tch-err').classList.remove('show');
@@ -1225,85 +1073,20 @@ async function loadOpen(){
   setLoad('open-list');
   try{const r=await fetch('/api/tickets/open');if(!r.ok)throw 0;openCache=await r.json();}
   catch(e){openCache=mockT().filter(t=>t.status==='OPEN');}
-
-  // Ask for location only when the OPEN tab actually needs it (not on app boot).
-  if(GeoEngine.status==='idle'){
-    await GeoEngine.locate();
-    GeoEngine.startWatch(); // background watch -> auto re-sort on significant movement
-    GeoEngine.onChange(({status})=>{
-      if(status==='granted')renderOpen(applyOpenSort(openCache));
-      updateGeoUI(status);
-    });
-  }
-
-  renderOpen(applyOpenSort(openCache));
-  updateOpenLabel();
-  updateGeoUI(GeoEngine.status);
+  renderOpen(openCache);
+  document.getElementById('open-label').textContent=openCache.length+' Available Job'+(openCache.length===1?'':'s');
 }
-
-function updateOpenLabel(){
-  const n=openCache.length;
-  document.getElementById('open-label-text').textContent=n+' Available Job'+(n===1?'':'s');
-  const pill=document.getElementById('sort-pill');
-  if(openSortMode==='proximity'&&GeoEngine.status==='granted'){
-    pill.style.display='inline-flex';pill.className='sort-pill live';
-    pill.innerHTML=ic('pin',11)+' Nearest first';
-  } else if(openSortMode==='proximity'){
-    pill.style.display='inline-flex';pill.className='sort-pill';
-    pill.innerHTML=ic('tag',11)+' Default order';
-  } else {
-    pill.style.display='none';
-  }
-}
-
-/** Shows/clears the "location access needed" banner based on geolocation status. */
-function updateGeoUI(status){
-  const slot=document.getElementById('geo-banner-slot');
-  if(status==='denied'||status==='unsupported'||status==='error'){
-    slot.innerHTML=`<div class="geo-banner">${ic('alert',16)}<span>Location access is required to prioritize nearby tasks. Showing tasks in default order. <button class="gb-act" onclick="retryGeo()">Try again</button></span></div>`;
-  } else {
-    slot.innerHTML='';
-  }
-  updateOpenLabel();
-}
-function retryGeo(){GeoEngine.locate().then(()=>{renderOpen(applyOpenSort(openCache));updateGeoUI(GeoEngine.status);});}
-
-function manualGeoRefresh(){
-  const btn=document.getElementById('ico-filter-btn');
-  btn.classList.add('locating');
-  btn.innerHTML=ic('refresh',14);
-  btn.disabled=true;
-  GeoEngine.locate().then(()=>{
-    renderOpen(applyOpenSort(openCache));
-    updateGeoUI(GeoEngine.status);
-    btn.classList.remove('locating');
-    btn.innerHTML=ic('pin',14);
-    btn.disabled=false;
-    toast(GeoEngine.status==='granted'?'Location updated — tasks re-sorted.':'Could not get location.', GeoEngine.status==='granted'?'ok':'err');
-  });
-}
-
-function filterOpen(q){
-  const base=applyOpenSort(openCache);
-  if(!q.trim()){renderOpen(base);return;}
-  const ql=q.toLowerCase();
-  renderOpen(base.filter(t=>(t.site_name+t.locality+t.address).toLowerCase().includes(ql)));
-}
-
+function filterOpen(q){if(!q.trim()){renderOpen(openCache);return;}const ql=q.toLowerCase();renderOpen(openCache.filter(t=>(t.site_name+t.locality+t.address).toLowerCase().includes(ql)));}
 function renderOpen(tix){
   const c=document.getElementById('open-list');
   if(!tix.length){c.innerHTML=emptyState(ic('check',22),openCache.length?'No results match your search.':'No open jobs — all clear!','Open jobs will appear here after batch upload.');return;}
-  c.innerHTML=tix.map((t,i)=>{
-    const distLabel=GeoEngine.formatDistance(t.distanceKm);
-    return `<div class="tc ${t.priority} fade-up" id="oc-${t.ticket_id}" style="animation-delay:${Math.min(i,5)*0.04}s"><div class="tc-strip"></div><div class="tc-body">
+  c.innerHTML=tix.map((t,i)=>`<div class="tc ${t.priority} fade-up" id="oc-${t.ticket_id}" style="animation-delay:${Math.min(i,5)*0.04}s"><div class="tc-strip"></div><div class="tc-body">
     <div class="tc-r1"><span class="tc-id c-blue">${t.ticket_id}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
     <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span></div>
     <div class="tc-addr">${t.address}</div>
-    ${distLabel?`<div class="tc-distance${t.distanceKm<2?' near':''}">${ic('nav',11)} ${distLabel}</div>`:''}
     <div class="tc-acts"><button class="btn claim" id="cbtn-${t.ticket_id}" onclick="claimJob('${t.ticket_id}')">${ic('check',14)} Claim Job</button><a class="btn nav" href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank">${ic('nav',14)} Navigate</a></div>
-  </div></div>`;
-  }).join('');
+  </div></div>`).join('');
 }
 
 async function loadMine(){
