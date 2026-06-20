@@ -32,6 +32,25 @@ const CHAT_ID   = process.env.TELEGRAM_CHAT_ID;
 // ─── Local JSON DB (fallback when Supabase is not configured) ───────────────
 const DB_PATH = path.join(__dirname, 'database.json');
 
+// NOTE: readDB/writeDB were referenced throughout this file but never
+// defined, so the no-Supabase fallback path would crash. Added here so the
+// local-JSON mode (and the new sync engine's local fallback) actually works.
+function readDB() {
+    if (!fs.existsSync(DB_PATH)) {
+        return { users: [], tickets: [], task_batches: [], task_sync_logs: [] };
+    }
+    const raw = fs.readFileSync(DB_PATH, 'utf8');
+    const db  = raw.trim() ? JSON.parse(raw) : {};
+    db.users           = db.users           || [];
+    db.tickets         = db.tickets         || [];
+    db.task_batches    = db.task_batches    || [];
+    db.task_sync_logs  = db.task_sync_logs  || [];
+    return db;
+}
+function writeDB(db) {
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+}
+
 // ─── Supabase helper: get all tickets ─────────────────
 async function getAllTickets() {
     const { data, error } = await supabase
@@ -53,8 +72,15 @@ async function getUserByTechCode(techCode) {
     return data;
 }
 
-function genTicketId() {
-    return `TKT-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`;
+// ─── Ticket NUMBER generation (claim-time only — see sync engine below) ────
+// Local-mode fallback: a simple in-file sequence. Supabase mode uses the
+// generate_ticket_number() Postgres function (atomic, race-free — see
+// supabase_migration.sql) via supabase.rpc().
+function genTicketNumberLocal(db) {
+    db.meta = db.meta || {};
+    db.meta.ticketSeq = (db.meta.ticketSeq || 0) + 1;
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    return `FO-${today}-${String(db.meta.ticketSeq).padStart(6, '0')}`;
 }
 
 // Escape special HTML characters so user-typed content (notes, reasons, names)
@@ -72,6 +98,224 @@ function generateId() {
         const r = Math.random() * 16 | 0;
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  FIELD OPS TASK SYNCHRONIZATION ENGINE
+//  -----------------------------------------------------------------------
+//  Operates on the existing `tickets` table — there is no separate "tasks"
+//  table, because tickets already are the tasks, and every other feature
+//  (claim, submit, cancel, reopen, geolocation, Telegram) is built around
+//  that table. Status mapping used throughout this engine:
+//
+//      OPEN      -> OPEN        unclaimed, visible to all technicians
+//      CLAIMED   -> ON_GOING    technician accepted the job
+//      VISITED   -> COMPLETED   technician submitted proof of work
+//      RECOVERED -> RECOVERED   site vanished from a FULL_SNAPSHOT upload
+//
+//  CANCELLED is pre-existing, unrelated functionality and is never touched
+//  by this engine.
+//
+//  RULES IMPLEMENTED (see SQL migration for schema):
+//   - Never DELETE. Every state change is an UPDATE or a guarded INSERT.
+//   - Priority escalates one rung at a time: LOW -> MEDIUM -> HIGH -> CRITICAL,
+//     capped at CRITICAL. A brand-new site starts at MEDIUM unless the
+//     upload row explicitly specifies a priority.
+//   - FULL_SNAPSHOT: any currently-active (OPEN/ON_GOING) site missing from
+//     the upload is recovered. OPEN -> RECOVERED. ON_GOING (claimed) keeps
+//     its status but is flagged recovered_while_claimed so it stays visible
+//     in My Jobs with a warning, exactly as claimed tasks must never vanish.
+//   - INCREMENTAL_ESCALATION: only escalates sites that are already active
+//     and present in this file. Sites missing from the file are NEVER
+//     touched, and sites that aren't already tracked are NOT created — this
+//     upload type is for re-prioritizing known sites, not reporting new ones.
+//   - upload_type is always required from the caller and is never inferred
+//     from row count or file size.
+// ═══════════════════════════════════════════════════════════════════════════
+const PRIORITY_LADDER          = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const DEFAULT_NEW_SITE_PRIORITY = 'MEDIUM';
+
+function escalatePriority(current) {
+    const idx  = PRIORITY_LADDER.indexOf(String(current || 'LOW').toUpperCase());
+    const next = idx === -1 ? 1 : Math.min(idx + 1, PRIORITY_LADDER.length - 1);
+    return PRIORITY_LADDER[next];
+}
+
+function normalizeUploadType(t) {
+    const v = String(t || '').toUpperCase();
+    return (v === 'FULL_SNAPSHOT' || v === 'INCREMENTAL_ESCALATION') ? v : null;
+}
+
+async function runTaskSync({ sites, upload_type, batch_name, uploaded_by }) {
+    const stats = { created: 0, escalated: 0, recovered: 0, skipped: 0, invalid: 0 };
+    const nowIso = () => new Date().toISOString();
+
+    // ── Supabase mode ────────────────────────────────────────────────────
+    if (supabase) {
+        const { data: batchRow, error: batchErr } = await supabase
+            .from('task_batches')
+            .insert({
+                batch_name,
+                upload_type,
+                uploaded_by: uploaded_by || null,
+                total_tasks: sites.length
+            })
+            .select('id')
+            .single();
+        if (batchErr) throw batchErr;
+        const batchId = batchRow.id;
+
+        // Walk uploaded rows IN ORDER. A site_id repeated within the same
+        // file is treated as a separate sighting (this preserves the app's
+        // original "duplicate row in one batch escalates priority" demo
+        // behavior used by the Quick Simulation button).
+        for (const site of sites) {
+            if (!site || !site.site_id || !site.site_name) { stats.invalid++; continue; }
+            const siteId = String(site.site_id).trim();
+
+            const { data: existing, error: findErr } = await supabase
+                .from('tickets')
+                .select('id, priority, recurrence_count')
+                .eq('site_id', siteId)
+                .in('status', ['OPEN', 'ON_GOING'])
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (findErr) throw findErr;
+
+            if (existing) {
+                const { error: updErr } = await supabase.from('tickets').update({
+                    priority:          escalatePriority(existing.priority),
+                    recurrence_count:  (existing.recurrence_count || 1) + 1,
+                    last_seen_batch_id: batchId,
+                    updated_at:        nowIso()
+                }).eq('id', existing.id);
+                if (updErr) throw updErr;
+                stats.escalated++;
+            } else {
+                if (upload_type === 'INCREMENTAL_ESCALATION') { stats.skipped++; continue; }
+                const { error: insErr } = await supabase.from('tickets').insert({
+                    site_id:     siteId,
+                    site_name:   site.site_name,
+                    locality:    site.locality    || '',
+                    address:     site.address     || '',
+                    coordinates: site.coordinates || '',
+                    status:      'OPEN',
+                    priority:    (site.priority || DEFAULT_NEW_SITE_PRIORITY).toUpperCase(),
+                    ticket_id:   null, // ticket NUMBER only exists from claim onward
+                    recurrence_count:   1,
+                    first_seen_batch_id: batchId,
+                    last_seen_batch_id:  batchId
+                });
+                if (insErr) throw insErr;
+                stats.created++;
+            }
+        }
+
+        // Recovery sweep — FULL_SNAPSHOT only. "Missing sites must NOT be
+        // touched" for INCREMENTAL_ESCALATION, so this block is skipped
+        // entirely for that upload type.
+        if (upload_type === 'FULL_SNAPSHOT') {
+            const incomingIds = new Set(
+                sites.filter(s => s && s.site_id).map(s => String(s.site_id).trim())
+            );
+            const { data: active, error: activeErr } = await supabase
+                .from('tickets').select('id, site_id, status').in('status', ['OPEN', 'ON_GOING']);
+            if (activeErr) throw activeErr;
+
+            const toRecoverOpen = [], toFlagClaimed = [];
+            for (const t of (active || [])) {
+                if (incomingIds.has(String(t.site_id).trim())) continue; // still down — untouched
+                if (t.status === 'OPEN') toRecoverOpen.push(t.id);
+                else toFlagClaimed.push(t.id); // ON_GOING (claimed) — never removed
+            }
+
+            if (toRecoverOpen.length) {
+                const { error } = await supabase.from('tickets').update({
+                    status: 'RECOVERED', recovered_at: nowIso(), last_seen_batch_id: batchId, updated_at: nowIso()
+                }).in('id', toRecoverOpen);
+                if (error) throw error;
+                stats.recovered += toRecoverOpen.length;
+            }
+            if (toFlagClaimed.length) {
+                // Status intentionally NOT changed — stays ON_GOING (CLAIMED)
+                // so it remains visible in My Jobs, per spec.
+                const { error } = await supabase.from('tickets').update({
+                    recovered_while_claimed: true, recovered_at: nowIso(), updated_at: nowIso()
+                }).in('id', toFlagClaimed);
+                if (error) throw error;
+                stats.recovered += toFlagClaimed.length;
+            }
+        }
+
+        const { error: logErr } = await supabase.from('task_sync_logs').insert({
+            batch_id:        batchId,
+            added_count:     stats.created,
+            updated_count:   stats.escalated,
+            recovered_count: stats.recovered,
+            skipped_count:   stats.skipped
+        });
+        if (logErr) throw logErr;
+
+        return { batchId, stats };
+    }
+
+    // ── Local JSON fallback (mirrors the Supabase logic above) ────────────
+    const db = readDB();
+    const batchId = generateId();
+    db.task_batches.push({
+        id: batchId, batch_name, upload_type, uploaded_by: uploaded_by || null,
+        uploaded_at: nowIso(), total_tasks: sites.length
+    });
+
+    for (const site of sites) {
+        if (!site || !site.site_id || !site.site_name) { stats.invalid++; continue; }
+        const siteId  = String(site.site_id).trim();
+        const existing = db.tickets.find(t => t.site_id === siteId && ['OPEN', 'ON_GOING'].includes(t.status));
+        if (existing) {
+            existing.priority         = escalatePriority(existing.priority);
+            existing.recurrence_count = (existing.recurrence_count || 1) + 1;
+            existing.last_seen_batch_id = batchId;
+            existing.updated_at       = nowIso();
+            stats.escalated++;
+        } else {
+            if (upload_type === 'INCREMENTAL_ESCALATION') { stats.skipped++; continue; }
+            db.tickets.push({
+                id: generateId(), ticket_id: null,
+                site_id: siteId, site_name: site.site_name,
+                locality: site.locality || '', address: site.address || '', coordinates: site.coordinates || '',
+                status: 'OPEN', priority: (site.priority || DEFAULT_NEW_SITE_PRIORITY).toUpperCase(),
+                assigned_to: null, proof_url: [], notes: '',
+                cancellation_reason: null, cancelled_by: null,
+                recurrence_count: 1, recovered_at: null, recovered_while_claimed: false,
+                first_seen_batch_id: batchId, last_seen_batch_id: batchId,
+                created_at: nowIso(), updated_at: nowIso()
+            });
+            stats.created++;
+        }
+    }
+
+    if (upload_type === 'FULL_SNAPSHOT') {
+        const incomingIds = new Set(sites.filter(s => s && s.site_id).map(s => String(s.site_id).trim()));
+        for (const t of db.tickets) {
+            if (!['OPEN', 'ON_GOING'].includes(t.status)) continue;
+            if (incomingIds.has(t.site_id)) continue;
+            if (t.status === 'OPEN') {
+                t.status = 'RECOVERED'; t.recovered_at = nowIso(); t.last_seen_batch_id = batchId;
+            } else {
+                t.recovered_while_claimed = true; t.recovered_at = nowIso();
+            }
+            stats.recovered++;
+        }
+    }
+
+    db.task_sync_logs.push({
+        id: generateId(), batch_id: batchId, added_count: stats.created,
+        updated_count: stats.escalated, recovered_count: stats.recovered,
+        skipped_count: stats.skipped, created_at: nowIso()
+    });
+    writeDB(db);
+    return { batchId, stats };
 }
 
 // ─── File Storage (multer) ──────────────────────────────────────────────────
@@ -398,42 +642,94 @@ app.get('/api/tickets/cancelled', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  GET /api/tickets/recovered — admin audit view
+//  Every site no longer active because it disappeared from the latest
+//  FULL_SNAPSHOT — whether it was unclaimed (status=RECOVERED) or already
+//  claimed by a technician (status stays ON_GOING, recovered_while_claimed
+//  = true). Combines both so admins have a single audit trail.
+// ═══════════════════════════════════════════════════════════════════════════
+app.get('/api/tickets/recovered', async (req, res) => {
+    try {
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('tickets')
+                .select('*')
+                .or('status.eq.RECOVERED,recovered_while_claimed.eq.true')
+                .order('recovered_at', { ascending: false });
+            if (error) throw error;
+            return res.json(data);
+        }
+        const { tickets } = readDB();
+        res.json(
+            tickets
+                .filter(t => t.status === 'RECOVERED' || t.recovered_while_claimed)
+                .sort((a, b) => new Date(b.recovered_at || 0) - new Date(a.recovered_at || 0))
+        );
+    } catch (err) {
+        console.error('[GET /recovered]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  POST /api/tickets/claim
-//  body: { ticket_id, technician_id }
+//  body: { id, technician_id }
+//
+//  Looked up by the row's internal `id`, NOT the ticket number — an
+//  unclaimed (OPEN) task has ticket_id = NULL right up until this call.
+//  The ticket number is minted here, and ONLY here. If one already exists
+//  (e.g. a retried request) it is reused — never replaced, never duplicated.
 // ═══════════════════════════════════════════════════════════════════════════
 app.post('/api/tickets/claim', async (req, res) => {
-    const { ticket_id, technician_id } = req.body;
-    if (!ticket_id || !technician_id)
-        return res.status(400).json({ error: 'Missing ticket_id or technician_id' });
+    // Accept `id` (current) or a legacy `ticket_id` body field with the same
+    // value, in case an older cached client is still in the field during a
+    // deploy rollout. Either way this must be the row's internal id.
+    const id = req.body.id || req.body.ticket_id;
+    const { technician_id } = req.body;
+    if (!id || !technician_id)
+        return res.status(400).json({ error: 'Missing id or technician_id' });
     try {
         if (supabase) {
             const user = await getUserByTechCode(technician_id);
 
-            // Verify the ticket is still OPEN before claiming
-            const { data: existing } = await supabase
-                .from('tickets').select('status').eq('ticket_id', ticket_id).single();
+            const { data: existing, error: findErr } = await supabase
+                .from('tickets').select('id, status, ticket_id').eq('id', id).maybeSingle();
+            if (findErr) throw findErr;
             if (!existing || existing.status !== 'OPEN')
                 return res.status(409).json({ error: 'Ticket is no longer available' });
+
+            // Immutable ticket number — generate once, on claim, never again
+            let ticketNumber = existing.ticket_id;
+            if (!ticketNumber) {
+                const { data: generated, error: genErr } = await supabase.rpc('generate_ticket_number');
+                if (genErr) throw genErr;
+                ticketNumber = generated;
+            }
 
             const { error } = await supabase.from('tickets').update({
                 status:      'ON_GOING',
                 assigned_to: user.id,
-                claimed_at:  new Date().toISOString()
-            }).eq('ticket_id', ticket_id);
+                claimed_at:  new Date().toISOString(),
+                ticket_id:   ticketNumber
+            }).eq('id', id);
             if (error) throw error;
-            return res.json({ message: `Ticket ${ticket_id} claimed by ${user.display_name}` });
+            return res.json({
+                message:   `Ticket ${ticketNumber} claimed by ${user.display_name}`,
+                ticket_id: ticketNumber
+            });
         }
         // Local fallback
         const db = readDB();
-        const t = db.tickets.find(x => x.ticket_id === ticket_id);
+        const t  = db.tickets.find(x => x.id === id);
         if (!t) return res.status(404).json({ error: 'Ticket not found' });
         if (t.status !== 'OPEN')
             return res.status(409).json({ error: 'Ticket is no longer available' });
+        if (!t.ticket_id) t.ticket_id = genTicketNumberLocal(db);
         t.status      = 'ON_GOING';
         t.assigned_to = technician_id;
         t.claimed_at  = new Date().toISOString();
         writeDB(db);
-        res.json({ message: `Ticket ${ticket_id} claimed by ${technician_id}` });
+        res.json({ message: `Ticket ${t.ticket_id} claimed by ${technician_id}`, ticket_id: t.ticket_id });
     } catch (err) {
         console.error('[POST /claim]', err.message);
         res.status(500).json({ error: err.message });
@@ -442,21 +738,28 @@ app.post('/api/tickets/claim', async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  POST /api/tickets/submit  (multipart/form-data)
-//  fields : ticket_id, technician_id, notes
+//  fields : id, technician_id, notes
 //  files  : proof[] (max 5, max 50 MB each)
 // ═══════════════════════════════════════════════════════════════════════════
 app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
-    const { ticket_id, technician_id, notes } = req.body;
-    if (!ticket_id || !technician_id || !req.files?.length)
-        return res.status(400).json({ error: 'Missing ticket_id, technician_id, or proof files' });
+    const id = req.body.id || req.body.ticket_id;
+    const { technician_id, notes } = req.body;
+    if (!id || !technician_id || !req.files?.length)
+        return res.status(400).json({ error: 'Missing id, technician_id, or proof files' });
     try {
-        let proofUrls = [];
+        let proofUrls    = [];
+        let ticketNumber = id; // fallback label for Telegram/storage if lookup is thin
 
         if (supabase) {
             const user = await getUserByTechCode(technician_id);
 
+            const { data: tktRow } = await supabase
+                .from('tickets').select('ticket_id').eq('id', id).maybeSingle();
+            if (!tktRow) return res.status(404).json({ error: 'Ticket not found' });
+            ticketNumber = tktRow.ticket_id || ticketNumber;
+
             for (const file of req.files) {
-                const storagePath = `${ticket_id}/${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
+                const storagePath = `${ticketNumber}/${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
                 const fileBuffer  = fs.readFileSync(file.path);
 
                 const { error: upErr } = await supabase.storage
@@ -471,18 +774,14 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
 
                 proofUrls.push(publicUrl);
 
-                // Record proof metadata
-                const { data: tktRow } = await supabase
-                    .from('tickets').select('id').eq('ticket_id', ticket_id).single();
-                if (tktRow) {
-                    await supabase.from('ticket_proofs').insert({
-                        ticket_id:   tktRow.id,
-                        file_url:    publicUrl,
-                        file_type:   file.mimetype.startsWith('video') ? 'video' : 'image',
-                        file_name:   file.originalname,
-                        uploaded_by: user.id
-                    });
-                }
+                // Record proof metadata — ticket_proofs.ticket_id references tickets.id
+                await supabase.from('ticket_proofs').insert({
+                    ticket_id:   id,
+                    file_url:    publicUrl,
+                    file_type:   file.mimetype.startsWith('video') ? 'video' : 'image',
+                    file_name:   file.originalname,
+                    uploaded_by: user.id
+                });
             }
 
             const { error } = await supabase.from('tickets').update({
@@ -490,15 +789,16 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
                 proof_url:    proofUrls,
                 notes:        notes || '',
                 completed_at: new Date().toISOString()
-            }).eq('ticket_id', ticket_id);
+            }).eq('id', id);
             if (error) throw error;
 
         } else {
             // Local fallback — store files in /uploads
             proofUrls = req.files.map(f => `/uploads/${f.filename}`);
             const db = readDB();
-            const t  = db.tickets.find(x => x.ticket_id === ticket_id);
+            const t  = db.tickets.find(x => x.id === id);
             if (!t) return res.status(404).json({ error: 'Ticket not found' });
+            ticketNumber   = t.ticket_id || ticketNumber;
             t.status       = 'COMPLETED';
             t.proof_url    = proofUrls;
             t.notes        = notes || '';
@@ -507,7 +807,7 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
         }
 
         // Send proof to Telegram (non-blocking)
-        sendTelegramProof(ticket_id, technician_id, notes, req.files).catch(() => {});
+        sendTelegramProof(ticketNumber, technician_id, notes, req.files).catch(() => {});
 
         res.json({ message: 'Job submitted and marked as Completed.' });
     } catch (err) {
@@ -518,28 +818,34 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  POST /api/tickets/cancel
-//  body: { ticket_id, cancelled_by, reason }
+//  body: { id, cancelled_by, reason }
 // ═══════════════════════════════════════════════════════════════════════════
 app.post('/api/tickets/cancel', async (req, res) => {
-    const { ticket_id, cancelled_by, reason } = req.body;
-    if (!ticket_id || !reason)
-        return res.status(400).json({ error: 'Missing ticket_id or reason' });
+    const id = req.body.id || req.body.ticket_id;
+    const { cancelled_by, reason } = req.body;
+    if (!id || !reason)
+        return res.status(400).json({ error: 'Missing id or reason' });
     try {
+        let ticketNumber = id;
         if (supabase) {
+            const { data: row } = await supabase.from('tickets').select('ticket_id').eq('id', id).maybeSingle();
+            ticketNumber = row?.ticket_id || ticketNumber;
+
             const { error } = await supabase.from('tickets').update({
                 status:               'CANCELLED',
                 cancellation_reason:  reason,
                 cancelled_by:         cancelled_by || 'unknown',
                 cancelled_at:         new Date().toISOString(),
                 assigned_to:          null
-            }).eq('ticket_id', ticket_id).in('status', ['OPEN', 'ON_GOING']);
+            }).eq('id', id).in('status', ['OPEN', 'ON_GOING']);
             if (error) throw error;
         } else {
             const db = readDB();
-            const t  = db.tickets.find(x => x.ticket_id === ticket_id);
+            const t  = db.tickets.find(x => x.id === id);
             if (!t) return res.status(404).json({ error: 'Ticket not found' });
             if (!['OPEN', 'ON_GOING'].includes(t.status))
                 return res.status(409).json({ error: 'Only OPEN or ON_GOING tickets can be cancelled' });
+            ticketNumber           = t.ticket_id || ticketNumber;
             t.status              = 'CANCELLED';
             t.cancellation_reason = reason;
             t.cancelled_by        = cancelled_by || 'unknown';
@@ -553,13 +859,13 @@ app.post('/api/tickets/cancel', async (req, res) => {
                 chat_id:    CHAT_ID,
                 parse_mode: 'HTML',
                 text: `🚫 <b>Job Cancelled</b>\n` +
-                      `🎫 Ticket: <code>${escapeHtml(ticket_id)}</code>\n` +
+                      `🎫 Ticket: <code>${escapeHtml(ticketNumber)}</code>\n` +
                       `👷 By: ${escapeHtml(cancelled_by || 'unknown')}\n` +
                       `📝 Reason: ${escapeHtml(reason)}`
             }).catch(e => console.warn('[Telegram] Cancel notification failed:', e.message));
         }
 
-        res.json({ message: `Ticket ${ticket_id} cancelled.` });
+        res.json({ message: `Ticket ${ticketNumber} cancelled.` });
     } catch (err) {
         console.error('[POST /cancel]', err.message);
         res.status(500).json({ error: err.message });
@@ -568,11 +874,11 @@ app.post('/api/tickets/cancel', async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  POST /api/tickets/reopen   (admin only)
-//  body: { ticket_id }
+//  body: { id }
 // ═══════════════════════════════════════════════════════════════════════════
 app.post('/api/tickets/reopen', async (req, res) => {
-    const { ticket_id } = req.body;
-    if (!ticket_id) return res.status(400).json({ error: 'Missing ticket_id' });
+    const id = req.body.id || req.body.ticket_id;
+    if (!id) return res.status(400).json({ error: 'Missing id' });
     try {
         if (supabase) {
             const { error } = await supabase.from('tickets').update({
@@ -582,11 +888,13 @@ app.post('/api/tickets/reopen', async (req, res) => {
                 cancelled_by:        null,
                 cancelled_at:        null,
                 claimed_at:          null
-            }).eq('ticket_id', ticket_id);
+                // ticket_id intentionally left untouched: ticket numbers are
+                // permanent and immutable once minted, even across reopen.
+            }).eq('id', id);
             if (error) throw error;
         } else {
             const db = readDB();
-            const t  = db.tickets.find(x => x.ticket_id === ticket_id);
+            const t  = db.tickets.find(x => x.id === id);
             if (!t) return res.status(404).json({ error: 'Ticket not found' });
             t.status              = 'OPEN';
             t.assigned_to         = null;
@@ -596,96 +904,59 @@ app.post('/api/tickets/reopen', async (req, res) => {
             t.claimed_at          = null;
             writeDB(db);
         }
-        res.json({ message: `Ticket ${ticket_id} re-opened as OPEN.` });
+        res.json({ message: `Ticket re-opened as OPEN.` });
     } catch (err) {
         console.error('[POST /reopen]', err.message);
         res.status(500).json({ error: err.message });
+
     }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  POST /api/admin/batch-upload
-//  body: { sites: [ { site_id, site_name, locality, address,
-//                     coordinates, priority } ] }
-//  Rules:
-//   - New site_id  → create OPEN ticket
-//   - Duplicate site_id (already OPEN) → escalate priority to HIGH
+//  body: { sites: [...], upload_type: 'FULL_SNAPSHOT' | 'INCREMENTAL_ESCALATION',
+//          batch_name?, uploaded_by? }
+//
+//  upload_type is MANDATORY and is never inferred from file size or row
+//  count — a one-site upload could mean either upload type, so the admin
+//  must always say which one this is.
+//
+//  FULL_SNAPSHOT          — this file is the complete list of currently-down
+//                            sites. Anything active but missing is recovered.
+//  INCREMENTAL_ESCALATION — this file only re-prioritizes the sites listed.
+//                            Everything else is left completely untouched.
 // ═══════════════════════════════════════════════════════════════════════════
 app.post('/api/admin/batch-upload', async (req, res) => {
-    const { sites } = req.body;
+    const { sites, upload_type, batch_name, uploaded_by } = req.body;
     if (!Array.isArray(sites) || !sites.length)
         return res.status(400).json({ error: 'sites array is required' });
 
-    let created = 0, escalated = 0, skipped = 0;
+    const normalizedType = normalizeUploadType(upload_type);
+    if (!normalizedType) {
+        return res.status(400).json({
+            error: 'upload_type is required and must be exactly "FULL_SNAPSHOT" or ' +
+                   '"INCREMENTAL_ESCALATION". It is never inferred from the file.'
+        });
+    }
 
     try {
-        for (const site of sites) {
-            if (!site.site_id || !site.site_name) { skipped++; continue; }
-            const priority = (site.priority || 'LOW').toUpperCase();
+        const { stats } = await runTaskSync({
+            sites,
+            upload_type: normalizedType,
+            batch_name:  batch_name || `Upload — ${new Date().toISOString()}`,
+            uploaded_by: uploaded_by || 'admin'
+        });
 
-            if (supabase) {
-                const { data: existing } = await supabase
-                    .from('tickets')
-                    .select('id, priority')
-                    .eq('site_id', site.site_id)
-                    .eq('status', 'OPEN')
-                    .maybeSingle();
-
-                if (existing) {
-                    if (existing.priority !== 'HIGH') {
-                        await supabase.from('tickets')
-                            .update({ priority: 'HIGH' }).eq('id', existing.id);
-                        escalated++;
-                    } else skipped++;
-                } else {
-                    const { error } = await supabase.from('tickets').insert({
-                        ticket_id:   genTicketId(),
-                        site_id:     site.site_id,
-                        site_name:   site.site_name,
-                        locality:    site.locality    || '',
-                        address:     site.address     || '',
-                        coordinates: site.coordinates || '',
-                        status:      'OPEN',
-                        priority
-                    });
-                    if (!error) created++;
-                    else { console.error('Insert error:', error.message); skipped++; }
-                }
-            } else {
-                // Local fallback
-                const db       = readDB();
-                const existing = db.tickets.find(
-                    t => t.site_id === site.site_id && t.status === 'OPEN'
-                );
-                if (existing) {
-                    if (existing.priority !== 'HIGH') {
-                        existing.priority = 'HIGH'; escalated++;
-                    } else skipped++;
-                } else {
-                    db.tickets.push({
-                        ticket_id:           genTicketId(),
-                        site_id:             site.site_id,
-                        site_name:           site.site_name,
-                        locality:            site.locality    || '',
-                        address:             site.address     || '',
-                        coordinates:         site.coordinates || '',
-                        status:              'OPEN',
-                        priority,
-                        assigned_to:         null,
-                        proof_url:           [],
-                        notes:               '',
-                        cancellation_reason: null,
-                        cancelled_by:        null,
-                        created_at:          new Date().toISOString()
-                    });
-                    created++;
-                }
-                writeDB(db);
-            }
-        }
+        const parts = [`Created: ${stats.created}`, `Escalated: ${stats.escalated}`];
+        if (normalizedType === 'FULL_SNAPSHOT') parts.push(`Recovered: ${stats.recovered}`);
+        if (stats.skipped) parts.push(`Skipped (not currently tracked): ${stats.skipped}`);
+        if (stats.invalid) parts.push(`Invalid rows: ${stats.invalid}`);
 
         res.json({
-            message: `Done — Created: ${created} · Escalated to HIGH: ${escalated} · Skipped: ${skipped}`
+            message: `${normalizedType === 'FULL_SNAPSHOT' ? 'Full snapshot' : 'Incremental escalation'} ` +
+                      `processed — ${parts.join(' · ')}`,
+            upload_type: normalizedType,
+            stats
         });
     } catch (err) {
         console.error('[POST /batch-upload]', err.message);
