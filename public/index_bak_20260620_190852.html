@@ -304,14 +304,12 @@ button{cursor:pointer}
 .tc:active{transform:scale(.99)}
 .tc-strip{width:5px;flex-shrink:0;border-radius:0 6px 6px 0;margin:14px 0}
 .tc.HIGH .tc-strip{background:var(--red)}
-.tc.CRITICAL .tc-strip{background:#7C0A0A}
 .tc.MEDIUM .tc-strip{background:var(--amber)}
 .tc.LOW .tc-strip{background:var(--green)}
 .tc.ONGO .tc-strip{background:var(--primary)}
 .tc.DONE .tc-strip{background:var(--green)}
 .tc.CANC .tc-strip{background:var(--bd2)}
 .tc.CANC{opacity:.86}
-.tc.RECOVERED .tc-strip{background:var(--violet)}
 .tc-body{flex:1;padding:18px 18px 18px 14px;min-width:0}
 
 .tc-r1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px}
@@ -323,7 +321,6 @@ button{cursor:pointer}
 
 .bdg{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 .bdg.dot::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
-.bdg.CRITICAL{background:#7C0A0A;color:#FECACA}
 .bdg.HIGH{background:var(--red-lt);color:var(--red-dk)}
 .bdg.MEDIUM{background:var(--amber-lt);color:var(--amber-dk)}
 .bdg.LOW{background:var(--green-lt);color:var(--green-dk)}
@@ -331,9 +328,7 @@ button{cursor:pointer}
 .bdg.ON_GOING{background:var(--amber-lt);color:var(--amber-dk)}
 .bdg.COMPLETED{background:var(--green-lt);color:var(--green-dk)}
 .bdg.CANCELLED{background:var(--red-lt);color:var(--red-dk)}
-.bdg.RECOVERED{background:var(--violet-lt);color:var(--violet-dk)}
 .bdg.HIGH{animation:bpulse 2.4s ease-in-out infinite}
-.bdg.CRITICAL{animation:bpulse 1.3s ease-in-out infinite}
 @keyframes bpulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.22)}60%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
 
 .tc-name{font-size:1rem;font-weight:700;color:var(--tx);margin-bottom:8px;letter-spacing:-.01em;display:flex;align-items:center;gap:7px;line-height:1.3}
@@ -433,15 +428,6 @@ button{cursor:pointer}
 .fbtn{padding:8px 16px;background:var(--card);border:1.5px solid var(--bd);border-radius:20px;color:var(--tx2);font-size:.71rem;font-weight:700;letter-spacing:.03em;cursor:pointer;transition:all .18s}
 .fbtn:hover{border-color:var(--bd2);color:var(--tx)}
 .fbtn.on{background:var(--tx);border-color:var(--tx);color:#fff}
-
-.uptype-wrap{margin-bottom:18px}
-.uptype-grp{display:flex;flex-direction:column;gap:10px}
-.uptype-opt{border:1.5px solid var(--bd);border-radius:16px;padding:13px 15px;cursor:pointer;transition:all .18s;background:var(--card)}
-.uptype-opt:hover{border-color:var(--bd2)}
-.uptype-opt.on{border-color:var(--primary);background:var(--primary-lt);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
-.uptype-ttl{font-size:.82rem;font-weight:700;color:var(--tx)}
-.uptype-opt.on .uptype-ttl{color:var(--primary-dk)}
-.uptype-sub{font-size:.72rem;color:var(--tx3);margin-top:4px;line-height:1.45}
 
 /* ══════════════════════════════════════
    MODAL
@@ -601,7 +587,6 @@ button{cursor:pointer}
   <div class="dbtabs" id="at">
     <button class="tbtn on" id="at-ov" onclick="admTab('ov',this)">Overview</button>
     <button class="tbtn" id="at-tx" onclick="admTab('tx',this)">All Tickets</button>
-    <button class="tbtn" id="at-rec" onclick="admTab('rec',this)">Recovered</button>
     <button class="tbtn" id="at-up" onclick="admTab('up',this)">Batch Upload</button>
   </div>
   <div class="dbbody">
@@ -612,45 +597,27 @@ button{cursor:pointer}
         <div class="scard"><div class="sico" style="background:var(--amber-lt);color:var(--amber-dk)" id="sico-gng"></div><div><div class="slbl">On Going</div><div class="sval" id="s-going" style="color:var(--amber-dk)">—</div></div></div>
         <div class="scard"><div class="sico" style="background:var(--green-lt);color:var(--green-dk)" id="sico-don"></div><div><div class="slbl">Completed</div><div class="sval" id="s-done" style="color:var(--green-dk)">—</div></div></div>
         <div class="scard"><div class="sico" style="background:var(--red-lt);color:var(--red-dk)" id="sico-can"></div><div><div class="slbl">Cancelled</div><div class="sval" id="s-canc" style="color:var(--red-dk)">—</div></div></div>
-        <div class="scard"><div class="sico" style="background:var(--violet-lt);color:var(--violet-dk)" id="sico-rec"></div><div><div class="slbl">Recovered</div><div class="sval" id="s-recovered" style="color:var(--violet-dk)">—</div></div></div>
       </div>
       <div class="stitle">Recent Activity</div>
       <div id="adm-recent"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div>
     </div>
     <div id="ap-tx" class="tpanel">
-      <div class="filters"><button class="fbtn on" onclick="admFil('ALL',this)">All</button><button class="fbtn" onclick="admFil('OPEN',this)">Open</button><button class="fbtn" onclick="admFil('ON_GOING',this)">On Going</button><button class="fbtn" onclick="admFil('COMPLETED',this)">Completed</button><button class="fbtn" onclick="admFil('CANCELLED',this)">Cancelled</button><button class="fbtn" onclick="admFil('RECOVERED',this)">Recovered</button></div>
+      <div class="filters"><button class="fbtn on" onclick="admFil('ALL',this)">All</button><button class="fbtn" onclick="admFil('OPEN',this)">Open</button><button class="fbtn" onclick="admFil('ON_GOING',this)">On Going</button><button class="fbtn" onclick="admFil('COMPLETED',this)">Completed</button><button class="fbtn" onclick="admFil('CANCELLED',this)">Cancelled</button></div>
       <div id="adm-all"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div>
     </div>
-    <div id="ap-rec" class="tpanel">
-      <p style="font-size:.78rem;color:var(--tx2);margin-bottom:14px">Sites that disappeared from the latest Full Snapshot — audit trail of automatic recoveries, including jobs that were already claimed when the site recovered.</p>
-      <div id="adm-recovered"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div>
-    </div>
     <div id="ap-up" class="tpanel">
-      <div class="uptype-wrap">
-        <div class="flbl" style="margin-bottom:9px">Upload Type — required, never inferred</div>
-        <div class="uptype-grp" id="uptype-grp">
-          <div class="uptype-opt on" data-type="FULL_SNAPSHOT" onclick="selectUploadType('FULL_SNAPSHOT')">
-            <div class="uptype-ttl">Full Snapshot <span style="color:var(--tx3);font-weight:500">(default)</span></div>
-            <div class="uptype-sub">This file is the complete list of every currently-down site. Any active site missing from it is marked Recovered.</div>
-          </div>
-          <div class="uptype-opt" data-type="INCREMENTAL_ESCALATION" onclick="selectUploadType('INCREMENTAL_ESCALATION')">
-            <div class="uptype-ttl">Incremental Escalation</div>
-            <div class="uptype-sub">This file only re-prioritizes the sites listed here. Every other site is left completely untouched.</div>
-          </div>
-        </div>
-      </div>
       <div class="batchbox">
         <div class="stitle">CSV Batch Upload</div>
         <p style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">One site per line. Header row is skipped automatically.</p>
         <textarea class="batchta" id="batch-in" placeholder="site_id,site_name,locality,address,coordinates,priority
 SITE-201,Tower Alpha,Caloocan,Rizal Ave,14.65 120.98,HIGH
 SITE-202,Hub Beta,Valenzuela,McArthur Hwy,14.70 120.97,MEDIUM"></textarea>
-        <div class="batchhint">Format: site_id, site_name, locality, address, coordinates, priority (optional — defaults to MEDIUM for new sites)</div>
+        <div class="batchhint">Format: site_id, site_name, locality, address, coordinates, priority (HIGH / MEDIUM / LOW)</div>
         <button class="btn primary sm" style="margin-top:14px" onclick="runBatch()" id="batch-btn">Process Batch Upload</button>
         <div class="smsg" id="batch-msg"></div>
       </div>
       <div class="stitle">Quick Simulation</div>
-      <p style="font-size:.78rem;color:var(--tx2);margin-bottom:14px">Sends 5 sample sites — includes a duplicate to test priority escalation, using the Upload Type selected above.</p>
+      <p style="font-size:.78rem;color:var(--tx2);margin-bottom:14px">Sends 5 sample sites — includes a duplicate to test HIGH escalation.</p>
       <button class="btn oamber sm" onclick="simulate()" id="sim-btn">Run Simulation (5 Sites)</button>
       <div class="smsg" id="sim-msg"></div>
     </div>
@@ -781,10 +748,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('sico-gng').innerHTML=ic('wrench',21);
   document.getElementById('sico-don').innerHTML=ic('check',21);
   document.getElementById('sico-can').innerHTML=ic('ban',21);
-  document.getElementById('sico-rec').innerHTML=ic('refresh',21);
   document.getElementById('at-ov').prepend(icEl('grid',15));
   document.getElementById('at-tx').prepend(icEl('tag',15));
-  document.getElementById('at-rec').prepend(icEl('refresh',15));
   document.getElementById('at-up').prepend(icEl('upload',15));
   document.getElementById('abk').prepend(icEl('arrowL',14));
   document.getElementById('tbk').prepend(icEl('arrowL',14));
@@ -803,11 +768,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[];
-let selectedUploadType='FULL_SNAPSHOT';
-function selectUploadType(t){
-  selectedUploadType=t;
-  document.querySelectorAll('#uptype-grp .uptype-opt').forEach(el=>el.classList.toggle('on', el.dataset.type===t));
-}
 
 /* ══════════════════════════════════════════════════════════════════════
    GEO / PROXIMITY ENGINE
@@ -935,7 +895,7 @@ function setOpenSortMode(mode){openSortMode=mode;renderOpen(applyOpenSort(openCa
 function applyOpenSort(tasks){
   if(openSortMode==='proximity')return GeoEngine.annotateAndSort(tasks);
   if(openSortMode==='priority'){
-    const rank={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
+    const rank={HIGH:0,MEDIUM:1,LOW:2};
     return [...tasks].sort((a,b)=>(rank[a.priority]??9)-(rank[b.priority]??9));
   }
   return tasks; // 'newest' relies on server-provided order
@@ -1147,7 +1107,7 @@ function admTab(id,btn){
   document.querySelectorAll('#scr-admin-db .tbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
   document.querySelectorAll('#scr-admin-db .tpanel').forEach(p=>p.classList.remove('on'));
   document.getElementById('ap-'+id).classList.add('on');
-  if(id==='tx')renderAdmAll(AF);if(id==='ov')loadAdminData();if(id==='rec')loadRecovered();
+  if(id==='tx')renderAdmAll(AF);if(id==='ov')loadAdminData();
 }
 
 /* ── Tech bottom-nav (OPEN / TASKS / TOOLS / PROFILE) ── */
@@ -1206,74 +1166,35 @@ function updateStats(tix){
   document.getElementById('s-going').textContent=tix.filter(t=>t.status==='ON_GOING').length;
   document.getElementById('s-done').textContent=tix.filter(t=>t.status==='COMPLETED').length;
   document.getElementById('s-canc').textContent=tix.filter(t=>t.status==='CANCELLED').length;
-  document.getElementById('s-recovered').textContent=tix.filter(t=>t.status==='RECOVERED'||t.recovered_while_claimed).length;
 }
 function renderRecent(tix){const c=document.getElementById('adm-recent');c.innerHTML=tix.length?tix.map(admCard).join(''):emptyState(ic('tag',22),'No tickets found','Tickets will appear here after batch upload.');}
 function admFil(f,btn){AF=f;document.querySelectorAll('#ap-tx .fbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderAdmAll(f);}
-function renderAdmAll(f){
-  const list = f==='ALL' ? AT
-    : f==='RECOVERED' ? AT.filter(t=>t.status==='RECOVERED'||t.recovered_while_claimed)
-    : AT.filter(t=>t.status===f);
-  const c=document.getElementById('adm-all');
-  c.innerHTML=list.length?list.map(admCard).join(''):emptyState(ic('tag',22),'No tickets','No tickets match this filter.');
-}
-
-async function loadRecovered(){
-  setLoad('adm-recovered');
-  try{
-    const r=await fetch('/api/tickets/recovered');
-    if(!r.ok)throw 0;
-    renderRecoveredList(await r.json());
-  }catch(e){renderRecoveredList([]);}
-}
-function renderRecoveredList(tix){
-  const c=document.getElementById('adm-recovered');
-  if(!tix.length){c.innerHTML=emptyState(ic('check',22),'No recovered sites yet','Sites that drop out of a Full Snapshot upload will appear here.');return;}
-  c.innerHTML=tix.map(t=>{
-    const wasClaimed=t.status==='ON_GOING'&&t.recovered_while_claimed;
-    return `<div class="tc RECOVERED"><div class="tc-strip"></div><div class="tc-body">
-    <div class="tc-r1"><span class="tc-id c-vio">${t.ticket_id||('Site '+t.site_id)}</span>
-      <div class="tc-badges"><span class="bdg RECOVERED">${wasClaimed?'Recovered (was claimed)':'Recovered'}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
-    </div>
-    <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
-    <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${wasClaimed&&t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${t.assigned_to}</span>`:''}</div>
-    <div class="tc-addr">${t.address}</div>
-    <div class="tc-callout canc">${ic('alert',14)}<span>${t.recovered_at?'Recovered '+fmtDate(t.recovered_at):'Recovered'}${wasClaimed?' — technician sees a warning in My Jobs':''}</span></div>
-  </div></div>`;
-  }).join('');
-}
+function renderAdmAll(f){const list=f==='ALL'?AT:AT.filter(t=>t.status===f);const c=document.getElementById('adm-all');c.innerHTML=list.length?list.map(admCard).join(''):emptyState(ic('tag',22),'No tickets','No tickets match this filter.');}
 
 function admCard(t){
-  const sm={OPEN:'Open',ON_GOING:'On Going',COMPLETED:'Completed',CANCELLED:'Cancelled',RECOVERED:'Recovered'};
-  const idCls=t.status==='COMPLETED'?'c-grn':(t.status==='CANCELLED'||t.status==='RECOVERED')?'c-vio':'c-blue';
-  const stripCls=t.status==='CANCELLED'?'CANC':t.status==='COMPLETED'?'DONE':t.status==='ON_GOING'?'ONGO':t.status==='RECOVERED'?'RECOVERED':t.priority;
+  const sm={OPEN:'Open',ON_GOING:'On Going',COMPLETED:'Completed',CANCELLED:'Cancelled'};
+  const idCls=t.status==='COMPLETED'?'c-grn':t.status==='CANCELLED'?'c-vio':t.status==='ON_GOING'?'c-blue':'c-blue';
+  const stripCls=t.status==='CANCELLED'?'CANC':t.status==='COMPLETED'?'DONE':t.status==='ON_GOING'?'ONGO':t.priority;
   const canCancel=['OPEN','ON_GOING'].includes(t.status),canReopen=t.status==='CANCELLED';
-  // Ticket numbers are never shown for OPEN (unclaimed) tasks — they don't exist yet.
-  const idLabel = t.status==='OPEN' ? ('Site '+t.site_id) : (t.ticket_id || '— no ticket —');
   return `<div class="tc ${stripCls}"><div class="tc-strip"></div><div class="tc-body">
-    <div class="tc-r1"><span class="tc-id ${idCls}">${idLabel}</span>
+    <div class="tc-r1"><span class="tc-id ${idCls}">${t.ticket_id}</span>
       <div class="tc-badges"><span class="bdg ${t.status}">${sm[t.status]||t.status}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
     </div>
     <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
-    <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${t.assigned_to}</span>`:''}${t.recurrence_count>1?`<span class="dvd"></span><span>${ic('refresh',13)} Reported ${t.recurrence_count}x</span>`:''}</div>
+    <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${t.assigned_to}</span>`:''}</div>
     <div class="tc-addr">${t.address}</div>
-    ${t.status==='ON_GOING'&&t.recovered_while_claimed?`<div class="tc-callout canc">${ic('alert',14)}<span>⚠ Site already recovered based on latest monitoring batch.</span></div>`:''}
     ${t.cancellation_reason?`<div class="tc-callout canc">${ic('ban',14)}<span><strong>Cancelled by ${t.cancelled_by||'user'}:</strong> ${t.cancellation_reason}</span></div>`:''}
     ${t.proof_url&&t.proof_url.length?`<div class="tc-callout proof">${ic('img',14)} ${t.proof_url.length} proof file${t.proof_url.length>1?'s':''} on record</div>`:''}
-    ${canCancel||canReopen?`<div class="tc-acts">${canCancel?`<button class="btn adm-cancel sm" onclick="openModal('${t.id}','admin','${t.ticket_id||t.site_id}')">${ic('ban',13)} Cancel</button>`:''
-    }${canReopen?`<button class="btn reopen sm" onclick="reopenTicket('${t.id}')">${ic('refresh',13)} Re-open</button>`:''}</div>`:''}
+    ${canCancel||canReopen?`<div class="tc-acts">${canCancel?`<button class="btn adm-cancel sm" onclick="openModal('${t.ticket_id}','admin')">${ic('ban',13)} Cancel</button>`:''
+    }${canReopen?`<button class="btn reopen sm" onclick="reopenTicket('${t.ticket_id}')">${ic('refresh',13)} Re-open</button>`:''}</div>`:''}
   </div></div>`;
 }
 
 async function simulate(){
   const mock=[{site_id:'SITE-101',site_name:'Alpha Tower',locality:'Meycauayan',address:'Malhacan Road',coordinates:'14.735, 120.961',priority:'LOW'},{site_id:'SITE-102',site_name:'Beta Hub',locality:'Marilao',address:'McArthur Highway',coordinates:'14.755, 120.958',priority:'MEDIUM'},{site_id:'SITE-103',site_name:'Gamma Station',locality:'Bocaue',address:'Gov Halili Ave',coordinates:'14.792, 120.929',priority:'HIGH'},{site_id:'SITE-104',site_name:'Delta Store',locality:'Malolos',address:'Paseo del Congreso',coordinates:'14.843, 120.811',priority:'LOW'},{site_id:'SITE-101',site_name:'Alpha Tower',locality:'Meycauayan',address:'Malhacan Road',coordinates:'14.735, 120.961',priority:'LOW'}];
   const msg=document.getElementById('sim-msg');
-  try{
-    const r=await fetch('/api/admin/batch-upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sites:mock,upload_type:selectedUploadType,batch_name:'Quick simulation',uploaded_by:CU?(CU.name||CU.id):'admin'})});
-    const d=await r.json();
-    if(r.ok){msg.innerHTML=ic('check',14)+' '+d.message;msg.className='smsg ok';loadAdminData();}
-    else{msg.innerHTML=ic('x',14)+' '+(d.error||'Simulation failed.');msg.className='smsg err';}
-  }catch(e){msg.innerHTML=ic('x',14)+' Server not reachable. Start the Node.js backend first.';msg.className='smsg err';}
+  try{const r=await fetch('/api/admin/batch-upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sites:mock})});const d=await r.json();msg.innerHTML=ic('check',14)+' '+d.message;msg.className='smsg ok';loadAdminData();}
+  catch(e){msg.innerHTML=ic('x',14)+' Server not reachable. Start the Node.js backend first.';msg.className='smsg err';}
 }
 function parseCSVLine(line){
   const cols=[];let cur='',inQ=false;
@@ -1293,15 +1214,11 @@ async function runBatch(){
   const lines=raw.split('\n').filter(l=>l.trim()&&!l.toLowerCase().startsWith('site_id'));
   const sites=lines.map(l=>{
     const[site_id,site_name,locality,address,coordinates,priority]=parseCSVLine(l);
-    return{site_id,site_name,locality,address,coordinates,priority:priority?priority.toUpperCase():undefined};
+    return{site_id,site_name,locality,address,coordinates,priority:(priority||'LOW').toUpperCase()};
   }).filter(s=>s.site_id);
   if(!sites.length){msg.innerHTML=ic('x',14)+' No valid rows found.';msg.className='smsg err';return;}
-  try{
-    const r=await fetch('/api/admin/batch-upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sites,upload_type:selectedUploadType,batch_name:`Manual upload — ${new Date().toLocaleString()}`,uploaded_by:CU?(CU.name||CU.id):'admin'})});
-    const d=await r.json();
-    if(r.ok){msg.innerHTML=ic('check',14)+' '+d.message;msg.className='smsg ok';loadAdminData();}
-    else{msg.innerHTML=ic('x',14)+' '+(d.error||'Upload failed.');msg.className='smsg err';}
-  }catch(e){msg.innerHTML=ic('x',14)+' Server error.';msg.className='smsg err';}
+  try{const r=await fetch('/api/admin/batch-upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sites})});const d=await r.json();msg.innerHTML=ic('check',14)+' '+d.message;msg.className='smsg ok';loadAdminData();}
+  catch(e){msg.innerHTML=ic('x',14)+' Server error.';msg.className='smsg err';}
 }
 
 async function loadOpen(){
@@ -1378,13 +1295,13 @@ function renderOpen(tix){
   if(!tix.length){c.innerHTML=emptyState(ic('check',22),openCache.length?'No results match your search.':'No open jobs — all clear!','Open jobs will appear here after batch upload.');return;}
   c.innerHTML=tix.map((t,i)=>{
     const distLabel=GeoEngine.formatDistance(t.distanceKm);
-    return `<div class="tc ${t.priority} fade-up" id="oc-${t.id}" style="animation-delay:${Math.min(i,5)*0.04}s"><div class="tc-strip"></div><div class="tc-body">
-    <div class="tc-r1"><span class="tc-id c-blue">${t.site_id}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
+    return `<div class="tc ${t.priority} fade-up" id="oc-${t.ticket_id}" style="animation-delay:${Math.min(i,5)*0.04}s"><div class="tc-strip"></div><div class="tc-body">
+    <div class="tc-r1"><span class="tc-id c-blue">${t.ticket_id}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
     <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
-    <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.recurrence_count>1?`<span class="dvd"></span><span>${ic('refresh',13)} Reported ${t.recurrence_count}x</span>`:''}</div>
+    <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span></div>
     <div class="tc-addr">${t.address}</div>
     ${distLabel?`<div class="tc-distance${t.distanceKm<2?' near':''}">${ic('nav',11)} ${distLabel}</div>`:''}
-    <div class="tc-acts"><button class="btn claim" id="cbtn-${t.id}" onclick="claimJob('${t.id}')">${ic('check',14)} Claim Job</button><a class="btn nav" href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank">${ic('nav',14)} Navigate</a></div>
+    <div class="tc-acts"><button class="btn claim" id="cbtn-${t.ticket_id}" onclick="claimJob('${t.ticket_id}')">${ic('check',14)} Claim Job</button><a class="btn nav" href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank">${ic('nav',14)} Navigate</a></div>
   </div></div>`;
   }).join('');
 }
@@ -1398,15 +1315,14 @@ function renderMine(tix){
   const c=document.getElementById('mine-list');
   if(!tix.length){c.innerHTML=emptyState(ic('wrench',22),'No on-going jobs','Claim an open job to get started.');return;}
   c.innerHTML=tix.map(t=>`<div class="tc ONGO"><div class="tc-strip"></div><div class="tc-body">
-    <div class="tc-r1"><span class="tc-id c-blue">${t.ticket_id||'Pending ticket'}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
+    <div class="tc-r1"><span class="tc-id c-blue">${t.ticket_id}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
     <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('pin',13)} ${t.coordinates}</span></div>
     <div class="tc-addr">${t.address}</div>
-    ${t.recovered_while_claimed?`<div class="tc-callout canc">${ic('alert',14)}<span>⚠ Site already recovered based on latest monitoring batch.</span></div>`:''}
     <div class="tc-acts" style="margin-bottom:0"><a class="btn nav" href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank">${ic('nav',14)} Navigate to Site</a></div>
-    <div class="uzn"><input type="file" id="pf-${t.id}" accept="image/*,video/*" multiple onchange="updCnt('${t.id}',this)"><div class="uzn-ico">${ic('camera',28)}</div><div class="uzn-main">Tap to attach <strong>Photos or Videos</strong></div><div class="uzn-sub" id="cnt-${t.id}">Up to 5 files</div></div>
-    <div class="notewrap"><textarea class="noteta" id="note-${t.id}" placeholder="Completion notes (optional)..."></textarea></div>
-    <div class="tc-acts"><button class="btn submit" id="sbtn-${t.id}" onclick="submitJob('${t.id}')">${ic('check',14)} Submit &amp; Complete</button><button class="btn cancel sm" onclick="openModal('${t.id}','tech','${t.ticket_id||t.site_id}')">${ic('ban',14)} Cancel</button></div>
+    <div class="uzn"><input type="file" id="pf-${t.ticket_id}" accept="image/*,video/*" multiple onchange="updCnt('${t.ticket_id}',this)"><div class="uzn-ico">${ic('camera',28)}</div><div class="uzn-main">Tap to attach <strong>Photos or Videos</strong></div><div class="uzn-sub" id="cnt-${t.ticket_id}">Up to 5 files</div></div>
+    <div class="notewrap"><textarea class="noteta" id="note-${t.ticket_id}" placeholder="Completion notes (optional)..."></textarea></div>
+    <div class="tc-acts"><button class="btn submit" id="sbtn-${t.ticket_id}" onclick="submitJob('${t.ticket_id}')">${ic('check',14)} Submit &amp; Complete</button><button class="btn cancel sm" onclick="openModal('${t.ticket_id}','tech')">${ic('ban',14)} Cancel</button></div>
   </div></div>`).join('');
 }
 
@@ -1437,7 +1353,7 @@ function renderCanc(tix){
   const c=document.getElementById('canc-list');
   if(!tix.length){c.innerHTML=emptyState(ic('ban',22),'No cancelled jobs','Cancelled jobs will appear here.');return;}
   c.innerHTML=tix.map(t=>`<div class="tc CANC"><div class="tc-strip"></div><div class="tc-body">
-    <div class="tc-r1"><span class="tc-id c-vio">${t.ticket_id||'No ticket (never claimed)'}</span><span class="bdg CANCELLED">Cancelled</span></div>
+    <div class="tc-r1"><span class="tc-id c-vio">${t.ticket_id}</span><span class="bdg CANCELLED">Cancelled</span></div>
     <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.cancelled_at?`<span class="dvd"></span><span>${ic('clock',13)} ${fmtDate(t.cancelled_at)}</span>`:''}</div>
     <div class="tc-addr">${t.address}</div>
@@ -1445,22 +1361,22 @@ function renderCanc(tix){
   </div></div>`).join('');
 }
 
-async function claimJob(id){
-  const btn=document.getElementById('cbtn-'+id);
+async function claimJob(tid){
+  const btn=document.getElementById('cbtn-'+tid);
   if(btn){btn.innerHTML=ic('clock',14)+' Claiming...';btn.disabled=true;}
   try{
-    const r=await fetch('/api/tickets/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,technician_id:CU.id})});
+    const r=await fetch('/api/tickets/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket_id:tid,technician_id:CU.id})});
     const d=await r.json();
-    if(r.ok){toast('Job claimed — ticket '+(d.ticket_id||'')+'!','ok');loadOpen();loadMine();setTimeout(()=>{techNav('tasks');tchTab('mine',document.getElementById('tt-mine'));},700);}
+    if(r.ok){toast('Job claimed successfully!','ok');loadOpen();loadMine();setTimeout(()=>{techNav('tasks');tchTab('mine',document.getElementById('tt-mine'));},700);}
     else{toast(d.error||'Could not claim job.','err');if(btn){btn.innerHTML=ic('check',14)+' Claim Job';btn.disabled=false;}}
   }catch(e){toast('Cannot reach server.','err');if(btn){btn.innerHTML=ic('check',14)+' Claim Job';btn.disabled=false;}}
 }
-async function submitJob(id){
-  const inp=document.getElementById('pf-'+id),btn=document.getElementById('sbtn-'+id);
-  const notes=document.getElementById('note-'+id)?.value.trim()||'';
+async function submitJob(tid){
+  const inp=document.getElementById('pf-'+tid),btn=document.getElementById('sbtn-'+tid);
+  const notes=document.getElementById('note-'+tid)?.value.trim()||'';
   if(!inp?.files.length){toast('Please attach at least one photo or video.','err');return;}
   btn.innerHTML=ic('upload',14)+' Uploading...';btn.disabled=true;
-  const fd=new FormData();fd.append('id',id);fd.append('technician_id',CU.id);fd.append('notes',notes);
+  const fd=new FormData();fd.append('ticket_id',tid);fd.append('technician_id',CU.id);fd.append('notes',notes);
   for(let i=0;i<inp.files.length;i++)fd.append('proof',inp.files[i]);
   try{
     const r=await fetch('/api/tickets/submit',{method:'POST',body:fd});const d=await r.json();
@@ -1468,30 +1384,30 @@ async function submitJob(id){
     else{toast(d.error||'Submission failed.','err');btn.innerHTML=ic('check',14)+' Submit & Complete';btn.disabled=false;}
   }catch(e){toast('Cannot reach server.','err');btn.innerHTML=ic('check',14)+' Submit & Complete';btn.disabled=false;}
 }
-function updCnt(id,inp){const el=document.getElementById('cnt-'+id);const n=inp.files.length;el.textContent=n>0?`${n} file${n>1?'s':''} selected`:'Up to 5 files';el.style.color=n>0?'var(--primary)':'';}
+function updCnt(tid,inp){const el=document.getElementById('cnt-'+tid);const n=inp.files.length;el.textContent=n>0?`${n} file${n>1?'s':''} selected`:'Up to 5 files';el.style.color=n>0?'var(--primary)':'';}
 
 let cancelTid2=null;
-function openModal(id,role='tech',label){cancelTid=id;cancelRole=role;document.getElementById('m-tid').textContent=label||'this job';document.getElementById('m-reason').value='';document.getElementById('modal-cancel').classList.add('open');}
+function openModal(tid,role='tech'){cancelTid=tid;cancelRole=role;document.getElementById('m-tid').textContent=tid;document.getElementById('m-reason').value='';document.getElementById('modal-cancel').classList.add('open');}
 function closeModal(){document.getElementById('modal-cancel').classList.remove('open');}
 async function confirmCancel(){
   const reason=document.getElementById('m-reason').value.trim();
   if(!reason){toast('Please enter a reason.','err');return;}
   closeModal();
   try{
-    const r=await fetch('/api/tickets/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:cancelTid,cancelled_by:CU?CU.id:'admin',reason})});
+    const r=await fetch('/api/tickets/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket_id:cancelTid,cancelled_by:CU?CU.id:'admin',reason})});
     const d=await r.json();
     if(r.ok){toast('Ticket cancelled.','info');cancelRole==='tech'?(loadMine(),loadCanc()):loadAdminData();}
     else{toast(d.error||'Could not cancel.','err');}
   }catch(e){
-    const t=AT.find(x=>x.id===cancelTid);
+    const t=AT.find(x=>x.ticket_id===cancelTid);
     if(t){t.status='CANCELLED';t.cancellation_reason=reason;t.cancelled_by=CU?CU.id||CU.u:'admin';}
     toast('Ticket cancelled (demo).','info');
     cancelRole==='tech'?(loadMine(),loadCanc()):loadAdminData();
   }
 }
-async function reopenTicket(id){
-  try{const r=await fetch('/api/tickets/reopen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});const d=await r.json();if(r.ok){toast('Ticket re-opened.','ok');loadAdminData();}else{toast(d.error||'Could not re-open.','err');}}
-  catch(e){const t=AT.find(x=>x.id===id);if(t){t.status='OPEN';t.cancellation_reason=null;t.cancelled_by=null;t.assigned_to=null;}toast('Ticket re-opened (demo).','ok');loadAdminData();}
+async function reopenTicket(tid){
+  try{const r=await fetch('/api/tickets/reopen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket_id:tid})});const d=await r.json();if(r.ok){toast('Ticket re-opened.','ok');loadAdminData();}else{toast(d.error||'Could not re-open.','err');}}
+  catch(e){const t=AT.find(x=>x.ticket_id===tid);if(t){t.status='OPEN';t.cancellation_reason=null;t.cancelled_by=null;t.assigned_to=null;}toast('Ticket re-opened (demo).','ok');loadAdminData();}
 }
 
 /* ── TOOLS overlay (new section, presentational) ── */
@@ -1566,11 +1482,11 @@ function toast(msg,type='ok'){
 }
 function mockT(){
   return[
-    {id:'demo-001',ticket_id:null,site_id:'SITE-101',site_name:'Alpha Tower',locality:'Meycauayan',address:'Malhacan Road',coordinates:'14.735, 120.961',status:'OPEN',priority:'HIGH',assigned_to:null,proof_url:[],recurrence_count:1},
-    {id:'demo-002',ticket_id:null,site_id:'SITE-102',site_name:'Beta Hub',locality:'Marilao',address:'McArthur Highway',coordinates:'14.755, 120.958',status:'OPEN',priority:'MEDIUM',assigned_to:null,proof_url:[],recurrence_count:1},
-    {id:'demo-003',ticket_id:'FO-20260620-000003',site_id:'SITE-103',site_name:'Gamma Station',locality:'Bocaue',address:'Gov Halili Ave',coordinates:'14.792, 120.929',status:'ON_GOING',priority:'HIGH',assigned_to:'Tech_Juan',proof_url:[],recovered_while_claimed:false},
-    {id:'demo-004',ticket_id:'FO-20260619-000002',site_id:'SITE-104',site_name:'Delta Store',locality:'Malolos',address:'Paseo del Congreso',coordinates:'14.843, 120.811',status:'COMPLETED',priority:'LOW',assigned_to:'Tech_Pedro',proof_url:['/uploads/demo.jpg'],completed_at:'2026-06-03T10:00:00Z',notes:'Firmware update resolved the issue.'},
-    {id:'demo-005',ticket_id:'FO-20260618-000001',site_id:'SITE-105',site_name:'Echo Node',locality:'San Jose',address:'Circumferential Rd',coordinates:'14.801, 120.945',status:'CANCELLED',priority:'MEDIUM',assigned_to:'Tech_Maria',proof_url:[],cancellation_reason:'Property owner denied site access.',cancelled_by:'Tech_Maria',cancelled_at:'2026-06-02T14:30:00Z'}
+    {ticket_id:'TKT-DEMO-001',site_id:'SITE-101',site_name:'Alpha Tower',locality:'Meycauayan',address:'Malhacan Road',coordinates:'14.735, 120.961',status:'OPEN',priority:'HIGH',assigned_to:null,proof_url:[]},
+    {ticket_id:'TKT-DEMO-002',site_id:'SITE-102',site_name:'Beta Hub',locality:'Marilao',address:'McArthur Highway',coordinates:'14.755, 120.958',status:'OPEN',priority:'MEDIUM',assigned_to:null,proof_url:[]},
+    {ticket_id:'TKT-DEMO-003',site_id:'SITE-103',site_name:'Gamma Station',locality:'Bocaue',address:'Gov Halili Ave',coordinates:'14.792, 120.929',status:'ON_GOING',priority:'HIGH',assigned_to:'Tech_Juan',proof_url:[]},
+    {ticket_id:'TKT-DEMO-004',site_id:'SITE-104',site_name:'Delta Store',locality:'Malolos',address:'Paseo del Congreso',coordinates:'14.843, 120.811',status:'COMPLETED',priority:'LOW',assigned_to:'Tech_Pedro',proof_url:['/uploads/demo.jpg'],completed_at:'2026-06-03T10:00:00Z',notes:'Firmware update resolved the issue.'},
+    {ticket_id:'TKT-DEMO-005',site_id:'SITE-105',site_name:'Echo Node',locality:'San Jose',address:'Circumferential Rd',coordinates:'14.801, 120.945',status:'CANCELLED',priority:'MEDIUM',assigned_to:'Tech_Maria',proof_url:[],cancellation_reason:'Property owner denied site access.',cancelled_by:'Tech_Maria',cancelled_at:'2026-06-02T14:30:00Z'}
   ];
 }
 document.getElementById('modal-cancel').addEventListener('click',function(e){if(e.target===this)closeModal();});
