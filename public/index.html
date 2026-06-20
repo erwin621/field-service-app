@@ -29,8 +29,8 @@
   --sat:env(safe-area-inset-top,0px);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;height:100%}
-body{font-family:var(--ff);background:var(--bg);color:var(--tx);min-height:100%;min-height:100dvh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior-y:none}
+html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;height:100%;overflow-x:hidden;width:100%}
+body{font-family:var(--ff);background:var(--bg);color:var(--tx);min-height:100%;min-height:100dvh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior-y:none;overflow-x:hidden;width:100%}
 a{color:inherit;text-decoration:none}
 button,input,select,textarea{font-family:var(--ff)}
 button{cursor:pointer}
@@ -238,7 +238,7 @@ button{cursor:pointer}
 
 .segment-sticky{position:sticky;z-index:54;background:rgba(255,255,255,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:10px 16px 8px;flex-shrink:0}
 .segment{display:flex;background:var(--bg);border:1.5px solid var(--bd);border-radius:16px;padding:4px;gap:2px}
-.seg-btn{flex:1;height:36px;border:none;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .25s cubic-bezier(.34,1.5,.64,1);color:var(--tx2);background:transparent;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+.seg-btn{flex:1;min-width:0;height:36px;border:none;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .25s cubic-bezier(.34,1.5,.64,1);color:var(--tx2);background:transparent;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
 .seg-btn.active{background:var(--primary);color:#fff;box-shadow:0 2px 10px rgba(37,99,235,.3)}
 .seg-btn .seg-cnt{font-size:10px;opacity:.85}
 
@@ -264,7 +264,7 @@ button{cursor:pointer}
 }
 .bottom-nav.nav-hidden{transform:translateY(100%)}
 .nav-inner{background:rgba(255,255,255,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:24px 24px 18px 18px;box-shadow:0 -2px 0 rgba(229,231,235,.6),0 -8px 24px rgba(15,23,42,.08),0 -20px 48px rgba(15,23,42,.06);display:flex;align-items:stretch;padding:6px 6px 5px;border:1px solid rgba(229,231,235,.7);pointer-events:auto}
-.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 4px 7px;border:none;background:transparent;cursor:pointer;border-radius:16px;transition:all .22s cubic-bezier(.34,1.5,.64,1);color:var(--tx3);position:relative}
+.nav-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 4px 7px;border:none;background:transparent;cursor:pointer;border-radius:16px;transition:all .22s cubic-bezier(.34,1.5,.64,1);color:var(--tx3);position:relative}
 .nav-tab:hover{background:var(--srf2);color:var(--tx2)}
 .nav-tab:active{transform:scale(.9)}
 .nav-tab.active{color:var(--primary);background:rgba(37,99,235,.08)}
@@ -299,6 +299,7 @@ button{cursor:pointer}
   margin-bottom:14px;box-shadow:var(--s2);
   transition:transform .2s cubic-bezier(.34,1.4,.64,1),box-shadow .2s ease;
   position:relative;overflow:hidden;display:flex;
+  width:100%;max-width:100%;min-width:0;
 }
 .tc:hover{transform:translateY(-2px);box-shadow:var(--s3)}
 .tc:active{transform:scale(.99)}
@@ -361,7 +362,7 @@ button{cursor:pointer}
 /* ══════════════════════════════════════
    BUTTONS
 ══════════════════════════════════════ */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 18px;height:50px;border:1.5px solid transparent;border-radius:18px;font-size:.82rem;font-weight:700;letter-spacing:.01em;transition:all .18s cubic-bezier(.34,1.4,.64,1);cursor:pointer;flex:1;white-space:nowrap;font-family:var(--ff)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 18px;height:50px;border:1.5px solid transparent;border-radius:18px;font-size:.82rem;font-weight:700;letter-spacing:.01em;transition:all .18s cubic-bezier(.34,1.4,.64,1);cursor:pointer;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--ff)}
 .btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
 .btn.sm{height:42px;padding:0 15px;font-size:.78rem;flex:0 0 auto}
 .btn.xl{height:54px;padding:0 24px;font-size:.86rem;flex:0 0 auto}
