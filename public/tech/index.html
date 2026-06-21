@@ -475,7 +475,7 @@ button{cursor:pointer}
       <div style="font-size:.66rem;color:var(--tx3);letter-spacing:.16em;text-transform:uppercase;font-weight:700;margin-top:3px">Technician Portal</div>
     </div>
     <div class="acard" style="max-width:400px">
-      <button class="btn-back" onclick="location.href='index.html'" id="tbk">Back to portal</button>
+      <button class="btn-back" onclick="location.href='/'" id="tbk">Back to portal</button>
 
       <div id="tch-lf">
         <div class="auth-hd">Tech <span>Sign In</span></div>
@@ -630,6 +630,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('navico-tasks').innerHTML=ic('clipboard',21);
   document.getElementById('navico-tools').innerHTML=ic('settings',21);
   document.getElementById('navico-profile').innerHTML=ic('user',21);
+  loadTechDropdown();
 });
 
 let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[];
