@@ -29,8 +29,8 @@
   --sat:env(safe-area-inset-top,0px);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;height:100%;overflow-x:hidden;width:100%}
-body{font-family:var(--ff);background:var(--bg);color:var(--tx);min-height:100%;min-height:100dvh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior-y:none;overflow-x:hidden;width:100%}
+html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;height:100%}
+body{font-family:var(--ff);background:var(--bg);color:var(--tx);min-height:100%;min-height:100dvh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior-y:none}
 a{color:inherit;text-decoration:none}
 button,input,select,textarea{font-family:var(--ff)}
 button{cursor:pointer}
@@ -238,7 +238,7 @@ button{cursor:pointer}
 
 .segment-sticky{position:sticky;z-index:54;background:rgba(255,255,255,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:10px 16px 8px;flex-shrink:0}
 .segment{display:flex;background:var(--bg);border:1.5px solid var(--bd);border-radius:16px;padding:4px;gap:2px}
-.seg-btn{flex:1;min-width:0;height:36px;border:none;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .25s cubic-bezier(.34,1.5,.64,1);color:var(--tx2);background:transparent;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+.seg-btn{flex:1;height:36px;border:none;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .25s cubic-bezier(.34,1.5,.64,1);color:var(--tx2);background:transparent;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
 .seg-btn.active{background:var(--primary);color:#fff;box-shadow:0 2px 10px rgba(37,99,235,.3)}
 .seg-btn .seg-cnt{font-size:10px;opacity:.85}
 
@@ -264,7 +264,7 @@ button{cursor:pointer}
 }
 .bottom-nav.nav-hidden{transform:translateY(100%)}
 .nav-inner{background:rgba(255,255,255,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:24px 24px 18px 18px;box-shadow:0 -2px 0 rgba(229,231,235,.6),0 -8px 24px rgba(15,23,42,.08),0 -20px 48px rgba(15,23,42,.06);display:flex;align-items:stretch;padding:6px 6px 5px;border:1px solid rgba(229,231,235,.7);pointer-events:auto}
-.nav-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 4px 7px;border:none;background:transparent;cursor:pointer;border-radius:16px;transition:all .22s cubic-bezier(.34,1.5,.64,1);color:var(--tx3);position:relative}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 4px 7px;border:none;background:transparent;cursor:pointer;border-radius:16px;transition:all .22s cubic-bezier(.34,1.5,.64,1);color:var(--tx3);position:relative}
 .nav-tab:hover{background:var(--srf2);color:var(--tx2)}
 .nav-tab:active{transform:scale(.9)}
 .nav-tab.active{color:var(--primary);background:rgba(37,99,235,.08)}
@@ -299,8 +299,6 @@ button{cursor:pointer}
   margin-bottom:14px;box-shadow:var(--s2);
   transition:transform .2s cubic-bezier(.34,1.4,.64,1),box-shadow .2s ease;
   position:relative;overflow:hidden;display:flex;
-  width:100%;max-width:100%;min-width:0;box-sizing:border-box;
-  flex-shrink:0;contain:layout;
 }
 .tc:hover{transform:translateY(-2px);box-shadow:var(--s3)}
 .tc:active{transform:scale(.99)}
@@ -317,13 +315,13 @@ button{cursor:pointer}
 .tc-body{flex:1;padding:18px 18px 18px 14px;min-width:0}
 
 .tc-r1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px}
-.tc-id{font-family:var(--fm);font-size:.7rem;font-weight:500;letter-spacing:.01em;min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc-id{font-family:var(--fm);font-size:.7rem;font-weight:500;letter-spacing:.01em}
 .tc-id.c-blue{color:var(--primary)}
 .tc-id.c-grn{color:var(--green-dk)}
 .tc-id.c-vio{color:var(--violet-dk)}
-.tc-badges{display:flex;gap:5px;flex-wrap:nowrap;align-items:center;flex-shrink:0}
+.tc-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
 
-.bdg{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;flex-shrink:0;white-space:nowrap}
+.bdg{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 .bdg.dot::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
 .bdg.CRITICAL{background:#7C0A0A;color:#FECACA}
 .bdg.HIGH{background:var(--red-lt);color:var(--red-dk)}
@@ -338,13 +336,12 @@ button{cursor:pointer}
 .bdg.CRITICAL{animation:bpulse 1.3s ease-in-out infinite}
 @keyframes bpulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.22)}60%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
 
-.tc-name{font-size:1rem;font-weight:700;color:var(--tx);margin-bottom:8px;letter-spacing:-.01em;display:flex;align-items:flex-start;gap:7px;line-height:1.3;min-width:0}
-.tc-name svg{flex-shrink:0;color:var(--tx3);margin-top:2px}
-.tc-name-text{min-width:0;overflow-wrap:break-word;word-break:break-word;word-wrap:break-word}
-.tc-meta{display:flex;flex-wrap:wrap;align-items:center;gap:9px;color:var(--tx2);font-size:.76rem;font-weight:500;margin-bottom:4px;min-width:0}
-.tc-meta span{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc-name{font-size:1rem;font-weight:700;color:var(--tx);margin-bottom:8px;letter-spacing:-.01em;display:flex;align-items:center;gap:7px;line-height:1.3}
+.tc-name svg{flex-shrink:0;color:var(--tx3)}
+.tc-meta{display:flex;flex-wrap:wrap;align-items:center;gap:9px;color:var(--tx2);font-size:.76rem;font-weight:500;margin-bottom:4px}
+.tc-meta span{display:flex;align-items:center;gap:4px}
 .tc-meta .dvd{width:3px;height:3px;border-radius:50%;background:var(--bd2);flex-shrink:0}
-.tc-addr{font-size:.72rem;color:var(--tx3);margin-top:4px;line-height:1.4;overflow-wrap:break-word;word-break:break-word;word-wrap:break-word}
+.tc-addr{font-size:.72rem;color:var(--tx3);margin-top:4px;line-height:1.4}
 .tc-distance{display:flex;align-items:center;gap:4px;font-size:.7rem;color:var(--tx3);margin-top:5px;font-weight:600;letter-spacing:.01em}
 .tc-distance svg{flex-shrink:0;opacity:.75}
 .tc-distance.near{color:var(--teal-dk)}
@@ -355,8 +352,7 @@ button{cursor:pointer}
 .sort-pill{display:inline-flex;align-items:center;gap:5px;font-size:.66rem;font-weight:700;color:var(--tx2);background:var(--srf2);border:1px solid var(--bd);border-radius:20px;padding:3px 10px;letter-spacing:.02em;margin-left:auto}
 .sort-pill svg{flex-shrink:0}
 .sort-pill.live{color:var(--teal-dk);background:var(--teal-lt);border-color:#99F0E4}
-.tc-callout{margin-top:12px;padding:11px 14px;border-radius:14px;font-size:.75rem;display:flex;gap:8px;align-items:flex-start;line-height:1.5;overflow-wrap:break-word;word-break:break-word;min-width:0}
-.tc-callout svg{flex-shrink:0}
+.tc-callout{margin-top:12px;padding:11px 14px;border-radius:14px;font-size:.75rem;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
 .tc-callout.canc{background:var(--violet-lt);border:1px solid var(--violet-bd);color:var(--violet-dk)}
 .tc-callout.proof{background:var(--green-lt);border:1px solid var(--green-bd);color:var(--green-dk);align-items:center}
 .tc-callout.note{background:var(--primary-lt);border:1px solid var(--primary-bd);color:var(--primary-dk)}
@@ -365,7 +361,7 @@ button{cursor:pointer}
 /* ══════════════════════════════════════
    BUTTONS
 ══════════════════════════════════════ */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 18px;height:50px;border:1.5px solid transparent;border-radius:18px;font-size:.82rem;font-weight:700;letter-spacing:.01em;transition:all .18s cubic-bezier(.34,1.4,.64,1);cursor:pointer;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--ff)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 18px;height:50px;border:1.5px solid transparent;border-radius:18px;font-size:.82rem;font-weight:700;letter-spacing:.01em;transition:all .18s cubic-bezier(.34,1.4,.64,1);cursor:pointer;flex:1;white-space:nowrap;font-family:var(--ff)}
 .btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
 .btn.sm{height:42px;padding:0 15px;font-size:.78rem;flex:0 0 auto}
 .btn.xl{height:54px;padding:0 24px;font-size:.86rem;flex:0 0 auto}
@@ -1239,7 +1235,7 @@ function renderRecoveredList(tix){
     <div class="tc-r1"><span class="tc-id c-vio">${t.ticket_id||('Site '+t.site_id)}</span>
       <div class="tc-badges"><span class="bdg RECOVERED">${wasClaimed?'Recovered (was claimed)':'Recovered'}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
     </div>
-    <div class="tc-name">${ic('build',15)} <span class="tc-name-text">${t.site_name}</span></div>
+    <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${wasClaimed&&t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${t.assigned_to}</span>`:''}</div>
     <div class="tc-addr">${t.address}</div>
     <div class="tc-callout canc">${ic('alert',14)}<span>${t.recovered_at?'Recovered '+fmtDate(t.recovered_at):'Recovered'}${wasClaimed?' — technician sees a warning in My Jobs':''}</span></div>
@@ -1258,7 +1254,7 @@ function admCard(t){
     <div class="tc-r1"><span class="tc-id ${idCls}">${idLabel}</span>
       <div class="tc-badges"><span class="bdg ${t.status}">${sm[t.status]||t.status}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
     </div>
-    <div class="tc-name">${ic('build',15)} <span class="tc-name-text">${t.site_name}</span></div>
+    <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${t.assigned_to}</span>`:''}${t.recurrence_count>1?`<span class="dvd"></span><span>${ic('refresh',13)} Reported ${t.recurrence_count}x</span>`:''}</div>
     <div class="tc-addr">${t.address}</div>
     ${t.status==='ON_GOING'&&t.recovered_while_claimed?`<div class="tc-callout canc">${ic('alert',14)}<span>⚠ Site already recovered based on latest monitoring batch.</span></div>`:''}
@@ -1384,7 +1380,7 @@ function renderOpen(tix){
     const distLabel=GeoEngine.formatDistance(t.distanceKm);
     return `<div class="tc ${t.priority} fade-up" id="oc-${t.id}" style="animation-delay:${Math.min(i,5)*0.04}s"><div class="tc-strip"></div><div class="tc-body">
     <div class="tc-r1"><span class="tc-id c-blue">${t.site_id}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
-    <div class="tc-name">${ic('build',15)} <span class="tc-name-text">${t.site_name}</span></div>
+    <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.recurrence_count>1?`<span class="dvd"></span><span>${ic('refresh',13)} Reported ${t.recurrence_count}x</span>`:''}</div>
     <div class="tc-addr">${t.address}</div>
     ${distLabel?`<div class="tc-distance${t.distanceKm<2?' near':''}">${ic('nav',11)} ${distLabel}</div>`:''}
@@ -1403,7 +1399,7 @@ function renderMine(tix){
   if(!tix.length){c.innerHTML=emptyState(ic('wrench',22),'No on-going jobs','Claim an open job to get started.');return;}
   c.innerHTML=tix.map(t=>`<div class="tc ONGO"><div class="tc-strip"></div><div class="tc-body">
     <div class="tc-r1"><span class="tc-id c-blue">${t.ticket_id||'Pending ticket'}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
-    <div class="tc-name">${ic('build',15)} <span class="tc-name-text">${t.site_name}</span></div>
+    <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('pin',13)} ${t.coordinates}</span></div>
     <div class="tc-addr">${t.address}</div>
     ${t.recovered_while_claimed?`<div class="tc-callout canc">${ic('alert',14)}<span>⚠ Site already recovered based on latest monitoring batch.</span></div>`:''}
@@ -1424,7 +1420,7 @@ function renderDone(tix){
   if(!tix.length){c.innerHTML=emptyState(ic('check',22),'No completed jobs yet','Completed jobs will appear here.');return;}
   c.innerHTML=tix.map(t=>`<div class="tc DONE"><div class="tc-strip"></div><div class="tc-body">
     <div class="tc-r1"><span class="tc-id c-grn">${t.ticket_id}</span><span class="bdg COMPLETED">Completed</span></div>
-    <div class="tc-name">${ic('build',15)} <span class="tc-name-text">${t.site_name}</span></div>
+    <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.completed_at?`<span class="dvd"></span><span>${ic('clock',13)} ${fmtDate(t.completed_at)}</span>`:''}</div>
     <div class="tc-addr">${t.address}</div>
     ${t.proof_url&&t.proof_url.length?`<div class="tc-callout proof">${ic('img',14)} ${t.proof_url.length} proof file${t.proof_url.length>1?'s':''} submitted</div>`:''}
@@ -1442,7 +1438,7 @@ function renderCanc(tix){
   if(!tix.length){c.innerHTML=emptyState(ic('ban',22),'No cancelled jobs','Cancelled jobs will appear here.');return;}
   c.innerHTML=tix.map(t=>`<div class="tc CANC"><div class="tc-strip"></div><div class="tc-body">
     <div class="tc-r1"><span class="tc-id c-vio">${t.ticket_id||'No ticket (never claimed)'}</span><span class="bdg CANCELLED">Cancelled</span></div>
-    <div class="tc-name">${ic('build',15)} <span class="tc-name-text">${t.site_name}</span></div>
+    <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.cancelled_at?`<span class="dvd"></span><span>${ic('clock',13)} ${fmtDate(t.cancelled_at)}</span>`:''}</div>
     <div class="tc-addr">${t.address}</div>
     ${t.cancellation_reason?`<div class="tc-callout canc">${ic('ban',14)}<span><strong>Reason:</strong> ${t.cancellation_reason}</span></div>`:''}
