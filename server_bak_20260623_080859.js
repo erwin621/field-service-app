@@ -350,7 +350,7 @@ async function getUserByTechCode(techCode) {
 
 // ─── Middleware ─────────────────────────────────────────────────────────────
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
@@ -960,134 +960,6 @@ app.post('/api/admin/batch-upload', async (req, res) => {
         });
     } catch (err) {
         console.error('[POST /batch-upload]', err.message);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  POST /api/admin/single-site  — add ONE new site ticket
-//
-//  REJECTION RULES (all checked before insert):
-//   1. site_id has an active OPEN ticket    → 409 Conflict
-//   2. site_id has an ON_GOING ticket       → 409 Conflict
-//   3. site_id has a COMPLETED ticket whose
-//      completed_at is within the last 15 days → 409 Conflict
-//
-//  All other statuses (CANCELLED, RECOVERED, older COMPLETED) are
-//  ignored — re-adding those sites is allowed.
-// ═══════════════════════════════════════════════════════════════════════════
-app.post('/api/admin/single-site', async (req, res) => {
-    const { site_id, site_name, locality, address, coordinates, priority, uploaded_by } = req.body;
-    if (!site_id || !site_name)
-        return res.status(400).json({ error: 'site_id and site_name are required' });
-
-    const siteId         = String(site_id).trim();
-    const now            = new Date();
-    const fifteenDaysAgo = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000).toISOString();
-
-    try {
-        if (supabase) {
-            // ── Rule 1 & 2: OPEN or ON_GOING already exists ───────────────
-            const { data: activeRows, error: ae } = await supabase
-                .from('tickets')
-                .select('id, status')
-                .eq('site_id', siteId)
-                .in('status', ['OPEN', 'ON_GOING'])
-                .limit(1);
-            if (ae) throw ae;
-
-            if (activeRows && activeRows.length) {
-                const s = activeRows[0].status;
-                return res.status(409).json({
-                    error: `Site ${siteId} already has an ${s === 'OPEN' ? 'Open' : 'On-Going'} ticket. ` +
-                           `It cannot be added again until that ticket is resolved.`
-                });
-            }
-
-            // ── Rule 3: COMPLETED within the last 15 days ─────────────────
-            const { data: recentRows, error: re } = await supabase
-                .from('tickets')
-                .select('id, completed_at')
-                .eq('site_id', siteId)
-                .eq('status', 'COMPLETED')
-                .gte('completed_at', fifteenDaysAgo)
-                .limit(1);
-            if (re) throw re;
-
-            if (recentRows && recentRows.length) {
-                const doneAt = recentRows[0].completed_at
-                    ? new Date(recentRows[0].completed_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
-                    : 'recently';
-                return res.status(409).json({
-                    error: `Site ${siteId} was completed on ${doneAt} — within the 15-day cooldown. ` +
-                           `It can be re-added after the cooldown expires.`
-                });
-            }
-
-            // ── All clear: insert ──────────────────────────────────────────
-            const { error: insErr } = await supabase.from('tickets').insert({
-                site_id:     siteId,
-                site_name:   site_name.trim(),
-                locality:    locality    || '',
-                address:     address     || '',
-                coordinates: coordinates || '',
-                status:      'OPEN',
-                priority:    (priority || 'MEDIUM').toUpperCase(),
-                ticket_id:   null,
-                recurrence_count:    1,
-                recovered_at:        null,
-                recovered_while_claimed: false
-            });
-            if (insErr) throw insErr;
-
-        } else {
-            // ── Local JSON fallback ────────────────────────────────────────
-            const db = readDB();
-
-            const active = db.tickets.find(t =>
-                t.site_id === siteId && ['OPEN', 'ON_GOING'].includes(t.status)
-            );
-            if (active) {
-                const s = active.status;
-                return res.status(409).json({
-                    error: `Site ${siteId} already has an ${s === 'OPEN' ? 'Open' : 'On-Going'} ticket. ` +
-                           `It cannot be added again until that ticket is resolved.`
-                });
-            }
-
-            const fifteenDaysAgoMs = now.getTime() - 15 * 24 * 60 * 60 * 1000;
-            const recentDone = db.tickets.find(t =>
-                t.site_id === siteId &&
-                t.status  === 'COMPLETED' &&
-                t.completed_at &&
-                new Date(t.completed_at).getTime() >= fifteenDaysAgoMs
-            );
-            if (recentDone) {
-                const doneAt = recentDone.completed_at
-                    ? new Date(recentDone.completed_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
-                    : 'recently';
-                return res.status(409).json({
-                    error: `Site ${siteId} was completed on ${doneAt} — within the 15-day cooldown. ` +
-                           `It can be re-added after the cooldown expires.`
-                });
-            }
-
-            db.tickets.push({
-                id: generateId(), ticket_id: null,
-                site_id: siteId, site_name: site_name.trim(),
-                locality: locality || '', address: address || '', coordinates: coordinates || '',
-                status: 'OPEN', priority: (priority || 'MEDIUM').toUpperCase(),
-                assigned_to: null, proof_url: [], notes: '',
-                cancellation_reason: null, cancelled_by: null,
-                recurrence_count: 1, recovered_at: null, recovered_while_claimed: false,
-                created_at: now.toISOString(), updated_at: now.toISOString()
-            });
-            writeDB(db);
-        }
-
-        res.json({ message: `✓ Site ${siteId} — ${site_name} added as a new OPEN ticket.` });
-    } catch (err) {
-        console.error('[POST /single-site]', err.message);
         res.status(500).json({ error: err.message });
     }
 });

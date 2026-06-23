@@ -553,26 +553,6 @@ button{cursor:pointer}
           </div>
         </div>
       </div>
-      <div class="batchbox" id="ss-box">
-        <div class="stitle">Single Site Entry</div>
-        <p style="font-size:.78rem;color:var(--tx2);margin-bottom:16px">Add one site directly. Entry is <strong>rejected</strong> if the site is currently Open or On-Going, or was completed within the last <strong>15 days</strong>.</p>
-        <div class="fg"><label class="flbl">Site ID <span style="color:var(--red)">*</span></label><input class="finp" id="ss-id" type="text" placeholder="e.g. SITE-301" autocomplete="off"></div>
-        <div class="fg"><label class="flbl">Site Name <span style="color:var(--red)">*</span></label><input class="finp" id="ss-name" type="text" placeholder="e.g. Macapagal Memorial Medical Center"></div>
-        <div class="fg"><label class="flbl">Locality</label><input class="finp" id="ss-loc" type="text" placeholder="e.g. Caloocan City"></div>
-        <div class="fg"><label class="flbl">Address</label><input class="finp" id="ss-addr" type="text" placeholder="e.g. 450 A. Mabini St, Poblacion, Caloocan"></div>
-        <div class="fg"><label class="flbl">Coordinates <span style="font-weight:400;color:var(--tx3)">(lat, lng)</span></label><input class="finp" id="ss-coords" type="text" placeholder="e.g. 14.647097, 120.972037" inputmode="decimal"></div>
-        <div class="fg" style="margin-bottom:0"><label class="flbl">Priority</label>
-          <select class="fsel" id="ss-prio">
-            <option value="MEDIUM">MEDIUM (default)</option>
-            <option value="LOW">LOW</option>
-            <option value="HIGH">HIGH</option>
-            <option value="CRITICAL">CRITICAL</option>
-          </select>
-        </div>
-        <button class="btn primary sm" id="ss-btn" onclick="submitSingleSite()" style="margin-top:16px">Add Site</button>
-        <div class="smsg" id="ss-msg"></div>
-      </div>
-
       <div class="batchbox">
         <div class="stitle">CSV Batch Upload</div>
         <p style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">One site per line. Header row is skipped automatically.</p>
@@ -640,7 +620,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('at-up').prepend(icEl('upload',15));
   document.getElementById('abk').prepend(icEl('arrowL',14));
   document.getElementById('adm-lo').innerHTML=ic('logout',16);
-  document.getElementById('ss-btn').prepend(icEl('build',15));
   document.getElementById('batch-btn').prepend(icEl('upload',15));
   document.getElementById('sim-btn').prepend(icEl('refresh',15));
   document.getElementById('m-hd').prepend(icEl('ban',20));
@@ -1124,57 +1103,6 @@ function parseCSVLine(line){
   }
   cols.push(cur.trim());
   return cols;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   SINGLE SITE ENTRY
-   Rejects if the site is currently OPEN, ON_GOING, or was COMPLETED
-   within the past 15 days. Otherwise creates a new OPEN ticket.
-══════════════════════════════════════════════════════════════════════ */
-async function submitSingleSite(){
-  const siteId  = document.getElementById('ss-id').value.trim();
-  const siteName= document.getElementById('ss-name').value.trim();
-  const loc     = document.getElementById('ss-loc').value.trim();
-  const addr    = document.getElementById('ss-addr').value.trim();
-  const coords  = document.getElementById('ss-coords').value.trim();
-  const prio    = document.getElementById('ss-prio').value;
-  const msg     = document.getElementById('ss-msg');
-  const btn     = document.getElementById('ss-btn');
-
-  msg.className='smsg'; // hide previous message
-
-  if(!siteId){msg.innerHTML=ic('x',14)+' Site ID is required.';msg.className='smsg err';return;}
-  if(!siteName){msg.innerHTML=ic('x',14)+' Site Name is required.';msg.className='smsg err';return;}
-
-  btn.innerHTML=ic('clock',14)+' Checking...';btn.disabled=true;
-  try{
-    const r=await fetch('/api/admin/single-site',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        site_id:siteId, site_name:siteName,
-        locality:loc, address:addr, coordinates:coords,
-        priority:prio,
-        uploaded_by:CU?(CU.name||CU.id):'admin'
-      })
-    });
-    const d=await r.json();
-    if(r.ok){
-      msg.innerHTML=ic('check',14)+' '+d.message;msg.className='smsg ok';
-      // Clear form on success
-      ['ss-id','ss-name','ss-loc','ss-addr','ss-coords'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('ss-prio').value='MEDIUM';
-      loadAdminData();
-    } else {
-      // 409 Conflict = rejection rule fired; show the server's reason clearly
-      msg.innerHTML=ic('ban',14)+' '+d.error;
-      msg.className='smsg err';
-    }
-  }catch(e){
-    msg.innerHTML=ic('x',14)+' Cannot reach server. Make sure the Node.js backend is running.';
-    msg.className='smsg err';
-  }
-  btn.innerHTML=ic('build',15)+' Add Site';btn.disabled=false;
 }
 
 async function runBatch(){
