@@ -749,6 +749,8 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
     try {
         let proofUrls    = [];
         let ticketNumber = id; // fallback label for Telegram/storage if lookup is thin
+        let siteId       = '';  // hoisted — needed by sendTelegramProof outside if/else
+        let siteName     = '';
 
         if (supabase) {
             const user = await getUserByTechCode(technician_id);
@@ -757,8 +759,8 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
                 .from('tickets').select('ticket_id, site_id, site_name').eq('id', id).maybeSingle();
             if (!tktRow) return res.status(404).json({ error: 'Ticket not found' });
             ticketNumber = tktRow.ticket_id || ticketNumber;
-            const siteId   = tktRow.site_id   || '';
-            const siteName = tktRow.site_name  || '';
+            siteId   = tktRow.site_id   || '';
+            siteName = tktRow.site_name  || '';
 
             for (const file of req.files) {
                 const storagePath = `${ticketNumber}/${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
@@ -801,8 +803,8 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
             const t  = db.tickets.find(x => x.id === id);
             if (!t) return res.status(404).json({ error: 'Ticket not found' });
             ticketNumber   = t.ticket_id || ticketNumber;
-            const siteId   = t.site_id   || '';
-            const siteName = t.site_name  || '';
+            siteId   = t.site_id   || '';
+            siteName = t.site_name  || '';
             t.status       = 'COMPLETED';
             t.proof_url    = proofUrls;
             t.notes        = notes || '';
