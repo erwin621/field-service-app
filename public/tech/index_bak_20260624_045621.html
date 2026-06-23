@@ -470,72 +470,6 @@ button{cursor:pointer}
 .fade-up{animation:fadeUp .3s cubic-bezier(.34,1.4,.64,1) both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-
-/* ══════════════════════════════════════
-   INCOME OVERVIEW  — square, no border-radius
-   All income UI elements use border-radius:0
-══════════════════════════════════════ */
-/* ── section title ── */
-.inc-section-title{font-size:.66rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.inc-section-title::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--bd),transparent)}
-/* ── filter pills ── */
-.inc-filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.inc-fpill{padding:8px 13px;background:var(--card);border:1.5px solid var(--bd);border-radius:0;color:var(--tx2);font-size:.71rem;font-weight:700;letter-spacing:.03em;cursor:pointer;transition:all .18s;white-space:nowrap;font-family:var(--ff)}
-.inc-fpill:hover{border-color:var(--teal);color:var(--teal-dk)}
-.inc-fpill.on{background:var(--teal);border-color:var(--teal);color:#fff}
-/* ── custom date range ── */
-.inc-custom{background:var(--card);border:1.5px solid var(--bd);border-radius:0;padding:14px;margin-bottom:14px;display:none;box-shadow:var(--s1)}
-.inc-custom.show{display:block}
-.inc-date-lbl{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:4px}
-.inc-date-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
-.inc-date-inp{flex:1;min-width:110px;padding:10px 11px;border:1.5px solid var(--bd);border-radius:0;background:var(--srf2);color:var(--tx);font-size:.8rem;outline:none;transition:.18s;font-family:var(--ff)}
-.inc-date-inp:focus{border-color:var(--teal);background:var(--card);box-shadow:0 0 0 3px rgba(20,184,166,.10)}
-.inc-apply-btn{padding:10px 16px;background:linear-gradient(135deg,var(--teal),var(--teal-dk));border:none;border-radius:0;color:#fff;font-size:.76rem;font-weight:700;cursor:pointer;transition:.18s;white-space:nowrap;font-family:var(--ff);box-shadow:0 2px 8px rgba(20,184,166,.28)}
-.inc-apply-btn:hover{background:linear-gradient(135deg,var(--teal-dk),#0A7A70)}
-/* ── summary cards ── */
-.inc-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.inc-card{background:var(--card);border:1px solid var(--bd);border-radius:0;padding:12px 10px 11px;box-shadow:var(--s1);position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;transition:box-shadow .18s}
-.inc-card:hover{box-shadow:var(--s2)}
-.inc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.inc-card.blue::before{background:var(--primary)}
-.inc-card.green::before{background:var(--green)}
-.inc-card.teal::before{background:var(--teal)}
-.inc-card-ico{width:30px;height:30px;border-radius:0;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
-.inc-card.blue .inc-card-ico{background:var(--primary-lt);color:var(--primary)}
-.inc-card.green .inc-card-ico{background:var(--green-lt);color:var(--green-dk)}
-.inc-card.teal .inc-card-ico{background:var(--teal-lt);color:var(--teal-dk)}
-.inc-card-val{font-size:1.45rem;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:3px;color:var(--tx)}
-.inc-card.teal .inc-card-val{color:var(--teal-dk);font-size:1.3rem}
-.inc-card-lbl{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);line-height:1.3}
-/* ── trend segmented control ── */
-.inc-trend-seg{display:flex;background:var(--srf2);border:1.5px solid var(--bd);border-radius:0;padding:3px;gap:2px;margin-bottom:12px}
-.inc-tseg{flex:1;padding:8px 4px;border:none;border-radius:0;font-size:.73rem;font-weight:700;cursor:pointer;background:transparent;color:var(--tx2);transition:all .2s cubic-bezier(.34,1.4,.64,1);font-family:var(--ff)}
-.inc-tseg.on{background:linear-gradient(135deg,var(--teal),var(--teal-dk));color:#fff;box-shadow:0 2px 8px rgba(20,184,166,.3)}
-/* ── chart container ── */
-.inc-chart-box{background:var(--card);border:1px solid var(--bd);border-radius:0;padding:16px 14px 10px;margin-bottom:16px;box-shadow:var(--s1);overflow:hidden}
-.inc-chart-lbl{font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);margin-bottom:12px}
-/* ── export buttons ── */
-.inc-export{display:flex;gap:8px;margin-bottom:18px}
-.inc-exp-btn{flex:1;padding:11px;border:1.5px solid var(--bd);border-radius:0;background:var(--card);color:var(--tx2);font-size:.73rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.18s;font-family:var(--ff)}
-.inc-exp-btn:hover{border-color:var(--teal);color:var(--teal-dk);background:var(--teal-lt)}
-/* ── completed job cards ── */
-.inc-job{background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--teal);border-radius:0;margin-bottom:9px;padding:13px 14px;box-shadow:var(--s1);display:flex;flex-direction:column;gap:5px;transition:box-shadow .18s}
-.inc-job:hover{box-shadow:var(--s2)}
-.inc-job-r1{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:1px}
-.inc-job-tid{font-family:var(--fm);font-size:.69rem;color:var(--teal-dk);font-weight:600;letter-spacing:.01em}
-.inc-job-date{font-size:.68rem;color:var(--tx3)}
-.inc-job-name{font-size:.93rem;font-weight:700;color:var(--tx);line-height:1.3}
-.inc-job-meta{font-size:.73rem;color:var(--tx2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.inc-job-meta span{display:flex;align-items:center;gap:3px}
-.inc-job-meta .dvd{width:3px;height:3px;border-radius:50%;background:var(--bd2);flex-shrink:0;display:inline-block}
-.inc-job-income-row{display:flex;justify-content:flex-end;border-top:1px solid var(--bd);padding-top:7px;margin-top:3px}
-.inc-job-income{font-size:1rem;font-weight:800;color:var(--teal-dk);font-family:var(--fm);letter-spacing:-.01em}
-/* ── empty state ── */
-.inc-empty{text-align:center;padding:42px 20px;background:var(--card);border:1px solid var(--bd);border-radius:0;box-shadow:var(--s1)}
-.inc-empty-ico{margin:0 auto 14px;display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:var(--srf2);border:1.5px solid var(--bd)}
-.inc-empty-main{font-size:.88rem;font-weight:700;color:var(--tx2)}
-.inc-empty-sub{font-size:.74rem;color:var(--tx3);margin-top:4px}
-
 @media(max-width:440px){
   .role-grid{gap:11px}
   .acard{padding:32px 22px}
@@ -678,10 +612,6 @@ button{cursor:pointer}
 <div id="profile-overlay" style="display:none;position:fixed;inset:0;z-index:120;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
 </div>
 
-<!-- ══════════════════════════════════════ INCOME OVERVIEW PANEL (sub-page of Tools) ══════════════════════════════════════ -->
-<div id="income-overlay" style="display:none;position:fixed;inset:0;z-index:130;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
-</div>
-
 <script>
 const IC={
   logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
@@ -712,11 +642,6 @@ const IC={
   filter:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`,
   chevR:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
   settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
-  // ── Income Overview icons ──
-  peso:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="6" y1="8" x2="18" y2="8"/></svg>`,
-  trendUp:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
-  download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
-  fileText:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
@@ -1501,16 +1426,16 @@ async function reopenTicket(id){
   catch(e){const t=AT.find(x=>x.id===id);if(t){t.status='OPEN';t.cancellation_reason=null;t.cancelled_by=null;t.assigned_to=null;}toast('Ticket re-opened (demo).','ok');loadAdminData();}
 }
 
-/* ── TOOLS overlay ── */
+/* ── TOOLS overlay (new section, presentational) ── */
 function renderToolsOverlay(){
   const el=document.getElementById('tools-overlay');
   const tools=[
-    {name:'Inventory',      desc:'Check parts & stock',      bg:'var(--primary-lt)', ic_:'var(--primary)',    icon:'tag'},
-    {name:'Timer',          desc:'Track job duration',       bg:'var(--green-lt)',   ic_:'var(--green-dk)',   icon:'clock'},
-    {name:'Income Overview',desc:'Earnings & job summary',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',    icon:'trendUp', action:'showIncomeOverlay()'},
-    {name:'Alerts',         desc:'System notifications',     bg:'var(--violet-lt)', ic_:'var(--violet-dk)', icon:'alert'},
-    {name:'Navigator',      desc:'Route optimization',       bg:'var(--primary-lt)', ic_:'var(--primary)',   icon:'nav'},
-    {name:'Settings',       desc:'App preferences',          bg:'var(--srf2)',       ic_:'var(--tx2)',        icon:'settings'},
+    {name:'Inventory',desc:'Check parts & stock',bg:'var(--primary-lt)',ic_:'var(--primary)',icon:'tag'},
+    {name:'Timer',desc:'Track job duration',bg:'var(--green-lt)',ic_:'var(--green-dk)',icon:'clock'},
+    {name:'Reports',desc:'Submit field reports',bg:'var(--amber-lt)',ic_:'var(--amber-dk)',icon:'clipboard'},
+    {name:'Alerts',desc:'System notifications',bg:'var(--violet-lt)',ic_:'var(--violet-dk)',icon:'alert'},
+    {name:'Navigator',desc:'Route optimization',bg:'var(--primary-lt)',ic_:'var(--primary)',icon:'nav'},
+    {name:'Settings',desc:'App preferences',bg:'var(--srf2)',ic_:'var(--tx2)',icon:'settings'},
   ];
   el.innerHTML=`
     <div class="app-header">
@@ -1518,8 +1443,8 @@ function renderToolsOverlay(){
       <div class="app-brand-info"><div class="app-brand-name">Tools &amp; Utilities</div></div>
     </div>
     <div class="app-scroll">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:4px 0">
-        ${tools.map((t,i)=>`<div class="scard fade-up" style="flex-direction:column;align-items:flex-start;border-radius:4px;cursor:pointer;animation-delay:${i*0.04}s;${t.action?'border-color:var(--teal);':''}" ${t.action?'onclick="'+t.action+'"':''}>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${tools.map((t,i)=>`<div class="scard fade-up" style="flex-direction:column;align-items:flex-start;border-radius:4px;cursor:pointer;animation-delay:${i*0.04}s">
           <div class="sico" style="background:${t.bg};color:${t.ic_};width:44px;height:44px;border-radius:4px;margin-bottom:6px">${ic(t.icon,21)}</div>
           <div style="font-size:14px;font-weight:700;color:var(--tx)">${t.name}</div>
           <div style="font-size:12px;color:var(--tx3);margin-top:2px;line-height:1.4">${t.desc}</div>
@@ -1557,391 +1482,6 @@ function renderProfileOverlay(){
       </div>
       <button class="fade-up" onclick="logout()" style="width:100%;background:#fff;border:1.5px solid var(--red-bd);border-radius:4px;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--red);font-size:14px;font-weight:700;cursor:pointer">${ic('logout',16)} Sign Out</button>
     </div>`;
-}
-
-
-/* ════════════════════════════════════════════════════════════════════════════
-   INCOME OVERVIEW
-   ─ Income is ALWAYS derived from completed jobs.  Never stored, never manual.
-   ─ INCOME_PER_JOB = ₱250  (fixed rate per completed job)
-   ─ Fetch source: /api/tickets/completed?technician_id=<id>
-════════════════════════════════════════════════════════════════════════════ */
-const INCOME_PER_JOB=250;
-
-// ── Module-level state ────────────────────────────────────────────────────
-const IncS={
-  filter:'month',   // 'today' | 'week' | 'month' | 'custom'
-  trend:'daily',    // 'daily' | 'weekly' | 'monthly'
-  from:'',          // YYYY-MM-DD  (custom range start)
-  to:'',            // YYYY-MM-DD  (custom range end)
-  all:[],           // raw completed jobs from server (never mutated)
-  jobs:[],          // jobs filtered by current date range
-};
-
-// ── Navigation ────────────────────────────────────────────────────────────
-function showIncomeOverlay(){
-  document.getElementById('tools-overlay').style.display='none';
-  const ov=document.getElementById('income-overlay');
-  ov.style.display='flex';
-  renderIncomeOverlay();
-}
-function closeIncomeOverlay(){
-  document.getElementById('income-overlay').style.display='none';
-  renderToolsOverlay();
-  document.getElementById('tools-overlay').style.display='flex';
-  navHide.attach(document.querySelector('#tools-overlay .app-scroll'));
-}
-
-// ── Shell + async fetch ───────────────────────────────────────────────────
-async function renderIncomeOverlay(){
-  const ov=document.getElementById('income-overlay');
-  ov.innerHTML=`
-    <div class="app-header">
-      <button class="icon-btn" onclick="closeIncomeOverlay()">${ic('arrowL',18)}</button>
-      <div class="app-brand-info">
-        <div class="app-brand-name">Income Overview</div>
-        <div class="app-brand-role">All values derived from completed jobs · ₱250/job</div>
-      </div>
-    </div>
-    <div class="app-scroll" id="income-scroll" style="flex:1;overflow-y:auto;padding:14px 16px calc(var(--nav-h) + var(--sab) + 20px)">
-      <div id="inc-body"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div>
-    </div>`;
-  navHide.attach(document.getElementById('income-scroll'));
-
-  // Fetch completed jobs for the current technician
-  try{
-    const r=await fetch('/api/tickets/completed?technician_id='+encodeURIComponent(CU.id));
-    IncS.all=r.ok?await r.json():[];
-  }catch(e){IncS.all=[];}
-
-  applyIncomeFilter();
-}
-
-// ── Date filtering ────────────────────────────────────────────────────────
-function incDateRange(f,fromStr,toStr){
-  const now=new Date();
-  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  if(f==='today') return{from:today,to:new Date(today.getTime()+86399999)};
-  if(f==='week'){
-    const day=today.getDay();
-    const mon=new Date(today.getTime()-(day===0?6:day-1)*86400000);
-    return{from:mon,to:new Date(mon.getTime()+6*86400000+86399999)};
-  }
-  if(f==='month') return{from:new Date(today.getFullYear(),today.getMonth(),1),to:new Date(today.getFullYear(),today.getMonth()+1,0,23,59,59)};
-  if(f==='custom'&&fromStr&&toStr) return{from:new Date(fromStr),to:new Date(toStr+'T23:59:59')};
-  return null; // all time
-}
-
-function applyIncomeFilter(){
-  const range=incDateRange(IncS.filter,IncS.from,IncS.to);
-  IncS.jobs=IncS.all.filter(j=>{
-    if(!j.completed_at)return false;
-    if(!range)return true;
-    const d=new Date(j.completed_at);
-    return d>=range.from&&d<=range.to;
-  });
-  renderIncomeBody();
-}
-
-// ── User interactions ─────────────────────────────────────────────────────
-function setIncFilter(f){
-  IncS.filter=f;
-  document.querySelectorAll('.inc-fpill').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
-  const cust=document.getElementById('inc-custom');
-  if(f==='custom'){if(cust)cust.classList.add('show');}
-  else{if(cust)cust.classList.remove('show');applyIncomeFilter();}
-}
-function applyCustomRange(){
-  IncS.from=document.getElementById('inc-from').value;
-  IncS.to=document.getElementById('inc-to').value;
-  if(!IncS.from||!IncS.to){toast('Please select both From and To dates.','err');return;}
-  applyIncomeFilter();
-}
-function setIncTrend(t){
-  IncS.trend=t;
-  document.querySelectorAll('.inc-tseg').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  const box=document.getElementById('inc-chart-box');
-  if(box)box.innerHTML=renderIncomeChartSVG();
-}
-
-// ── Main body render ──────────────────────────────────────────────────────
-function renderIncomeBody(){
-  const el=document.getElementById('inc-body');
-  if(!el)return;
-  const total=IncS.jobs.length;
-  const totalIncome=total*INCOME_PER_JOB;
-
-  el.innerHTML=`
-    <!-- ── DATE FILTERS ── -->
-    <div class="inc-filter-bar">
-      ${['today','week','month','custom'].map(f=>{
-        const L={today:'Today',week:'This Week',month:'This Month',custom:'Custom Range'};
-        return `<button class="inc-fpill${IncS.filter===f?' on':''}" data-f="${f}" onclick="setIncFilter('${f}')">${L[f]}</button>`;
-      }).join('')}
-    </div>
-
-    <!-- ── CUSTOM DATE RANGE ── -->
-    <div class="inc-custom${IncS.filter==='custom'?' show':''}" id="inc-custom">
-      <div class="inc-section-title">Custom Date Range</div>
-      <div class="inc-date-row">
-        <div style="flex:1"><div class="inc-date-lbl">From</div><input type="date" class="inc-date-inp" id="inc-from" value="${IncS.from}"></div>
-        <div style="flex:1"><div class="inc-date-lbl">To</div><input type="date" class="inc-date-inp" id="inc-to" value="${IncS.to}"></div>
-        <button class="inc-apply-btn" onclick="applyCustomRange()">Apply</button>
-      </div>
-    </div>
-
-    <!-- ── SUMMARY CARDS ── -->
-    <div class="inc-cards">
-      <div class="inc-card blue">
-        <div class="inc-card-ico">${ic('check',16)}</div>
-        <div class="inc-card-val">${total}</div>
-        <div class="inc-card-lbl">Completed Jobs</div>
-      </div>
-      <div class="inc-card green">
-        <div class="inc-card-ico">${ic('peso',16)}</div>
-        <div class="inc-card-val">₱${INCOME_PER_JOB}</div>
-        <div class="inc-card-lbl">Income / Job</div>
-      </div>
-      <div class="inc-card teal">
-        <div class="inc-card-ico">${ic('trendUp',16)}</div>
-        <div class="inc-card-val">₱${totalIncome.toLocaleString()}</div>
-        <div class="inc-card-lbl">Total Income</div>
-      </div>
-    </div>
-
-    <!-- ── INCOME TRENDS ── -->
-    <div class="inc-section-title">Income Trends</div>
-    <div class="inc-trend-seg">
-      <button class="inc-tseg${IncS.trend==='daily'?' on':''}"   data-t="daily"   onclick="setIncTrend('daily')">Daily</button>
-      <button class="inc-tseg${IncS.trend==='weekly'?' on':''}"  data-t="weekly"  onclick="setIncTrend('weekly')">Weekly</button>
-      <button class="inc-tseg${IncS.trend==='monthly'?' on':''}" data-t="monthly" onclick="setIncTrend('monthly')">Monthly</button>
-    </div>
-    <div class="inc-chart-box" id="inc-chart-box">
-      ${renderIncomeChartSVG()}
-    </div>
-
-    <!-- ── EXPORT ── -->
-    <div class="inc-export">
-      <button class="inc-exp-btn" onclick="exportIncomeCSV()">${ic('fileText',14)} Export CSV</button>
-      <button class="inc-exp-btn" onclick="exportIncomeXLS()">${ic('download',14)} Export Excel</button>
-    </div>
-
-    <!-- ── RECENT JOBS ── -->
-    <div class="inc-section-title">Completed Jobs</div>
-    ${renderIncomeJobs()}
-  `;
-}
-
-// ── SVG Line Chart ────────────────────────────────────────────────────────
-function renderIncomeChartSVG(){
-  // Group jobs by the selected trend mode
-  let data=[];
-  if(IncS.trend==='daily'){
-    const m={};
-    IncS.jobs.forEach(j=>{
-      if(!j.completed_at)return;
-      const d=j.completed_at.split('T')[0];
-      if(!m[d])m[d]={k:d,count:0,income:0,label:incFmtDay(d)};
-      m[d].count++;m[d].income+=INCOME_PER_JOB;
-    });
-    data=Object.values(m).sort((a,b)=>a.k.localeCompare(b.k));
-  } else if(IncS.trend==='weekly'){
-    const m={};
-    IncS.jobs.forEach(j=>{
-      if(!j.completed_at)return;
-      const w=incGetWeek(new Date(j.completed_at));
-      if(!m[w.key])m[w.key]={k:w.key,count:0,income:0,label:w.label};
-      m[w.key].count++;m[w.key].income+=INCOME_PER_JOB;
-    });
-    data=Object.values(m).sort((a,b)=>a.k.localeCompare(b.k));
-  } else {
-    const m={};
-    IncS.jobs.forEach(j=>{
-      if(!j.completed_at)return;
-      const mo=j.completed_at.substring(0,7);
-      if(!m[mo])m[mo]={k:mo,count:0,income:0,label:incFmtMonth(mo)};
-      m[mo].count++;m[mo].income+=INCOME_PER_JOB;
-    });
-    data=Object.values(m).sort((a,b)=>a.k.localeCompare(b.k));
-  }
-
-  const trendLabels={daily:'Daily',weekly:'Weekly',monthly:'Monthly'};
-  if(!data.length){
-    return `<div class="inc-empty" style="border:none;box-shadow:none;padding:32px 0">
-      <div class="inc-empty-ico">${incEmptySVG()}</div>
-      <div class="inc-empty-main">No completed jobs found for this period.</div>
-    </div>`;
-  }
-  return `<div class="inc-chart-lbl">${trendLabels[IncS.trend]} Income Trend</div>`+buildIncomeChart(data);
-}
-
-function buildIncomeChart(data){
-  /* SVG canvas dimensions */
-  const W=340,H=165,PL=46,PT=10,PR=12,PB=40;
-  const pw=W-PL-PR,ph=H-PT-PB;
-
-  const vals=data.map(d=>d.income);
-  const maxV=Math.max(...vals,INCOME_PER_JOB*2); // floor at 2-job scale so chart isn't flat
-  const minV=0;
-
-  /* Map data points to SVG coords */
-  const pts=data.map((d,i)=>({
-    x: PL+(data.length===1?pw/2:(i/(data.length-1))*pw),
-    y: PT+ph-((d.income-minV)/(maxV-minV))*ph,
-    label:d.label,val:d.income,count:d.count,
-  }));
-
-  /* Smooth cubic bezier through all points */
-  function linePath(pts){
-    if(pts.length===1)return `M ${pts[0].x} ${pts[0].y}`;
-    let d=`M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-    for(let i=1;i<pts.length;i++){
-      const p=pts[i-1],c=pts[i],cpx=(p.x+c.x)/2;
-      d+=` C ${cpx.toFixed(1)},${p.y.toFixed(1)} ${cpx.toFixed(1)},${c.y.toFixed(1)} ${c.x.toFixed(1)},${c.y.toFixed(1)}`;
-    }
-    return d;
-  }
-  const lp=linePath(pts);
-  const ap=lp+` L ${(pts[pts.length-1].x).toFixed(1)},${(PT+ph).toFixed(1)} L ${PL},${(PT+ph).toFixed(1)} Z`;
-
-  /* Grid lines (4 levels) */
-  const grids=[0,.33,.66,1].map(f=>({y:(PT+ph-f*ph).toFixed(1),val:Math.round(minV+f*(maxV-minV))}));
-  const yFmt=v=>v===0?'':v>=1000?`₱${(v/1000).toFixed(0)}k`:`₱${v}`;
-
-  /* X-axis: max 5 labels to avoid crowding */
-  const step=Math.max(1,Math.ceil(data.length/5));
-  const xL=pts.filter((_,i)=>i%step===0||i===pts.length-1);
-
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block;overflow:visible" aria-label="Income trend chart">
-  <defs>
-    <linearGradient id="inc-grad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"  stop-color="#14B8A6" stop-opacity="0.20"/>
-      <stop offset="90%" stop-color="#14B8A6" stop-opacity="0.02"/>
-    </linearGradient>
-  </defs>
-  ${grids.map(g=>`
-    <line x1="${PL}" y1="${g.y}" x2="${W-PR}" y2="${g.y}"
-      stroke="${g.val===0?'#D7DBE0':'#E5E7EB'}" stroke-width="${g.val===0?1.5:1}"
-      ${g.val>0?'stroke-dasharray="3,3"':''}/>
-    <text x="${PL-5}" y="${(parseFloat(g.y)+4).toFixed(1)}" text-anchor="end"
-      font-size="9.5" fill="#94A3B8" font-family="'JetBrains Mono',monospace">${yFmt(g.val)}</text>
-  `).join('')}
-  <path d="${ap}" fill="url(#inc-grad)"/>
-  <path d="${lp}" fill="none" stroke="#14B8A6" stroke-width="2.5"
-    stroke-linecap="round" stroke-linejoin="round"/>
-  ${pts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4"
-    fill="white" stroke="#14B8A6" stroke-width="2.5">
-    <title>${p.label} · ${p.count} job${p.count!==1?'s':''} · ₱${p.val.toLocaleString()}</title>
-  </circle>`).join('')}
-  ${xL.map(p=>`<text x="${p.x.toFixed(1)}" y="${H-5}" text-anchor="middle"
-    font-size="9" fill="#94A3B8" font-family="'Inter',sans-serif">${p.label}</text>`).join('')}
-  </svg>`;
-}
-
-// ── Job card list ─────────────────────────────────────────────────────────
-function renderIncomeJobs(){
-  if(!IncS.jobs.length){
-    return `<div class="inc-empty">
-      <div class="inc-empty-ico">${incEmptySVG()}</div>
-      <div class="inc-empty-main">No completed jobs found for this period.</div>
-      <div class="inc-empty-sub">Try changing the date filter above.</div>
-    </div>`;
-  }
-  return IncS.jobs
-    .slice()
-    .sort((a,b)=>new Date(b.completed_at)-new Date(a.completed_at))
-    .map(j=>`
-      <div class="inc-job fade-up">
-        <div class="inc-job-r1">
-          <span class="inc-job-tid">${j.ticket_id||'—'}</span>
-          <span class="inc-job-date">${fmtDate(j.completed_at)}</span>
-        </div>
-        <div class="inc-job-name">${ic('build',14)} ${j.site_name}</div>
-        <div class="inc-job-meta">
-          <span>${ic('tag',12)} ${j.site_id}</span>
-          <span class="dvd"></span>
-          <span>${ic('pin',12)} ${j.locality}</span>
-        </div>
-        <div class="inc-job-income-row">
-          <span class="inc-job-income">₱${INCOME_PER_JOB.toLocaleString()}</span>
-        </div>
-      </div>`).join('');
-}
-
-// ── Date helpers ──────────────────────────────────────────────────────────
-function incFmtDay(s){
-  try{return new Date(s+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'});}catch(e){return s;}
-}
-function incFmtMonth(ym){
-  try{return new Date(ym+'-01').toLocaleDateString('en-PH',{month:'short',year:'2-digit'});}catch(e){return ym;}
-}
-function incGetWeek(d){
-  const y=d.getFullYear(),s=new Date(y,0,1);
-  const wn=Math.ceil(((d-s)/86400000+s.getDay()+1)/7);
-  return{key:`${y}-W${String(wn).padStart(2,'0')}`,label:`Wk ${wn}`};
-}
-
-// ── Empty state illustration SVG ──────────────────────────────────────────
-function incEmptySVG(){
-  return `<svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-    <rect width="52" height="52" fill="#F1F5F9"/>
-    <rect x="12" y="16" width="28" height="20" fill="none" stroke="#D7DBE0" stroke-width="1.5"/>
-    <line x1="18" y1="23" x2="34" y2="23" stroke="#D7DBE0" stroke-width="1.5"/>
-    <line x1="18" y1="28" x2="29" y2="28" stroke="#D7DBE0" stroke-width="1.5"/>
-    <polyline points="22,32 26,27 30,29 34,23" fill="none" stroke="#14B8A6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
-}
-
-// ── Exports ───────────────────────────────────────────────────────────────
-function exportIncomeCSV(){
-  if(!IncS.jobs.length){toast('No jobs to export.','err');return;}
-  const hdr=['ticket_number','site_id','site_name','locality','date_completed','income'];
-  const rows=IncS.jobs
-    .slice().sort((a,b)=>new Date(b.completed_at)-new Date(a.completed_at))
-    .map(j=>[
-      j.ticket_id||'',j.site_id||'',j.site_name||'',j.locality||'',
-      j.completed_at?j.completed_at.split('T')[0]:'',INCOME_PER_JOB
-    ]);
-  const csv=[hdr,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  incTriggerDownload(`income_${new Date().toISOString().split('T')[0]}.csv`,csv,'text/csv;charset=utf-8');
-  toast('CSV downloaded.','ok');
-}
-
-function exportIncomeXLS(){
-  if(!IncS.jobs.length){toast('No jobs to export.','err');return;}
-  const sorted=IncS.jobs.slice().sort((a,b)=>new Date(b.completed_at)-new Date(a.completed_at));
-  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // SpreadsheetML format — Excel-compatible without any library
-  const cell=(v,t)=>`<Cell><Data ss:Type="${t}">${esc(v)}</Data></Cell>`;
-  const hCell=v=>`<Cell ss:StyleID="H"><Data ss:Type="String">${esc(v)}</Data></Cell>`;
-  let rows=`<Row>${['Ticket No.','Site ID','Site Name','Locality','Date Completed','Income (₱)'].map(hCell).join('')}</Row>`;
-  sorted.forEach(j=>{
-    rows+=`<Row>
-      ${cell(j.ticket_id||'','String')}
-      ${cell(j.site_id||'','String')}
-      ${cell(j.site_name||'','String')}
-      ${cell(j.locality||'','String')}
-      ${cell(j.completed_at?j.completed_at.split('T')[0]:'','String')}
-      ${cell(INCOME_PER_JOB,'Number')}
-    </Row>`;
-  });
-  const totalInc=sorted.length*INCOME_PER_JOB;
-  rows+=`<Row>
-    ${hCell('TOTAL ('+sorted.length+' jobs)')}<Cell ss:MergeAcross="3"/><Cell/>
-    <Cell ss:StyleID="H"><Data ss:Type="Number">${totalInc}</Data></Cell>
-  </Row>`;
-  const xml=`<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="H"><Font ss:Bold="1"/><Interior ss:Color="#E0F7FA" ss:Pattern="Solid"/></Style></Styles><Worksheet ss:Name="Income Report"><Table>${rows}</Table></Worksheet></Workbook>`;
-  incTriggerDownload(`income_${new Date().toISOString().split('T')[0]}.xls`,xml,'application/vnd.ms-excel');
-  toast('Excel file downloaded.','ok');
-}
-
-function incTriggerDownload(filename,content,type){
-  const blob=new Blob([content],{type});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=filename;
-  document.body.appendChild(a);a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 function setLoad(id){document.getElementById(id).innerHTML='<div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div>';}
