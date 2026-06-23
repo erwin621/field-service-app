@@ -754,11 +754,9 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
             const user = await getUserByTechCode(technician_id);
 
             const { data: tktRow } = await supabase
-                .from('tickets').select('ticket_id, site_id, site_name').eq('id', id).maybeSingle();
+                .from('tickets').select('ticket_id').eq('id', id).maybeSingle();
             if (!tktRow) return res.status(404).json({ error: 'Ticket not found' });
             ticketNumber = tktRow.ticket_id || ticketNumber;
-            const siteId   = tktRow.site_id   || '';
-            const siteName = tktRow.site_name  || '';
 
             for (const file of req.files) {
                 const storagePath = `${ticketNumber}/${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
@@ -801,8 +799,6 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
             const t  = db.tickets.find(x => x.id === id);
             if (!t) return res.status(404).json({ error: 'Ticket not found' });
             ticketNumber   = t.ticket_id || ticketNumber;
-            const siteId   = t.site_id   || '';
-            const siteName = t.site_name  || '';
             t.status       = 'COMPLETED';
             t.proof_url    = proofUrls;
             t.notes        = notes || '';
@@ -811,7 +807,7 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
         }
 
         // Send proof to Telegram (non-blocking)
-        sendTelegramProof(ticketNumber, technician_id, notes, req.files, siteId, siteName).catch(() => {});
+        sendTelegramProof(ticketNumber, technician_id, notes, req.files).catch(() => {});
 
         res.json({ message: 'Job submitted and marked as Completed.' });
     } catch (err) {
@@ -1106,7 +1102,7 @@ app.post('/api/admin/single-site', async (req, res) => {
 //     videos are not silently truncated
 //  4. Full error detail is logged (err.response.data) instead of swallowed
 //
-async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteName) {
+async function sendTelegramProof(ticketId, techId, notes, files) {
     if (!BOT_TOKEN || !CHAT_ID) {
         console.log('[Telegram] Skipped — BOT_TOKEN or CHAT_ID not set in .env');
         return;
@@ -1120,11 +1116,11 @@ async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteNam
     // HTML parse mode is used throughout — it is immune to special characters
     // in tech notes/IDs that would break Telegram's Markdown (v1) parser.
     // All user-supplied strings are passed through escapeHtml() for safety.
-    // Format: site_id / site_name / Issue — plain text, no emojis
     const caption =
-        `${escapeHtml(siteId || ticketId)}\n` +
-        `${escapeHtml(siteName)}\n` +
-        `Issue: ${escapeHtml(notes || '—')}`;
+        `✅ <b>Job Completed</b>\n` +
+        `🎫 Ticket: <code>${escapeHtml(ticketId)}</code>\n` +
+        `👷 Tech: ${escapeHtml(techId)}` +
+        (notes ? `\n📝 Notes: ${escapeHtml(notes)}` : '');
 
     // Axios config — Infinity prevents large videos from being cut off
     const axiosCfg = {
