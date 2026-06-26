@@ -598,6 +598,127 @@ button{cursor:pointer}
   .sgrid{gap:10px}
   .dbbody{padding:18px 14px 100px}
 }
+
+/* ══════════════════════════════════════
+   NAVIGATOR — Route Optimizer
+══════════════════════════════════════ */
+/* ── MapLibre GL override ── */
+.nav-map-container{position:relative;height:280px;border-radius:4px;overflow:hidden;background:#e8f4f0;flex-shrink:0;border:1px solid var(--bd)}
+.nav-map-container .maplibregl-map{border-radius:0}
+.maplibregl-ctrl-logo,.maplibregl-ctrl-attrib{display:none!important}
+.maplibregl-ctrl-group{border-radius:4px!important;overflow:hidden}
+.maplibregl-ctrl-group button{width:32px!important;height:32px!important}
+
+/* ── Header ── */
+.nav-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:var(--header-h);background:rgba(255,255,255,.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd);flex-shrink:0;gap:10px}
+.nav-hdr-center{flex:1;text-align:center;font-size:15px;font-weight:800;letter-spacing:-.02em;color:var(--tx)}
+.nav-hdr-center span{font-size:11px;font-weight:500;color:var(--tx3);display:block;margin-top:1px;letter-spacing:.02em}
+.nav-icon-btn{width:36px;height:36px;border-radius:4px;border:none;background:var(--srf2);color:var(--tx2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.nav-icon-btn:hover{background:var(--teal-lt);color:var(--teal-dk)}
+.nav-icon-btn:active{transform:scale(.92)}
+.nav-icon-btn.active{background:var(--teal-lt);color:var(--teal-dk);border:1.5px solid var(--teal)}
+
+/* ── Route summary card ── */
+.nav-summary{background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--s2);border-left:3px solid var(--teal)}
+.nav-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.nav-stat{display:flex;flex-direction:column;align-items:center;padding:10px 6px;background:var(--srf2);border-radius:4px;border:1px solid var(--bd)}
+.nav-stat-val{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;color:var(--tx);line-height:1}
+.nav-stat-val.teal{color:var(--teal-dk)}
+.nav-stat-val.green{color:var(--green-dk)}
+.nav-stat-val.red{color:var(--red-dk)}
+.nav-stat-lbl{font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-top:4px;text-align:center}
+.nav-summary-row{display:flex;gap:8px}
+.nav-detail-pill{flex:1;display:flex;align-items:center;gap:7px;background:var(--teal-lt);border:1px solid rgba(20,184,166,.2);border-radius:4px;padding:8px 10px}
+.nav-detail-pill svg{color:var(--teal-dk);flex-shrink:0}
+.nav-detail-pill-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3)}
+.nav-detail-pill-val{font-size:.84rem;font-weight:800;color:var(--teal-dk);margin-top:1px}
+
+/* ── Quick actions ── */
+.nav-actions{display:flex;gap:8px;margin-bottom:12px}
+.nav-btn-primary{flex:1;height:42px;background:var(--teal);border:none;border-radius:4px;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .18s;font-family:var(--ff);letter-spacing:.01em}
+.nav-btn-primary:hover{background:var(--teal-dk)}
+.nav-btn-primary:active{transform:scale(.96)}
+.nav-btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.nav-btn-outline{flex:1;height:42px;background:transparent;border:1.5px solid var(--teal);border-radius:4px;color:var(--teal-dk);font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .18s;font-family:var(--ff);letter-spacing:.01em}
+.nav-btn-outline:hover{background:var(--teal-lt)}
+.nav-btn-outline:active{transform:scale(.96)}
+.nav-btn-outline:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.nav-btn-ghost{height:42px;padding:0 14px;background:var(--card);border:1.5px solid var(--bd);border-radius:4px;color:var(--tx2);font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .18s;font-family:var(--ff);white-space:nowrap}
+.nav-btn-ghost:hover{background:var(--srf2);border-color:var(--bd2)}
+.nav-btn-ghost:active{transform:scale(.96)}
+
+/* ── Filter bar ── */
+.nav-filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.nav-fpill{padding:7px 12px;background:var(--card);border:1.5px solid var(--bd);border-radius:4px;color:var(--tx2);font-size:.7rem;font-weight:700;cursor:pointer;transition:all .18s;white-space:nowrap;font-family:var(--ff)}
+.nav-fpill:hover{border-color:var(--teal);color:var(--teal-dk)}
+.nav-fpill.on{background:var(--teal);border-color:var(--teal);color:#fff}
+
+/* ── Section label ── */
+.nav-section-lbl{font-size:.65rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.nav-section-lbl::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--bd),transparent)}
+
+/* ── Stop card ── */
+.nav-stop{background:var(--card);border:1px solid var(--bd);border-radius:4px;margin-bottom:8px;box-shadow:var(--s1);transition:all .2s;overflow:hidden;display:flex}
+.nav-stop:hover{box-shadow:var(--s2)}
+.nav-stop.completed{opacity:.65}
+.nav-stop-num{width:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--teal);color:#fff;font-size:.88rem;font-weight:800;letter-spacing:-.01em}
+.nav-stop.completed .nav-stop-num{background:var(--green)}
+.nav-stop.skipped .nav-stop-num{background:var(--tx3)}
+.nav-stop-body{flex:1;padding:11px 13px;min-width:0}
+.nav-stop-r1{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
+.nav-stop-name{font-size:.9rem;font-weight:700;color:var(--tx);line-height:1.3;flex:1;min-width:0}
+.nav-stop-badges{display:flex;gap:4px;flex-shrink:0;align-items:center}
+.nav-stop-addr{font-size:.73rem;color:var(--tx2);margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.nav-stop-meta{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nav-stop-dist{font-size:.7rem;color:var(--tx3);display:flex;align-items:center;gap:4px}
+.nav-stop-eta{font-size:.72rem;font-weight:700;color:var(--teal-dk);font-family:var(--fm)}
+.nav-stop-acts{display:flex;gap:6px;margin-top:8px}
+.nav-navigate-btn{height:34px;padding:0 12px;background:var(--teal);border:none;border-radius:4px;color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .18s;font-family:var(--ff)}
+.nav-navigate-btn:hover{background:var(--teal-dk)}
+.nav-navigate-btn:active{transform:scale(.95)}
+.nav-waze-btn{height:34px;padding:0 10px;background:var(--card);border:1.5px solid var(--bd);border-radius:4px;color:var(--tx2);font-size:.72rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .18s;font-family:var(--ff)}
+.nav-waze-btn:hover{background:var(--amber-lt);border-color:var(--amber-bd);color:var(--amber-dk)}
+.nav-waze-btn:active{transform:scale(.95)}
+
+/* ── Stats grid ── */
+.nav-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.nav-stats-card{background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:12px;box-shadow:var(--s1);display:flex;align-items:center;gap:10px}
+.nav-stats-ico{width:36px;height:36px;border-radius:4px;background:var(--teal-lt);color:var(--teal-dk);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-stats-info{flex:1;min-width:0}
+.nav-stats-val{font-size:1.1rem;font-weight:800;color:var(--tx);letter-spacing:-.02em}
+.nav-stats-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);margin-top:2px}
+
+/* ── Loading overlay ── */
+.nav-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 20px;gap:16px}
+.nav-loading-spinner{width:40px;height:40px;border:3px solid var(--teal-lt);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+.nav-loading-text{font-size:.82rem;font-weight:600;color:var(--tx2)}
+
+/* ── Empty state ── */
+.nav-empty{text-align:center;padding:56px 20px;background:var(--card);border:1px solid var(--bd);border-radius:4px;box-shadow:var(--s1)}
+.nav-empty-ico{margin:0 auto 16px;width:72px;height:72px;background:var(--teal-lt);border:1.5px solid rgba(20,184,166,.2);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--teal-dk)}
+.nav-empty-title{font-size:.94rem;font-weight:700;color:var(--tx2);margin-bottom:6px}
+.nav-empty-sub{font-size:.76rem;color:var(--tx3);line-height:1.5;margin-bottom:16px}
+.nav-empty-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:var(--teal);border:none;border-radius:4px;color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff)}
+.nav-empty-btn:hover{background:var(--teal-dk)}
+
+/* ── Next stop recommendation ── */
+.nav-next-rec{background:var(--teal-lt);border:1.5px solid rgba(20,184,166,.3);border-radius:4px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;animation:fadeUp .4s both}
+.nav-next-rec-ico{width:40px;height:40px;background:var(--teal);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.nav-next-rec-body{flex:1;min-width:0}
+.nav-next-rec-lbl{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--teal-dk);margin-bottom:2px}
+.nav-next-rec-name{font-size:.9rem;font-weight:700;color:var(--tx)}
+.nav-next-rec-btn{flex-shrink:0;height:36px;padding:0 12px;background:var(--teal);border:none;border-radius:4px;color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff);white-space:nowrap}
+.nav-next-rec-btn:hover{background:var(--teal-dk)}
+.nav-next-rec-btn:active{transform:scale(.95)}
+
+/* ── Map attribution ── */
+.nav-map-attr{font-size:.58rem;color:var(--tx3);text-align:right;padding:3px 0;font-family:var(--fm)}
+
+/* ── API notice ── */
+.nav-api-notice{background:var(--amber-lt);border:1px solid var(--amber-bd);border-radius:4px;padding:9px 12px;font-size:.72rem;color:var(--amber-dk);margin-bottom:10px;display:flex;align-items:flex-start;gap:7px;line-height:1.45}
+
+/* ── Pulse on map marker ── */
+@keyframes markerPop{from{transform:scale(0) translateY(8px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
 </style>
 </style>
 </head>
@@ -753,6 +874,10 @@ button{cursor:pointer}
 <div id="income-overlay" style="display:none;position:fixed;inset:0;z-index:130;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
 </div>
 
+<!-- ══════════════════════════════════════ NAVIGATOR PANEL (sub-page of Tools) ══════════════════════════════════════ -->
+<div id="navigator-overlay" style="display:none;position:fixed;inset:0;z-index:130;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+
 <script>
 const IC={
   logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
@@ -788,6 +913,13 @@ const IC={
   trendUp:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
   download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
   fileText:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+  routeNav:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17V7a2 2 0 0 1 2-2h4"/><path d="M18 7v10a2 2 0 0 1-2 2h-4"/><polyline points="14 3 18 7 14 11"/><polyline points="10 13 6 17 2 13"/></svg>`,
+  mapPin:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  route:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/><path d="M10 6.5h4"/><path d="M17.5 10v4"/><path d="M10 17.5h4"/><path d="M6.5 10v4"/></svg>`,
+  waze:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><circle cx="9" cy="11" r="1.5" fill="currentColor"/><circle cx="15" cy="11" r="1.5" fill="currentColor"/><path d="M8.5 15.5c1 1 5.5 1 7 0" stroke-linecap="round"/></svg>`,
+  optimize:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
+  fuel:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6l9-2 9 2v16"/><line x1="3" y1="11" x2="21" y2="11"/><rect x="7" y="16" width="4" height="6"/></svg>`,
+  gmap:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/><line x1="12" y1="2" x2="12" y2="7"/></svg>`,
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
@@ -1625,7 +1757,7 @@ function renderToolsOverlay(){
     {name:'Timer',          desc:'Track job duration',       bg:'var(--green-lt)',   ic_:'var(--green-dk)',   icon:'clock'},
     {name:'Income Overview',desc:'Earnings & job summary',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',    icon:'trendUp', action:'showIncomeOverlay()'},
     {name:'Alerts',         desc:'System notifications',     bg:'var(--violet-lt)', ic_:'var(--violet-dk)', icon:'alert'},
-    {name:'Navigator',      desc:'Route optimization',       bg:'var(--primary-lt)', ic_:'var(--primary)',   icon:'nav'},
+    {name:'Navigator',      desc:'Optimize travel routes',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',   icon:'routeNav', action:'showNavigatorOverlay()'},
     {name:'Settings',       desc:'App preferences',          bg:'var(--srf2)',       ic_:'var(--tx2)',        icon:'settings'},
   ];
   el.innerHTML=`
@@ -1635,8 +1767,7 @@ function renderToolsOverlay(){
     </div>
     <div class="app-scroll">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:4px 0">
-        ${tools.map((t,i)=>`<div class="scard fade-up" style="flex-direction:column;align-items:flex-start;border-radius:4px;cursor:pointer;animation-delay:${i*0.04}s;${t.action?'border-color:var(--teal);':''}" ${t.action?'onclick="'+t.action+'"':''}>
-          <div class="sico" style="background:${t.bg};color:${t.ic_};width:44px;height:44px;border-radius:4px;margin-bottom:6px">${ic(t.icon,21)}</div>
+        ${tools.map((t,i)=>`<div class="scard fade-up" style="flex-direction:column;align-items:flex-start;border-radius:4px;cursor:pointer;animation-delay:${i*0.04}s;${t.action?'border-color:var(--teal);':''}" ${t.action?'onclick="'+t.action+'"':''}>          <div class="sico" style="background:${t.bg};color:${t.ic_};width:44px;height:44px;border-radius:4px;margin-bottom:6px">${ic(t.icon,21)}</div>
           <div style="font-size:14px;font-weight:700;color:var(--tx)">${t.name}</div>
           <div style="font-size:12px;color:var(--tx3);margin-top:2px;line-height:1.4">${t.desc}</div>
         </div>`).join('')}
@@ -2082,6 +2213,751 @@ function mockT(){
   ];
 }
 document.getElementById('modal-cancel').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+/* ══════════════════════════════════════════════════════════════════════
+   NAVIGATOR — Route Optimization Module
+   ─ Uses MapLibre GL JS + OpenStreetMap tiles (free, no key needed)
+   ─ OpenRouteService Directions API for driving routes (free tier)
+   ─ Reads directly from openCache (OPEN tab jobs)
+   ─ Architecture: mapService · routeService · geolocationService · navigationService
+══════════════════════════════════════════════════════════════════════ */
+
+/* ── State ───────────────────────────────────────────────────────── */
+const NavState = {
+  jobs: [],            // raw jobs with valid coords
+  filtered: [],        // after filter applied
+  stops: [],           // optimized stop order (each with ETA, dist)
+  filter: 'all',       // 'all' | 'today' | 'high' | 'selected'
+  totalDist: 0,        // km
+  totalTime: 0,        // minutes
+  completionTime: null,// ETA string
+  isLoading: false,
+  mapLoaded: false,
+  mapInstance: null,
+  routeGeoJSON: null,
+  techCoords: null,    // {lat, lng}
+  nextStopRec: null,   // id of recommended next stop
+  cacheKey: null,      // for cache busting
+  selectedIds: new Set(),
+  localities: [],
+  selectedLocality: '',
+};
+
+/* ── ORS API Key (free tier — users can replace with their own) ── */
+const ORS_API_KEY = '5b3ce3597851110001cf6248a8cf3dce6c7f409384ca7e7f7b621e6a'; // public demo key
+
+/* ══════════════════════════════════════
+   mapService — wraps MapLibre GL JS
+══════════════════════════════════════ */
+const mapService = {
+  _map: null,
+  _markers: [],
+  _routeLayerId: 'ors-route',
+  _sourceId: 'ors-route-src',
+  _techMarker: null,
+
+  async init(containerId) {
+    if (this._map) { this._map.remove(); this._map = null; }
+    if (!window.maplibregl) {
+      console.warn('MapLibre GL not loaded yet');
+      return null;
+    }
+    this._map = new maplibregl.Map({
+      container: containerId,
+      style: {
+        version: 8,
+        sources: {
+          osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors'
+          }
+        },
+        layers: [{ id: 'osm-tiles', type: 'raster', source: 'osm', minzoom: 0, maxzoom: 19 }]
+      },
+      center: [120.98, 14.58],
+      zoom: 11,
+      attributionControl: false,
+    });
+    this._map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    NavState.mapInstance = this._map;
+    return new Promise(resolve => this._map.on('load', () => resolve(this._map)));
+  },
+
+  clearMarkers() {
+    this._markers.forEach(m => m.remove());
+    this._markers = [];
+    if (this._techMarker) { this._techMarker.remove(); this._techMarker = null; }
+  },
+
+  addJobMarker(job, stopNumber, isCompleted) {
+    const color = isCompleted ? '#22C55E' : '#14B8A6';
+    const border = isCompleted ? '#166534' : '#0D9488';
+    const el = document.createElement('div');
+    el.style.cssText = `width:32px;height:32px;border-radius:50% 50% 50% 0;background:${color};border:2.5px solid ${border};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;transform:rotate(-45deg);box-shadow:0 3px 10px rgba(0,0,0,.25);cursor:pointer;animation:markerPop .35s cubic-bezier(.34,1.4,.64,1) both`;
+    const inner = document.createElement('div');
+    inner.style.cssText = 'transform:rotate(45deg);font-family:Inter,sans-serif';
+    inner.textContent = stopNumber;
+    el.appendChild(inner);
+
+    el.addEventListener('click', () => navShowStopPopup(job, stopNumber));
+
+    const marker = new maplibregl.Marker({ element: el, anchor: 'bottom-left' })
+      .setLngLat([job._coords.lng, job._coords.lat])
+      .addTo(this._map);
+    this._markers.push(marker);
+    return marker;
+  },
+
+  addTechMarker(coords) {
+    const el = document.createElement('div');
+    el.style.cssText = 'width:18px;height:18px;border-radius:50%;background:#3B82F6;border:3px solid #fff;box-shadow:0 2px 8px rgba(37,99,235,.5),0 0 0 6px rgba(59,130,246,.18)';
+    if (this._techMarker) this._techMarker.remove();
+    this._techMarker = new maplibregl.Marker({ element: el })
+      .setLngLat([coords.lng, coords.lat])
+      .addTo(this._map);
+  },
+
+  fitToMarkers(jobs, techCoords) {
+    if (!jobs.length && !techCoords) return;
+    const points = jobs.map(j => [j._coords.lng, j._coords.lat]);
+    if (techCoords) points.push([techCoords.lng, techCoords.lat]);
+    if (points.length === 1) {
+      this._map.flyTo({ center: points[0], zoom: 14, duration: 800 });
+      return;
+    }
+    const bounds = points.reduce((b, p) => b.extend(p), new maplibregl.LngLatBounds(points[0], points[0]));
+    this._map.fitBounds(bounds, { padding: 48, duration: 800, maxZoom: 14 });
+  },
+
+  drawRoute(geojson) {
+    if (!geojson) return;
+    if (this._map.getLayer(this._routeLayerId)) this._map.removeLayer(this._routeLayerId);
+    if (this._map.getLayer(this._routeLayerId + '-bg')) this._map.removeLayer(this._routeLayerId + '-bg');
+    if (this._map.getSource(this._sourceId)) this._map.removeSource(this._sourceId);
+
+    this._map.addSource(this._sourceId, { type: 'geojson', data: geojson });
+    // White background stroke for contrast
+    this._map.addLayer({
+      id: this._routeLayerId + '-bg',
+      type: 'line',
+      source: this._sourceId,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-width': 7 }
+    });
+    this._map.addLayer({
+      id: this._routeLayerId,
+      type: 'line',
+      source: this._sourceId,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#14B8A6', 'line-width': 4, 'line-dasharray': [1, 0] }
+    });
+  },
+
+  clearRoute() {
+    if (!this._map) return;
+    if (this._map.getLayer(this._routeLayerId)) this._map.removeLayer(this._routeLayerId);
+    if (this._map.getLayer(this._routeLayerId + '-bg')) this._map.removeLayer(this._routeLayerId + '-bg');
+    if (this._map.getSource(this._sourceId)) this._map.removeSource(this._sourceId);
+  }
+};
+
+/* ══════════════════════════════════════
+   routeService — ORS Directions + nearest-neighbor TSP
+══════════════════════════════════════ */
+const routeService = {
+  _cache: new Map(),
+
+  /** Nearest-neighbor TSP starting from techCoords (or first job if no tech location).
+      Returns reordered jobs array. */
+  nearestNeighborSort(jobs, start) {
+    if (!jobs.length) return [];
+    const remaining = [...jobs];
+    const ordered = [];
+    let current = start || { lat: jobs[0]._coords.lat, lng: jobs[0]._coords.lng };
+
+    while (remaining.length) {
+      let minDist = Infinity, minIdx = 0;
+      remaining.forEach((j, i) => {
+        const d = GeoEngine.distanceKm(current, j._coords);
+        if (d < minDist) { minDist = d; minIdx = i; }
+      });
+      const next = remaining.splice(minIdx, 1)[0];
+      next._distFromPrev = minDist;
+      ordered.push(next);
+      current = next._coords;
+    }
+    return ordered;
+  },
+
+  /** Fetch driving route from ORS for a list of coordinate pairs [[lng,lat],...].
+      Falls back to straight-line if ORS fails. */
+  async getRoute(waypoints) {
+    if (waypoints.length < 2) return null;
+    const key = waypoints.map(w => w.join(',')).join('|');
+    if (this._cache.has(key)) return this._cache.get(key);
+
+    try {
+      const body = {
+        coordinates: waypoints,
+        format_out: 'geojson',
+        instructions: false,
+        preference: 'recommended',
+      };
+      const resp = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': ORS_API_KEY,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!resp.ok) throw new Error('ORS error ' + resp.status);
+      const data = await resp.json();
+      const result = {
+        geojson: data,
+        distanceM: data.features?.[0]?.properties?.summary?.distance || 0,
+        durationS: data.features?.[0]?.properties?.summary?.duration || 0,
+      };
+      this._cache.set(key, result);
+      return result;
+    } catch (e) {
+      // Fallback: compute straight-line distances, no route drawn
+      return { geojson: null, distanceM: 0, durationS: 0, fallback: true, error: e.message };
+    }
+  },
+
+  /** Get per-leg durations from ORS for detailed ETA per stop. */
+  async getRouteLegs(orderedStops, techCoords) {
+    if (!orderedStops.length) return [];
+    const waypoints = [];
+    if (techCoords) waypoints.push([techCoords.lng, techCoords.lat]);
+    orderedStops.forEach(s => waypoints.push([s._coords.lng, s._coords.lat]));
+
+    const route = await this.getRoute(waypoints);
+    let totalDistM = 0;
+    let totalDurS = 0;
+
+    // Per-leg breakdown — ORS v2 geojson wraps all as one segment;
+    // we distribute proportionally or use segment distances from haversine
+    if (route && !route.fallback && route.geojson) {
+      // Use actual totals from ORS, distribute per-leg by straight-line proportion
+      totalDistM = route.distanceM;
+      totalDurS = route.durationS;
+    }
+
+    // Build per-stop annotations using haversine for proportional split
+    const now = new Date();
+    let prevCoords = techCoords || (orderedStops.length ? orderedStops[0]._coords : null);
+    let elapsed = 0; // seconds
+    let totalHavDist = 0;
+
+    // Sum haversine distances
+    const havDists = [];
+    let cur = techCoords || orderedStops[0]._coords;
+    orderedStops.forEach(s => {
+      const d = GeoEngine.distanceKm(cur, s._coords) * 1000; // meters
+      havDists.push(d);
+      totalHavDist += d;
+      cur = s._coords;
+    });
+
+    const ratio = totalHavDist > 0 ? (totalDurS || totalHavDist / 10) / totalHavDist : 1;
+
+    const annotated = orderedStops.map((stop, i) => {
+      const legDist = havDists[i]; // meters
+      const legDur = Math.round(legDist * ratio); // seconds
+      elapsed += legDur;
+      const eta = new Date(now.getTime() + elapsed * 1000);
+      return {
+        ...stop,
+        _legDistM: legDist,
+        _legDurS: legDur,
+        _etaDate: eta,
+        _etaStr: eta.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      };
+    });
+
+    const totalDistKm = totalDistM > 0 ? totalDistM / 1000 : totalHavDist / 1000;
+    const totalDurMin = totalDurS > 0 ? Math.round(totalDurS / 60) : Math.round(totalHavDist / 1000 * 3.5); // ~3.5 min/km urban
+
+    return { stops: annotated, totalDistKm, totalDurMin, geojson: route?.geojson, isFallback: route?.fallback };
+  }
+};
+
+/* ══════════════════════════════════════
+   geolocationService — wraps GeoEngine
+══════════════════════════════════════ */
+const geolocationService = {
+  async getCurrentCoords() {
+    if (GeoEngine.coords) return GeoEngine.coords;
+    const c = await GeoEngine.locate();
+    return c;
+  }
+};
+
+/* ══════════════════════════════════════
+   navigationService — external map launch
+══════════════════════════════════════ */
+const navigationService = {
+  openGoogleMaps(lat, lng, label) {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    window.open(url, '_blank');
+  },
+  openWaze(lat, lng) {
+    const url = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes&zoom=17`;
+    window.open(url, '_blank');
+  }
+};
+
+/* ══════════════════════════════════════
+   Navigator UI — show/render/close
+══════════════════════════════════════ */
+function showNavigatorOverlay() {
+  document.getElementById('tools-overlay').style.display = 'none';
+  const ov = document.getElementById('navigator-overlay');
+  ov.style.display = 'flex';
+  renderNavigatorShell();
+  loadNavigatorData();
+}
+
+function closeNavigatorOverlay() {
+  document.getElementById('navigator-overlay').style.display = 'none';
+  document.getElementById('tools-overlay').style.display = 'flex';
+  // Destroy map to free memory
+  if (NavState.mapInstance) {
+    try { NavState.mapInstance.remove(); } catch(e) {}
+    NavState.mapInstance = null;
+    mapService._map = null;
+  }
+  NavState.mapLoaded = false;
+}
+
+function renderNavigatorShell() {
+  const ov = document.getElementById('navigator-overlay');
+  ov.innerHTML = `
+    <div class="nav-hdr">
+      <button class="nav-icon-btn" onclick="closeNavigatorOverlay()">${ic('arrowL', 18)}</button>
+      <div class="nav-hdr-center">Route Optimizer<span id="nav-last-updated"></span></div>
+      <button class="nav-icon-btn" id="nav-refresh-btn" onclick="navRefresh()" title="Recalculate">${ic('refresh', 17)}</button>
+      <button class="nav-icon-btn" id="nav-filter-btn" onclick="navToggleFilter()" title="Filter">${ic('filter', 17)}</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;padding:14px 16px 24px;-webkit-overflow-scrolling:touch" id="nav-scroll">
+      <!-- API notice -->
+      <div class="nav-api-notice" id="nav-ors-notice" style="display:none">
+        ${ic('alert', 14)}
+        <span>Route drawn using straight-line estimates. For turn-by-turn routing, an OpenRouteService API key is required.</span>
+      </div>
+
+      <!-- Filter pills (hidden by default) -->
+      <div id="nav-filter-row" style="display:none;margin-bottom:10px">
+        <div class="nav-filter-bar" id="nav-filter-pills">
+          <button class="nav-fpill on" data-filter="all" onclick="navSetFilter('all',this)">All Jobs</button>
+          <button class="nav-fpill" data-filter="today" onclick="navSetFilter('today',this)">Today</button>
+          <button class="nav-fpill" data-filter="high" onclick="navSetFilter('high',this)">High Priority</button>
+        </div>
+        <div id="nav-locality-pills" class="nav-filter-bar" style="margin-top:4px"></div>
+      </div>
+
+      <!-- Next stop recommendation -->
+      <div id="nav-next-rec" style="display:none"></div>
+
+      <!-- Route summary -->
+      <div id="nav-summary-slot"></div>
+
+      <!-- Map -->
+      <div class="nav-map-container" id="nav-map-wrap">
+        <div id="nav-map" style="width:100%;height:100%"></div>
+      </div>
+      <div class="nav-map-attr">© OpenStreetMap contributors · OpenRouteService</div>
+
+      <!-- Quick actions -->
+      <div class="nav-actions" style="margin-top:10px">
+        <button class="nav-btn-primary" id="nav-optimize-btn" onclick="navOptimize()">${ic('routeNav', 15)} Optimize Route</button>
+        <button class="nav-btn-outline" id="nav-start-btn" onclick="navStartNavigation()" disabled>${ic('nav', 15)} Start</button>
+        <button class="nav-btn-ghost" onclick="navFitMap()" id="nav-fit-btn">${ic('mapPin', 15)} Fit</button>
+      </div>
+
+      <!-- Route stats -->
+      <div id="nav-stats-slot" style="margin-top:4px"></div>
+
+      <!-- Stop list -->
+      <div style="margin-top:14px">
+        <div class="nav-section-lbl">Optimized Stop List</div>
+        <div id="nav-stop-list"></div>
+      </div>
+    </div>`;
+}
+
+async function loadNavigatorData() {
+  NavState.isLoading = true;
+  navSetStopList(`<div class="nav-loading"><div class="nav-loading-spinner"></div><div class="nav-loading-text">Loading jobs…</div></div>`);
+  navSetSummary('');
+
+  // 1. Get Open jobs from openCache (live) or fetch fresh
+  let jobs = [];
+  if (openCache && openCache.length) {
+    jobs = openCache;
+  } else {
+    try {
+      const r = await fetch('/api/tickets/open');
+      jobs = r.ok ? await r.json() : mockT().filter(t => t.status === 'OPEN');
+    } catch(e) {
+      jobs = mockT().filter(t => t.status === 'OPEN');
+    }
+  }
+
+  // 2. Parse coords, filter valid ones
+  const valid = jobs.map(j => {
+    const c = GeoEngine.parseCoords(j.coordinates);
+    if (!c) return null;
+    return { ...j, _coords: c };
+  }).filter(Boolean);
+
+  NavState.jobs = valid;
+  NavState.localities = [...new Set(valid.map(j => (j.locality || '').trim()).filter(Boolean))].sort();
+  navBuildLocalityPills();
+  navApplyFilter();
+
+  if (!NavState.filtered.length) {
+    navRenderEmpty();
+    navInitMap([]);
+    return;
+  }
+
+  // 3. Get tech location
+  NavState.techCoords = await geolocationService.getCurrentCoords();
+
+  // 4. Optimize
+  await navOptimize();
+}
+
+function navApplyFilter() {
+  let jobs = [...NavState.jobs];
+  const f = NavState.filter;
+  if (f === 'today') {
+    const today = new Date().toISOString().split('T')[0];
+    jobs = jobs.filter(j => j.created_at && j.created_at.startsWith(today));
+    if (!jobs.length) jobs = NavState.jobs; // fallback to all
+  } else if (f === 'high') {
+    jobs = jobs.filter(j => j.priority === 'HIGH' || j.priority === 'CRITICAL');
+    if (!jobs.length) jobs = NavState.jobs;
+  } else if (f === 'selected') {
+    jobs = jobs.filter(j => NavState.selectedIds.has(j.id));
+    if (!jobs.length) jobs = NavState.jobs;
+  }
+  if (NavState.selectedLocality) {
+    jobs = jobs.filter(j => (j.locality || '').trim() === NavState.selectedLocality);
+    if (!jobs.length) jobs = NavState.jobs.filter(j => !NavState.selectedLocality);
+  }
+  NavState.filtered = jobs;
+}
+
+function navBuildLocalityPills() {
+  const container = document.getElementById('nav-locality-pills');
+  if (!container) return;
+  if (!NavState.localities.length) { container.innerHTML = ''; return; }
+  container.innerHTML = NavState.localities.map(loc =>
+    `<button class="nav-fpill${NavState.selectedLocality === loc ? ' on' : ''}" onclick="navSetLocality('${loc.replace(/'/g,"\\'")}',this)">${loc}</button>`
+  ).join('');
+}
+
+function navSetLocality(loc, btn) {
+  NavState.selectedLocality = NavState.selectedLocality === loc ? '' : loc;
+  document.querySelectorAll('#nav-locality-pills .nav-fpill').forEach(b => b.classList.remove('on'));
+  if (NavState.selectedLocality) btn.classList.add('on');
+  navApplyFilter();
+  navOptimize();
+}
+
+function navSetFilter(f, btn) {
+  NavState.filter = f;
+  document.querySelectorAll('#nav-filter-pills .nav-fpill').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  navApplyFilter();
+  navOptimize();
+}
+
+function navToggleFilter() {
+  const row = document.getElementById('nav-filter-row');
+  const btn = document.getElementById('nav-filter-btn');
+  if (!row) return;
+  const open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : 'block';
+  btn.classList.toggle('active', !open);
+}
+
+async function navOptimize() {
+  if (!NavState.filtered.length) { navRenderEmpty(); return; }
+  NavState.isLoading = true;
+  const optBtn = document.getElementById('nav-optimize-btn');
+  if (optBtn) { optBtn.disabled = true; optBtn.innerHTML = `<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></div> Optimizing…`; }
+
+  navSetStopList(`<div class="nav-loading"><div class="nav-loading-spinner"></div><div class="nav-loading-text">Calculating optimal route…</div></div>`);
+
+  // 1. Sort jobs nearest-neighbor
+  const sorted = routeService.nearestNeighborSort(NavState.filtered, NavState.techCoords);
+
+  // 2. Get route + per-leg ETAs
+  const result = await routeService.getRouteLegs(sorted, NavState.techCoords);
+
+  NavState.stops = result.stops;
+  NavState.totalDistKm = result.totalDistKm;
+  NavState.totalDurMin = result.totalDurMin;
+
+  const lastEta = result.stops.length ? result.stops[result.stops.length - 1]._etaDate : null;
+  NavState.completionTime = lastEta ? lastEta.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true }) : '--';
+
+  // Show ORS notice if fallback
+  const notice = document.getElementById('nav-ors-notice');
+  if (notice) notice.style.display = result.isFallback ? 'flex' : 'none';
+
+  // 3. Render map
+  await navInitMap(NavState.stops);
+
+  // 4. Draw route
+  if (result.geojson && mapService._map) {
+    mapService.drawRoute(result.geojson);
+  }
+
+  // 5. Render UI
+  navRenderSummary();
+  navRenderStops();
+  navRenderStats();
+
+  // 6. Update timestamp
+  const tsEl = document.getElementById('nav-last-updated');
+  if (tsEl) tsEl.textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  if (optBtn) { optBtn.disabled = false; optBtn.innerHTML = `${ic('routeNav', 15)} Optimize Route`; }
+  const startBtn = document.getElementById('nav-start-btn');
+  if (startBtn && NavState.stops.length) startBtn.disabled = false;
+
+  NavState.isLoading = false;
+}
+
+async function navInitMap(jobs) {
+  const container = document.getElementById('nav-map');
+  if (!container) return;
+
+  // Lazy-load MapLibre GL JS
+  if (!window.maplibregl) {
+    await navLoadMapLibre();
+  }
+
+  const map = await mapService.init('nav-map');
+  if (!map) return;
+  NavState.mapLoaded = true;
+
+  mapService.clearMarkers();
+  jobs.forEach((job, i) => mapService.addJobMarker(job, i + 1, false));
+  if (NavState.techCoords) mapService.addTechMarker(NavState.techCoords);
+  mapService.fitToMarkers(jobs, NavState.techCoords);
+}
+
+function navLoadMapLibre() {
+  return new Promise(resolve => {
+    if (window.maplibregl) { resolve(); return; }
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
+    document.head.appendChild(link);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+    script.onload = resolve;
+    document.head.appendChild(script);
+  });
+}
+
+function navFitMap() {
+  if (!mapService._map || !NavState.stops.length) return;
+  mapService.fitToMarkers(NavState.stops, NavState.techCoords);
+}
+
+function navRefresh() {
+  routeService._cache.clear();
+  navRenderShellContent();
+  loadNavigatorData();
+}
+
+function navRenderShellContent() {
+  navSetSummary('');
+  navSetStopList(`<div class="nav-loading"><div class="nav-loading-spinner"></div><div class="nav-loading-text">Refreshing…</div></div>`);
+}
+
+function navRenderEmpty() {
+  navSetSummary('');
+  navSetStopList(`
+    <div class="nav-empty fade-up">
+      <div class="nav-empty-ico">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17V7a2 2 0 0 1 2-2h4"/><path d="M18 7v10a2 2 0 0 1-2 2h-4"/><polyline points="14 3 18 7 14 11"/><polyline points="10 13 6 17 2 13"/></svg>
+      </div>
+      <div class="nav-empty-title">No jobs with location data</div>
+      <div class="nav-empty-sub">Open jobs need valid coordinates to appear on the route map. Add coordinates to jobs in the admin panel.</div>
+      <button class="nav-empty-btn" onclick="closeNavigatorOverlay();techNav('open')">${ic('folder', 14)} Back to Open Jobs</button>
+    </div>`);
+}
+
+function navRenderSummary() {
+  const total = NavState.jobs.length;
+  const remaining = NavState.filtered.length;
+  const completed = total - remaining;
+  const distStr = NavState.totalDistKm >= 10 ? NavState.totalDistKm.toFixed(1) + ' km' : NavState.totalDistKm.toFixed(2) + ' km';
+  const dur = NavState.totalDurMin;
+  const durStr = dur >= 60 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : `${dur}m`;
+
+  navSetSummary(`
+    <div class="nav-summary fade-up">
+      <div class="nav-summary-grid">
+        <div class="nav-stat">
+          <div class="nav-stat-val">${total}</div>
+          <div class="nav-stat-lbl">Total Jobs</div>
+        </div>
+        <div class="nav-stat">
+          <div class="nav-stat-val teal">${remaining}</div>
+          <div class="nav-stat-lbl">Remaining</div>
+        </div>
+        <div class="nav-stat">
+          <div class="nav-stat-val green">${completed}</div>
+          <div class="nav-stat-lbl">Completed</div>
+        </div>
+      </div>
+      <div class="nav-summary-row">
+        <div class="nav-detail-pill">
+          ${ic('routeNav', 15)}
+          <div><div class="nav-detail-pill-label">Distance</div><div class="nav-detail-pill-val">${distStr}</div></div>
+        </div>
+        <div class="nav-detail-pill">
+          ${ic('clock', 15)}
+          <div><div class="nav-detail-pill-label">Drive Time</div><div class="nav-detail-pill-val">${durStr}</div></div>
+        </div>
+        <div class="nav-detail-pill">
+          ${ic('pin', 15)}
+          <div><div class="nav-detail-pill-label">Done By</div><div class="nav-detail-pill-val">${NavState.completionTime}</div></div>
+        </div>
+      </div>
+    </div>`);
+}
+
+function navRenderStops() {
+  if (!NavState.stops.length) { navSetStopList(''); return; }
+  const html = NavState.stops.map((stop, i) => {
+    const priorityColor = { CRITICAL: '#7C0A0A', HIGH: '#EF4444', MEDIUM: '#F59E0B', LOW: '#22C55E' }[stop.priority] || '#94A3B8';
+    const distLabel = stop._legDistM < 1000
+      ? Math.round(stop._legDistM) + ' m'
+      : (stop._legDistM / 1000).toFixed(1) + ' km';
+    return `
+      <div class="nav-stop fade-up" id="navstop-${stop.id}" style="animation-delay:${Math.min(i, 8) * 0.04}s">
+        <div class="nav-stop-num">${i + 1}</div>
+        <div class="nav-stop-body">
+          <div class="nav-stop-r1">
+            <div class="nav-stop-name">${stop.site_name}</div>
+            <div class="nav-stop-badges">
+              <span class="bdg ${stop.priority} dot" style="font-size:.58rem;padding:3px 7px">${stop.priority}</span>
+            </div>
+          </div>
+          <div class="nav-stop-addr">${ic('pin', 12)} ${stop.address}${stop.locality ? ', ' + stop.locality : ''}</div>
+          <div class="nav-stop-meta">
+            <div class="nav-stop-dist">${ic('routeNav', 12)} ${i === 0 ? 'from your location' : 'from stop ' + i} · ${distLabel}</div>
+            <div class="nav-stop-eta">${ic('clock', 12)} ETA ${stop._etaStr}</div>
+          </div>
+          <div class="nav-stop-acts">
+            <button class="nav-navigate-btn" onclick="navNavigateToStop('${stop.id}','gmap')">${ic('gmap', 13)} Google Maps</button>
+            <button class="nav-waze-btn" onclick="navNavigateToStop('${stop.id}','waze')">${ic('waze', 13)} Waze</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  navSetStopList(html);
+}
+
+function navRenderStats() {
+  if (!NavState.stops.length) { document.getElementById('nav-stats-slot').innerHTML = ''; return; }
+  const total = NavState.stops.length;
+  const avgDist = total > 0 ? (NavState.totalDistKm / total).toFixed(1) : 0;
+  const avgTime = total > 0 ? Math.round(NavState.totalDurMin / total) : 0;
+  const fuelSaved = (NavState.totalDistKm * 0.08 * 68).toFixed(0); // ~8L/100km, ₱68/L estimate
+  const statsHtml = `
+    <div class="nav-section-lbl" style="margin-top:2px">Route Statistics</div>
+    <div class="nav-stats-grid">
+      <div class="nav-stats-card">
+        <div class="nav-stats-ico">${ic('routeNav', 18)}</div>
+        <div class="nav-stats-info">
+          <div class="nav-stats-val">${NavState.totalDistKm.toFixed(1)} km</div>
+          <div class="nav-stats-lbl">Total Distance</div>
+        </div>
+      </div>
+      <div class="nav-stats-card">
+        <div class="nav-stats-ico" style="background:var(--green-lt);color:var(--green-dk)">${ic('fuel', 18)}</div>
+        <div class="nav-stats-info">
+          <div class="nav-stats-val" style="color:var(--green-dk)">~₱${fuelSaved}</div>
+          <div class="nav-stats-lbl">Est. Fuel Cost</div>
+        </div>
+      </div>
+      <div class="nav-stats-card">
+        <div class="nav-stats-ico" style="background:var(--primary-lt);color:var(--primary)">${ic('optimize', 18)}</div>
+        <div class="nav-stats-info">
+          <div class="nav-stats-val">${avgDist} km</div>
+          <div class="nav-stats-lbl">Avg. Between Stops</div>
+        </div>
+      </div>
+      <div class="nav-stats-card">
+        <div class="nav-stats-ico" style="background:var(--amber-lt);color:var(--amber-dk)">${ic('clock', 18)}</div>
+        <div class="nav-stats-info">
+          <div class="nav-stats-val">${avgTime}m</div>
+          <div class="nav-stats-lbl">Avg. Travel/Stop</div>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('nav-stats-slot').innerHTML = statsHtml;
+}
+
+function navShowStopPopup(job, stopNum) {
+  // Scroll to the stop card
+  const el = document.getElementById('navstop-' + job.id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function navNavigateToStop(jobId, app) {
+  const stop = NavState.stops.find(s => s.id === jobId);
+  if (!stop) return;
+  if (app === 'gmap') {
+    navigationService.openGoogleMaps(stop._coords.lat, stop._coords.lng, stop.site_name);
+  } else {
+    navigationService.openWaze(stop._coords.lat, stop._coords.lng);
+  }
+}
+
+function navStartNavigation() {
+  if (!NavState.stops.length) return;
+  const first = NavState.stops[0];
+  toast(`Navigating to Stop 1: ${first.site_name}`, 'ok');
+  navigationService.openGoogleMaps(first._coords.lat, first._coords.lng, first.site_name);
+}
+
+function navShowNextRecommendation(jobId) {
+  const idx = NavState.stops.findIndex(s => s.id === jobId);
+  const next = NavState.stops[idx + 1];
+  const recEl = document.getElementById('nav-next-rec');
+  if (!recEl) return;
+  if (!next) { recEl.style.display = 'none'; return; }
+  recEl.style.display = 'flex';
+  recEl.innerHTML = `
+    <div class="nav-next-rec">
+      <div class="nav-next-rec-ico">${ic('nav', 18)}</div>
+      <div class="nav-next-rec-body">
+        <div class="nav-next-rec-lbl">Next Recommended Stop</div>
+        <div class="nav-next-rec-name">Stop ${idx + 2}: ${next.site_name}</div>
+      </div>
+      <button class="nav-next-rec-btn" onclick="navNavigateToStop('${next.id}','gmap')">${ic('nav', 13)} Go</button>
+    </div>`;
+}
+
+/* helper setters */
+function navSetSummary(html) { const el = document.getElementById('nav-summary-slot'); if (el) el.innerHTML = html; }
+function navSetStopList(html) { const el = document.getElementById('nav-stop-list'); if (el) el.innerHTML = html; }
 </script>
 </body>
 </html>
