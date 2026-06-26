@@ -2257,32 +2257,45 @@ const mapService = {
   _techMarker: null,
 
   async init(containerId) {
-    if (this._map) { this._map.remove(); this._map = null; }
+    if (this._map) {
+      try { this._map.remove(); } catch(e) {}
+      this._map = null;
+    }
     if (!window.maplibregl) {
-      console.warn('MapLibre GL not loaded yet');
+      console.warn('[Map] MapLibre GL not loaded');
       return null;
     }
-    this._map = new maplibregl.Map({
-      container: containerId,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors'
-          }
-        },
-        layers: [{ id: 'osm-tiles', type: 'raster', source: 'osm', minzoom: 0, maxzoom: 19 }]
-      },
-      center: [120.98, 14.58],
-      zoom: 11,
-      attributionControl: false,
+    return new Promise((resolve, reject) => {
+      try {
+        this._map = new maplibregl.Map({
+          container: containerId,
+          style: {
+            version: 8,
+            sources: {
+              osm: {
+                type: 'raster',
+                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                tileSize: 256,
+                attribution: '© OpenStreetMap contributors',
+              }
+            },
+            layers: [{ id: 'osm-tiles', type: 'raster', source: 'osm', minzoom: 0, maxzoom: 19 }]
+          },
+          center: [120.98, 14.58],
+          zoom: 11,
+          attributionControl: false,
+          fadeDuration: 0,
+        });
+        this._map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+        NavState.mapInstance = this._map;
+        this._map.once('load', () => resolve(this._map));
+        this._map.once('error', (e) => { console.error('[Map] load error', e); resolve(this._map); });
+        setTimeout(() => resolve(this._map), 8000); // safety timeout
+      } catch(e) {
+        console.error('[Map] init error:', e);
+        reject(e);
+      }
     });
-    this._map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-    NavState.mapInstance = this._map;
-    return new Promise(resolve => this._map.on('load', () => resolve(this._map)));
   },
 
   clearMarkers() {
@@ -2332,42 +2345,72 @@ const mapService = {
   },
 
   drawRoute(geojson) {
-    if (!geojson) return;
-    if (this._map.getLayer(this._routeLayerId)) this._map.removeLayer(this._routeLayerId);
-    if (this._map.getLayer(this._routeLayerId + '-bg')) this._map.removeLayer(this._routeLayerId + '-bg');
-    if (this._map.getSource(this._sourceId)) this._map.removeSource(this._sourceId);
+    if (!geojson || !this._map) return;
 
-    this._map.addSource(this._sourceId, { type: 'geojson', data: geojson });
-    // White background stroke for contrast
+    // Normalise to FeatureCollection with a single LineString
+    let data = geojson;
+    if (geojson.type === 'Feature') {
+      data = { type: 'FeatureCollection', features: [geojson] };
+    }
+    // ORS sometimes nests coordinates inside a MultiLineString — flatten to LineString
+    data.features = (data.features || []).map(f => {
+      if (f.geometry?.type === 'MultiLineString') {
+        const flat = f.geometry.coordinates.reduce((a, b) => a.concat(b), []);
+        return { ...f, geometry: { type: 'LineString', coordinates: flat } };
+      }
+      return f;
+    });
+
+    console.log('[ORS] Drawing route, coords count:',
+      data.features?.[0]?.geometry?.coordinates?.length,
+      'distM:', data.features?.[0]?.properties?.summary?.distance);
+
+    // Remove existing layers/source cleanly
+    try {
+      if (this._map.getLayer(this._routeLayerId + '-bg')) this._map.removeLayer(this._routeLayerId + '-bg');
+      if (this._map.getLayer(this._routeLayerId))         this._map.removeLayer(this._routeLayerId);
+      if (this._map.getSource(this._sourceId))            this._map.removeSource(this._sourceId);
+    } catch(e) { /* ignore */ }
+
+    this._map.addSource(this._sourceId, { type: 'geojson', data });
+
+    // White outline for contrast against OSM tiles
     this._map.addLayer({
       id: this._routeLayerId + '-bg',
       type: 'line',
       source: this._sourceId,
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': '#ffffff', 'line-width': 7 }
+      paint: { 'line-color': '#ffffff', 'line-width': 8 }
     });
+    // Teal route on top
     this._map.addLayer({
       id: this._routeLayerId,
       type: 'line',
       source: this._sourceId,
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': '#14B8A6', 'line-width': 4, 'line-dasharray': [1, 0] }
+      paint: { 'line-color': '#14B8A6', 'line-width': 4.5 }
     });
   },
 
   clearRoute() {
     if (!this._map) return;
-    if (this._map.getLayer(this._routeLayerId)) this._map.removeLayer(this._routeLayerId);
-    if (this._map.getLayer(this._routeLayerId + '-bg')) this._map.removeLayer(this._routeLayerId + '-bg');
-    if (this._map.getSource(this._sourceId)) this._map.removeSource(this._sourceId);
+    try {
+      if (this._map.getLayer(this._routeLayerId))      this._map.removeLayer(this._routeLayerId);
+      if (this._map.getLayer(this._routeLayerId+'-bg')) this._map.removeLayer(this._routeLayerId+'-bg');
+      if (this._map.getSource(this._sourceId))         this._map.removeSource(this._sourceId);
+    } catch(e) { /* ignore stale layer errors */ }
   }
 };
 
 /* ══════════════════════════════════════
    routeService — ORS Directions + nearest-neighbor TSP
+   ORS free tier limits: max 70 waypoints per request.
+   Strategy: chunk into segments of ≤50 stops, fetch each leg,
+   then merge the GeoJSON LineStrings into one FeatureCollection.
 ══════════════════════════════════════ */
 const routeService = {
   _cache: new Map(),
+  ORS_MAX_WP: 50, // safe limit under the 70 hard cap
 
   /** Nearest-neighbor TSP starting from techCoords (or first job if no tech location).
       Returns reordered jobs array. */
@@ -2376,7 +2419,6 @@ const routeService = {
     const remaining = [...jobs];
     const ordered = [];
     let current = start || { lat: jobs[0]._coords.lat, lng: jobs[0]._coords.lng };
-
     while (remaining.length) {
       let minDist = Infinity, minIdx = 0;
       remaining.forEach((j, i) => {
@@ -2384,106 +2426,161 @@ const routeService = {
         if (d < minDist) { minDist = d; minIdx = i; }
       });
       const next = remaining.splice(minIdx, 1)[0];
-      next._distFromPrev = minDist;
       ordered.push(next);
       current = next._coords;
     }
     return ordered;
   },
 
-  /** Fetch driving route from ORS for a list of coordinate pairs [[lng,lat],...].
-      Falls back to straight-line if ORS fails. */
-  async getRoute(waypoints) {
-    if (waypoints.length < 2) return null;
-    const key = waypoints.map(w => w.join(',')).join('|');
-    if (this._cache.has(key)) return this._cache.get(key);
+  /** Fetch a single ORS segment (up to ORS_MAX_WP waypoints).
+      Returns { geojson, distanceM, durationS } or { fallback:true, error } */
+  async _fetchSegment(waypoints) {
+    const cacheKey = waypoints.map(w => w.join(',')).join('|');
+    if (this._cache.has(cacheKey)) { console.log('[ORS] cache hit'); return this._cache.get(cacheKey); }
+
+    console.log('[ORS] fetching segment with', waypoints.length, 'waypoints, key:', ORS_API_KEY.slice(0,8) + '…');
 
     try {
-      const body = {
-        coordinates: waypoints,
-        format_out: 'geojson',
-        instructions: false,
-        preference: 'recommended',
-      };
       const resp = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': ORS_API_KEY,
         },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(12000),
+        body: JSON.stringify({ coordinates: waypoints, instructions: false, preference: 'recommended' }),
+        signal: AbortSignal.timeout(15000),
       });
-      if (!resp.ok) throw new Error('ORS error ' + resp.status);
+
+      if (!resp.ok) {
+        const errBody = await resp.text().catch(() => '');
+        console.warn('[ORS] HTTP', resp.status, errBody);
+        return { fallback: true, error: `HTTP ${resp.status}`, distanceM: 0, durationS: 0 };
+      }
+
       const data = await resp.json();
+      const feat = data.features?.[0];
+      if (!feat) return { fallback: true, error: 'empty response', distanceM: 0, durationS: 0 };
+
       const result = {
         geojson: data,
-        distanceM: data.features?.[0]?.properties?.summary?.distance || 0,
-        durationS: data.features?.[0]?.properties?.summary?.duration || 0,
+        coords: feat.geometry?.coordinates || [],
+        distanceM: feat.properties?.summary?.distance || 0,
+        durationS: feat.properties?.summary?.duration || 0,
+        fallback: false,
       };
-      this._cache.set(key, result);
+      this._cache.set(cacheKey, result);
       return result;
     } catch (e) {
-      // Fallback: compute straight-line distances, no route drawn
-      return { geojson: null, distanceM: 0, durationS: 0, fallback: true, error: e.message };
+      console.warn('[ORS] fetch error:', e.message);
+      return { fallback: true, error: e.message, distanceM: 0, durationS: 0 };
     }
   },
 
-  /** Get per-leg durations from ORS for detailed ETA per stop. */
+  /** Chunk waypoints into overlapping segments, fetch each, merge results. */
+  async getRoute(allWaypoints) {
+    if (allWaypoints.length < 2) return null;
+
+    const MAX = this.ORS_MAX_WP;
+    const chunks = [];
+    for (let i = 0; i < allWaypoints.length - 1; i += MAX - 1) {
+      chunks.push(allWaypoints.slice(i, i + MAX));
+    }
+
+    let totalDistM = 0, totalDurS = 0, allCoords = [], anyFallback = false;
+
+    for (const chunk of chunks) {
+      const seg = await this._fetchSegment(chunk);
+      if (seg.fallback) { anyFallback = true; continue; }
+      totalDistM += seg.distanceM;
+      totalDurS  += seg.durationS;
+      // Avoid duplicating junction point between chunks
+      if (allCoords.length && seg.coords.length) {
+        allCoords = allCoords.concat(seg.coords.slice(1));
+      } else {
+        allCoords = allCoords.concat(seg.coords);
+      }
+    }
+
+    if (anyFallback && allCoords.length === 0) {
+      return { fallback: true, distanceM: 0, durationS: 0, geojson: null };
+    }
+
+    // Build a single merged GeoJSON FeatureCollection
+    const mergedGeoJSON = allCoords.length ? {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: allCoords },
+        properties: { summary: { distance: totalDistM, duration: totalDurS } }
+      }]
+    } : null;
+
+    return {
+      fallback: anyFallback,
+      geojson: mergedGeoJSON,
+      distanceM: totalDistM,
+      durationS: totalDurS,
+    };
+  },
+
+  /** Build per-stop ETAs using ORS actual road times where available,
+      haversine proportions where not. */
   async getRouteLegs(orderedStops, techCoords) {
-    if (!orderedStops.length) return [];
+    if (!orderedStops.length) return { stops: [], totalDistKm: 0, totalDurMin: 0, geojson: null, isFallback: true };
+
+    // Build full waypoint list
     const waypoints = [];
     if (techCoords) waypoints.push([techCoords.lng, techCoords.lat]);
     orderedStops.forEach(s => waypoints.push([s._coords.lng, s._coords.lat]));
 
     const route = await this.getRoute(waypoints);
-    let totalDistM = 0;
-    let totalDurS = 0;
+    const isFallback = !route || route.fallback;
 
-    // Per-leg breakdown — ORS v2 geojson wraps all as one segment;
-    // we distribute proportionally or use segment distances from haversine
-    if (route && !route.fallback && route.geojson) {
-      // Use actual totals from ORS, distribute per-leg by straight-line proportion
-      totalDistM = route.distanceM;
-      totalDurS = route.durationS;
-    }
-
-    // Build per-stop annotations using haversine for proportional split
-    const now = new Date();
-    let prevCoords = techCoords || (orderedStops.length ? orderedStops[0]._coords : null);
-    let elapsed = 0; // seconds
-    let totalHavDist = 0;
-
-    // Sum haversine distances
-    const havDists = [];
+    // --- Per-leg haversine distances (always computed, used as proportional weights) ---
+    const havDists = []; // meters, one per stop
     let cur = techCoords || orderedStops[0]._coords;
+    let totalHavM = 0;
     orderedStops.forEach(s => {
-      const d = GeoEngine.distanceKm(cur, s._coords) * 1000; // meters
+      const d = GeoEngine.distanceKm(cur, s._coords) * 1000;
       havDists.push(d);
-      totalHavDist += d;
+      totalHavM += d;
       cur = s._coords;
     });
 
-    const ratio = totalHavDist > 0 ? (totalDurS || totalHavDist / 10) / totalHavDist : 1;
+    // --- Totals: prefer ORS values, fall back to haversine with urban speed estimate ---
+    const totalDistM = (!isFallback && route.distanceM > 0) ? route.distanceM : totalHavM;
+    // 30 km/h average urban speed → 2 sec/meter
+    const totalDurS  = (!isFallback && route.durationS  > 0) ? route.durationS  : totalHavM * 2;
 
+    // Distribute road time proportionally across legs
+    const ratio = totalHavM > 0 ? totalDurS / totalHavM : 2;
+
+    const now = new Date();
+    let elapsed = 0;
     const annotated = orderedStops.map((stop, i) => {
-      const legDist = havDists[i]; // meters
-      const legDur = Math.round(legDist * ratio); // seconds
-      elapsed += legDur;
+      const legDistM = havDists[i];
+      // Road distance per leg ≈ haversine × overall road/hav ratio
+      const roadRatio = totalHavM > 0 ? totalDistM / totalHavM : 1.35;
+      const legRoadM  = legDistM * roadRatio;
+      const legDurS   = Math.round(legDistM * ratio);
+      elapsed += legDurS;
       const eta = new Date(now.getTime() + elapsed * 1000);
       return {
         ...stop,
-        _legDistM: legDist,
-        _legDurS: legDur,
-        _etaDate: eta,
-        _etaStr: eta.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        _legDistM: legRoadM,
+        _legDurS:  legDurS,
+        _etaDate:  eta,
+        _etaStr:   eta.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true }),
       };
     });
 
-    const totalDistKm = totalDistM > 0 ? totalDistM / 1000 : totalHavDist / 1000;
-    const totalDurMin = totalDurS > 0 ? Math.round(totalDurS / 60) : Math.round(totalHavDist / 1000 * 3.5); // ~3.5 min/km urban
-
-    return { stops: annotated, totalDistKm, totalDurMin, geojson: route?.geojson, isFallback: route?.fallback };
+    return {
+      stops: annotated,
+      totalDistKm: totalDistM / 1000,
+      totalDurMin: Math.round(totalDurS / 60),
+      geojson: route?.geojson || null,
+      isFallback,
+    };
   }
 };
 
@@ -2714,13 +2811,8 @@ async function navOptimize() {
   const notice = document.getElementById('nav-ors-notice');
   if (notice) notice.style.display = result.isFallback ? 'flex' : 'none';
 
-  // 3. Render map
-  await navInitMap(NavState.stops);
-
-  // 4. Draw route
-  if (result.geojson && mapService._map) {
-    mapService.drawRoute(result.geojson);
-  }
+  // 3. Render map and draw route after map is ready
+  await navInitMap(NavState.stops, result.geojson);
 
   // 5. Render UI
   navRenderSummary();
@@ -2738,7 +2830,7 @@ async function navOptimize() {
   NavState.isLoading = false;
 }
 
-async function navInitMap(jobs) {
+async function navInitMap(jobs, routeGeoJSON) {
   const container = document.getElementById('nav-map');
   if (!container) return;
 
@@ -2755,6 +2847,11 @@ async function navInitMap(jobs) {
   jobs.forEach((job, i) => mapService.addJobMarker(job, i + 1, false));
   if (NavState.techCoords) mapService.addTechMarker(NavState.techCoords);
   mapService.fitToMarkers(jobs, NavState.techCoords);
+
+  // Draw route — map is already loaded (init resolves on 'load')
+  if (routeGeoJSON) {
+    mapService.drawRoute(routeGeoJSON);
+  }
 }
 
 function navLoadMapLibre() {
