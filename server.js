@@ -355,6 +355,18 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  CONFIG — exposes non-secret runtime config to the frontend
+//  Never put SECRET keys here — ORS key is safe (client-side API, rate-limited)
+// ═══════════════════════════════════════════════════════════════════════════
+
+app.get('/api/config', (req, res) => {
+    res.json({
+        orsApiKey: process.env.ORS_API_KEY || '',
+    });
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  AUTH ROUTES
 // ═══════════════════════════════════════════════════════════════════════════
 

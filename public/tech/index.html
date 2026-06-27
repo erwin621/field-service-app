@@ -2244,7 +2244,9 @@ const NavState = {
 };
 
 /* ── ORS API Key (free tier — users can replace with their own) ── */
-const ORS_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImNhMjkxNDJkNTUzNDQyOWFhNWE2ZjYxOTk0NGJmZjUwIiwiaCI6Im11cm11cjY0In0='; // public demo key
+/** ORS API key — loaded at runtime from /api/config (sourced from .env ORS_API_KEY).
+ *  Never hardcoded here. Falls back to empty string if the server isn't running. */
+let ORS_API_KEY = '';
 
 /** ORS has no motorcycle profile. Closest equivalent is driving-car
  *  (identical road network). We correct the ORS car ETA with a
@@ -2623,7 +2625,21 @@ const navigationService = {
 /* ══════════════════════════════════════
    Navigator UI — show/render/close
 ══════════════════════════════════════ */
-function showNavigatorOverlay() {
+async function showNavigatorOverlay() {
+  // Load ORS API key from server .env before rendering
+  if (!ORS_API_KEY) {
+    try {
+      const r = await fetch('/api/config');
+      if (r.ok) {
+        const cfg = await r.json();
+        ORS_API_KEY = cfg.orsApiKey || '';
+        if (!ORS_API_KEY) console.warn('[ORS] ORS_API_KEY not set in .env — routing will use straight-line fallback');
+        else console.log('[ORS] API key loaded from server config ✓');
+      }
+    } catch(e) {
+      console.warn('[ORS] Could not reach /api/config:', e.message);
+    }
+  }
   document.getElementById('tools-overlay').style.display = 'none';
   const ov = document.getElementById('navigator-overlay');
   ov.style.display = 'flex';
@@ -2656,7 +2672,7 @@ function renderNavigatorShell() {
       <!-- API notice -->
       <div class="nav-api-notice" id="nav-ors-notice" style="display:none">
         ${ic('alert', 14)}
-        <span>Route drawn using straight-line estimates. For turn-by-turn routing, an OpenRouteService API key is required.</span>
+        <span>Route drawn using straight-line estimates. Add <code style="font-family:var(--fm);background:rgba(0,0,0,.06);padding:1px 4px;border-radius:3px">ORS_API_KEY</code> to your <code style="font-family:var(--fm);background:rgba(0,0,0,.06);padding:1px 4px;border-radius:3px">.env</code> for turn-by-turn road routing.</span>
       </div>
 
       <!-- Filter pills (hidden by default) -->
