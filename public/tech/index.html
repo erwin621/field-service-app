@@ -2244,7 +2244,16 @@ const NavState = {
 };
 
 /* ── ORS API Key (free tier — users can replace with their own) ── */
-const ORS_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImNhMjkxNDJkNTUzNDQyOWFhNWE2ZjYxOTk0NGJmZjUwIiwiaCI6Im11cm11cjY0In0='; // public demo key
+const ORS_API_KEY = '5b3ce3597851110001cf6248a8cf3dce6c7f409384ca7e7f7b621e6a'; // public demo key
+
+/** ORS has no motorcycle profile. Closest equivalent is driving-car
+ *  (identical road network). We correct the ORS car ETA with a
+ *  motorcycle speed factor — PH urban motorcycles are ~20% faster
+ *  than cars due to lane-splitting and traffic filtering. */
+const ORS_PROFILE       = 'driving-car'; // best available for motorcycle routing
+const MOTO_SPEED_FACTOR = 0.80;          // multiply car duration by this → motorcycle ETA
+const MOTO_FUEL_L100KM  = 3.5;          // litres/100 km — typical PH delivery motorcycle
+const FUEL_PRICE_PHP    = 68;            // ₱ per litre — update to current pump price
 
 /* ══════════════════════════════════════
    mapService — wraps MapLibre GL JS
@@ -2441,7 +2450,7 @@ const routeService = {
     console.log('[ORS] fetching segment with', waypoints.length, 'waypoints, key:', ORS_API_KEY.slice(0,8) + '…');
 
     try {
-      const resp = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
+      const resp = await fetch(`https://api.openrouteservice.org/v2/directions/${ORS_PROFILE}/geojson`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2549,8 +2558,10 @@ const routeService = {
 
     // --- Totals: prefer ORS values, fall back to haversine with urban speed estimate ---
     const totalDistM = (!isFallback && route.distanceM > 0) ? route.distanceM : totalHavM;
-    // 30 km/h average urban speed → 2 sec/meter
-    const totalDurS  = (!isFallback && route.durationS  > 0) ? route.durationS  : totalHavM * 2;
+    // Apply motorcycle speed factor: ORS gives car times, motorcycle is faster.
+    // Fallback: 30 km/h car avg → ÷ MOTO_SPEED_FACTOR gives ~37.5 km/h moto avg
+    const rawDurS    = (!isFallback && route.durationS > 0) ? route.durationS : totalHavM * 2;
+    const totalDurS  = rawDurS * MOTO_SPEED_FACTOR;
 
     // Distribute road time proportionally across legs
     const ratio = totalHavM > 0 ? totalDurS / totalHavM : 2;
@@ -2907,6 +2918,13 @@ function navRenderSummary() {
 
   navSetSummary(`
     <div class="nav-summary fade-up">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3)">Route Summary</div>
+        <div style="display:flex;align-items:center;gap:5px;background:var(--teal-lt);border:1px solid rgba(20,184,166,.25);border-radius:4px;padding:3px 8px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6h-5L7 17.5"/><path d="M15 6l3.5 6H9"/><path d="M10.5 6H8"/></svg>
+          <span style="font-size:.6rem;font-weight:800;color:var(--teal-dk);letter-spacing:.06em">MOTORCYCLE</span>
+        </div>
+      </div>
       <div class="nav-summary-grid">
         <div class="nav-stat">
           <div class="nav-stat-val">${total}</div>
@@ -2975,7 +2993,7 @@ function navRenderStats() {
   const total = NavState.stops.length;
   const avgDist = total > 0 ? (NavState.totalDistKm / total).toFixed(1) : 0;
   const avgTime = total > 0 ? Math.round(NavState.totalDurMin / total) : 0;
-  const fuelSaved = (NavState.totalDistKm * 0.08 * 68).toFixed(0); // ~8L/100km, ₱68/L estimate
+  const fuelSaved = (NavState.totalDistKm * MOTO_FUEL_L100KM / 100 * FUEL_PRICE_PHP).toFixed(0);
   const statsHtml = `
     <div class="nav-section-lbl" style="margin-top:2px">Route Statistics</div>
     <div class="nav-stats-grid">
@@ -2990,7 +3008,7 @@ function navRenderStats() {
         <div class="nav-stats-ico" style="background:var(--green-lt);color:var(--green-dk)">${ic('fuel', 18)}</div>
         <div class="nav-stats-info">
           <div class="nav-stats-val" style="color:var(--green-dk)">~₱${fuelSaved}</div>
-          <div class="nav-stats-lbl">Est. Fuel Cost</div>
+          <div class="nav-stats-lbl">Est. Fuel Cost (Moto)</div>
         </div>
       </div>
       <div class="nav-stats-card">
