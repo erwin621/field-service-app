@@ -914,13 +914,13 @@ button{cursor:pointer}
     </div>
 
     <!-- Mode switcher -->
-    <div id="cam-mode-bar" style="position:absolute;bottom:120px;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:0">
+    <div id="cam-mode-bar" style="position:absolute;bottom:148px;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:0">
       <button id="cam-mode-photo" onclick="camSetMode('photo')" style="padding:8px 24px;background:rgba(0,0,0,.0);border:none;border-bottom:2.5px solid #fff;color:#fff;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em;transition:all .2s">PHOTO</button>
       <button id="cam-mode-video" onclick="camSetMode('video')" style="padding:8px 24px;background:transparent;border:none;border-bottom:2.5px solid transparent;color:rgba(255,255,255,.5);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em;transition:all .2s">VIDEO</button>
     </div>
 
     <!-- Bottom controls -->
-    <div id="cam-controls" style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:0 24px calc(env(safe-area-inset-bottom,0px) + 32px);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to top,rgba(0,0,0,.7),transparent)">
+    <div id="cam-controls" style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:20px 24px calc(env(safe-area-inset-bottom,0px) + 28px);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.72) 60%,transparent 100%);min-height:140px">
       <!-- Mic toggle (video mode only) -->
       <button id="cam-mic-btn" onclick="camToggleMic()" style="width:44px;height:44px;border-radius:4px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;opacity:0;pointer-events:none">
         <svg id="cam-mic-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -949,11 +949,11 @@ button{cursor:pointer}
   </div>
 
   <!-- Preview media -->
-  <img id="cam-preview-img" style="display:none;width:100%;height:100%;object-fit:contain;position:absolute;inset:0">
-  <video id="cam-preview-video" controls style="display:none;width:100%;height:100%;object-fit:contain;position:absolute;inset:0"></video>
+  <img id="cam-preview-img" style="display:none;width:100%;height:100%;object-fit:contain;position:absolute;top:0;left:0;right:0;bottom:0;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 110px)">
+  <video id="cam-preview-video" controls style="display:none;width:100%;height:100%;object-fit:contain;position:absolute;top:0;left:0;right:0;bottom:0;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 110px)"></video>
 
   <!-- Bottom action bar -->
-  <div style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 20px);background:linear-gradient(to top,rgba(0,0,0,.85),transparent);display:flex;gap:10px">
+  <div style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 24px);background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.85) 70%,transparent 100%);display:flex;gap:10px">
     <button onclick="camPreviewRetake()" style="flex:1;height:50px;border-radius:4px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Retake
@@ -3289,6 +3289,16 @@ let _camGPS=null;      // {lat,lng} from fresh Geolocation
 let _camFromTools=false;
 
 /* ── Open camera ──────────────────────────────────────────────────────── */
+/* ── Nav hide/show helpers (camera-only; no effect on any other tab) ── */
+function camHideNav(){
+  const nav=document.querySelector('.bottom-nav');
+  if(nav)nav.style.display='none';
+}
+function camShowNav(){
+  const nav=document.querySelector('.bottom-nav');
+  if(nav){nav.style.display='';/* restore to CSS default (flex) */navHide.show();}
+}
+
 async function camOpen(jobId,siteId,siteName,coordinates,ticketId,mode){
   _camJobId=jobId||null;
   _camSiteId=siteId||'';
@@ -3301,6 +3311,9 @@ async function camOpen(jobId,siteId,siteName,coordinates,ticketId,mode){
   // Update header info
   document.getElementById('cam-site-id-hdr').textContent=_camTicketId||_camSiteId;
   document.getElementById('cam-site-name-hdr').textContent=_camSiteName;
+
+  // Hide bottom nav for full-screen camera (camera-only; other tabs unaffected)
+  camHideNav();
 
   // Show overlay
   const ov=document.getElementById('camera-overlay');
@@ -3324,6 +3337,7 @@ function camOpenFromTools(){
   document.getElementById('cam-site-id-hdr').textContent='No job selected';
   document.getElementById('cam-site-name-hdr').textContent='Camera Preview';
   document.getElementById('tools-overlay').style.display='none';
+  camHideNav();
   const ov=document.getElementById('camera-overlay');
   ov.style.display='flex';
   camSetMode('photo');
@@ -3338,6 +3352,7 @@ function camClose(){
   const ov=document.getElementById('camera-overlay');
   if(ov)ov.style.display='none';
   _camRecording=false;_camPaused=false;_camChunks=[];
+  camShowNav(); // restore bottom nav — no effect on tab state
   if(_camFromTools){
     document.getElementById('tools-overlay').style.display='flex';
   }
@@ -3688,6 +3703,7 @@ function camStopRecTimer(){if(_camRecTimer){clearInterval(_camRecTimer);_camRecT
 function camShowPreview(type,url){
   // Pause the camera overlay loop while previewing
   camStopOverlayLoop();
+  camHideNav(); // keep nav hidden during preview
   const ov=document.getElementById('cam-preview-overlay');
   ov.style.display='flex';
   const imgEl=document.getElementById('cam-preview-img');
@@ -3704,6 +3720,8 @@ function camShowPreview(type,url){
 function camPreviewClose(){
   const ov=document.getElementById('cam-preview-overlay');
   if(ov)ov.style.display='none';
+  // Nav is restored by camClose() when the full camera is closed,
+  // or explicitly here for paths that keep camera open (back / retake).
 }
 
 function camPreviewBack(){
