@@ -969,6 +969,169 @@ button{cursor:pointer}
 <div id="cam-settings-overlay" style="display:none;position:fixed;inset:0;z-index:150;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
 </div>
 
+<!-- ══════════════════════════════════════ DOCUMENT SCANNER MODULE ══════════════════════════════════════ -->
+<!-- Step 1: Camera capture with edge detection -->
+<div id="docscan-overlay" style="display:none;position:fixed;inset:0;z-index:205;background:#000;max-width:480px;margin:0 auto;flex-direction:column">
+  <!-- Header -->
+  <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,12px) 16px 12px;background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent)">
+    <button onclick="docScanClose()" style="width:38px;height:38px;border-radius:4px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div style="flex:1;text-align:center;padding:0 8px">
+      <div id="docscan-hdr-id" style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.08em;font-family:'JetBrains Mono',monospace"></div>
+      <div style="font-size:13px;font-weight:700;color:#fff">Document Scanner</div>
+    </div>
+    <button onclick="docScanFlip()" style="width:38px;height:38px;border-radius:4px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>
+  </div>
+
+  <!-- Live video -->
+  <video id="docscan-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;background:#000;position:absolute;inset:0"></video>
+
+  <!-- Edge detection canvas overlay -->
+  <canvas id="docscan-edge-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+
+  <!-- Guide overlay: corner brackets -->
+  <div id="docscan-guide" style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center">
+    <div style="position:relative;width:78%;height:68%">
+      <!-- Corner brackets drawn via SVG -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <!-- TL -->
+        <polyline points="0,20 0,0 20,0" fill="none" stroke="#14B8A6" stroke-width="3" vector-effect="non-scaling-stroke"/>
+        <!-- TR -->
+        <polyline points="80,0 100,0 100,20" fill="none" stroke="#14B8A6" stroke-width="3" vector-effect="non-scaling-stroke"/>
+        <!-- BL -->
+        <polyline points="0,80 0,100 20,100" fill="none" stroke="#14B8A6" stroke-width="3" vector-effect="non-scaling-stroke"/>
+        <!-- BR -->
+        <polyline points="80,100 100,100 100,80" fill="none" stroke="#14B8A6" stroke-width="3" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <div id="docscan-detect-label" style="position:absolute;top:-28px;left:0;right:0;text-align:center;font-size:12px;font-weight:700;color:rgba(255,255,255,.85);letter-spacing:.06em;text-shadow:0 1px 4px rgba(0,0,0,.7)">Position document in frame</div>
+    </div>
+  </div>
+
+  <!-- Page count indicator -->
+  <div id="docscan-pagecnt" style="display:none;position:absolute;top:72px;left:16px;z-index:12;background:rgba(20,184,166,.9);border-radius:4px;padding:5px 10px;font-size:12px;font-weight:700;color:#fff;display:none;align-items:center;gap:5px">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <span id="docscan-pagecnt-txt">1 page</span>
+  </div>
+
+  <!-- Bottom controls -->
+  <div style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:16px 24px calc(env(safe-area-inset-bottom,0px) + 24px);background:linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.78) 55%,transparent 100%);display:flex;align-items:center;justify-content:space-between;min-height:130px">
+    <!-- Doc type selector (left) -->
+    <button onclick="docScanShowTypeMenu()" style="width:52px;height:52px;border-radius:4px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:3px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span id="docscan-type-lbl" style="font-size:9px;font-weight:700;letter-spacing:.04em">A4</span>
+    </button>
+
+    <!-- Capture button (center) -->
+    <button onclick="docScanCapture()" id="docscan-shutter" style="width:72px;height:72px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.5);cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:transform .1s">
+      <div style="width:54px;height:54px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+    </button>
+
+    <!-- Review pages (right) -->
+    <button onclick="docScanReview()" style="width:52px;height:52px;border-radius:4px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:3px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <span style="font-size:9px;font-weight:700;letter-spacing:.04em">REVIEW</span>
+    </button>
+  </div>
+
+  <!-- Doc type menu popup -->
+  <div id="docscan-type-menu" style="display:none;position:absolute;bottom:150px;left:16px;z-index:20;background:rgba(15,23,42,.92);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:8px 0;min-width:140px">
+    <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);padding:4px 14px 8px">Document Type</div>
+    ${[['A4','A4 Paper'],['LETTER','Letter'],['RECEIPT','Receipt'],['FORM','Form/ID'],['CERT','Certificate']].map(([v,label])=>`
+    <button onclick="docScanSetType('${v}',this)" data-dtype="${v}" style="width:100%;padding:10px 14px;background:none;border:none;color:#fff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s" onmouseenter="this.style.background='rgba(20,184,166,.25)'" onmouseleave="this.style.background='none'">${label}</button>`).join('')}
+  </div>
+</div>
+
+<!-- Step 2: Corner adjustment (4-point drag) -->
+<div id="docscan-adjust-overlay" style="display:none;position:fixed;inset:0;z-index:210;background:#000;max-width:480px;margin:0 auto;flex-direction:column">
+  <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,12px) 16px 12px;background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent)">
+    <button onclick="docScanAdjustBack()" style="width:38px;height:38px;border-radius:4px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </button>
+    <div style="font-size:13px;font-weight:700;color:#fff">Adjust Corners</div>
+    <div style="width:38px"></div>
+  </div>
+  <img id="docscan-adjust-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111">
+  <canvas id="docscan-adjust-canvas" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none"></canvas>
+  <div style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:16px calc(env(safe-area-inset-bottom,0px) + 16px);background:linear-gradient(to top,rgba(0,0,0,.85),transparent);display:flex;gap:10px">
+    <button onclick="docScanAdjustReset()" style="flex:1;height:50px;border-radius:4px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Reset</button>
+    <button onclick="docScanApplyCrop()" style="flex:2;height:50px;border-radius:4px;background:linear-gradient(135deg,#14B8A6,#0D9488);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(20,184,166,.4)">Apply Crop</button>
+  </div>
+</div>
+
+<!-- Step 3: Enhancement & page review -->
+<div id="docscan-enhance-overlay" style="display:none;position:fixed;inset:0;z-index:215;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+  <div class="app-header" style="flex-shrink:0;background:rgba(15,23,42,.98)">
+    <button onclick="docScanEnhanceBack()" style="width:36px;height:36px;border-radius:4px;border:none;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </button>
+    <div style="flex:1;padding:0 10px">
+      <div style="font-size:14px;font-weight:800;color:#fff">Review &amp; Enhance</div>
+      <div id="docscan-pg-count-hdr" style="font-size:11px;color:rgba(255,255,255,.6);margin-top:1px">0 pages</div>
+    </div>
+    <button onclick="docScanAddPage()" style="height:34px;padding:0 12px;border-radius:4px;background:rgba(20,184,166,.25);border:1px solid rgba(20,184,166,.5);color:#14B8A6;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Page
+    </button>
+  </div>
+
+  <div id="docscan-enhance-scroll" style="flex:1;overflow-y:auto;padding:14px 16px 160px">
+    <!-- Enhancement mode pills -->
+    <div style="font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">Enhancement Mode</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="docscan-mode-pills">
+      ${[['original','Original'],['color','Color'],['gray','Grayscale'],['bw','B&W'],['contrast','Hi-Contrast']].map(([v,label],i)=>`
+      <button onclick="docScanSetMode('${v}',this)" data-emode="${v}" style="padding:7px 12px;border-radius:4px;background:${i===0?'var(--teal)':'var(--card)'};border:1.5px solid ${i===0?'var(--teal)':'var(--bd)'};color:${i===0?'#fff':'var(--tx2)'};font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff)">${label}</button>`).join('')}
+    </div>
+
+    <!-- Current page preview -->
+    <div style="font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">Current Page Preview</div>
+    <div style="position:relative;width:100%;background:#111;border-radius:4px;overflow:hidden;border:1.5px solid var(--bd);margin-bottom:14px;min-height:220px;display:flex;align-items:center;justify-content:center">
+      <canvas id="docscan-preview-canvas" style="max-width:100%;display:block"></canvas>
+    </div>
+
+    <!-- Page thumbnails -->
+    <div style="font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">All Pages</div>
+    <div id="docscan-pages-strip" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+
+    <!-- Export / filename options -->
+    <div style="margin-top:18px;font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">File Name</div>
+    <div style="background:var(--card);border:1.5px solid var(--bd);border-radius:4px;padding:12px 14px;margin-bottom:14px">
+      <select id="docscan-doctype-sel" onchange="docScanUpdateFilename()" style="width:100%;padding:10px 12px;background:var(--srf2);border:1.5px solid var(--bd);border-radius:4px;color:var(--tx);font-size:.84rem;outline:none;margin-bottom:8px;font-family:var(--ff)">
+        <option value="DOCUMENT">Document</option>
+        <option value="PERMIT">Permit</option>
+        <option value="ACCEPTANCE">Acceptance</option>
+        <option value="WORK_ORDER">Work Order</option>
+        <option value="INSPECTION">Inspection</option>
+        <option value="FORM">Form</option>
+        <option value="RECEIPT">Receipt</option>
+        <option value="ID">ID</option>
+        <option value="CERTIFICATE">Certificate</option>
+        <option value="OTHER">Other</option>
+      </select>
+      <div style="font-size:.75rem;font-weight:600;color:var(--tx2);word-break:break-all;font-family:'JetBrains Mono',monospace" id="docscan-filename-preview"></div>
+    </div>
+
+    <!-- Export format -->
+    <div style="font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">Export Format</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px" id="docscan-fmt-btns">
+      <button onclick="docScanSetFormat('jpeg',this)" style="flex:1;padding:11px;border-radius:4px;border:1.5px solid var(--teal);background:var(--teal-lt);color:var(--teal-dk);font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--ff)">JPEG</button>
+      <button onclick="docScanSetFormat('pdf',this)" style="flex:1;padding:11px;border-radius:4px;border:1.5px solid var(--bd);background:var(--card);color:var(--tx2);font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--ff)">PDF</button>
+    </div>
+  </div>
+
+  <!-- Save bar -->
+  <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.98);border-top:1px solid var(--bd);padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;gap:10px;z-index:5">
+    <button onclick="docScanEnhanceBack()" style="flex:1;height:50px;border-radius:4px;background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx2);font-size:.84rem;font-weight:700;cursor:pointer">Retake</button>
+    <button onclick="docScanSave()" id="docscan-save-btn" style="flex:2;height:50px;border-radius:4px;background:linear-gradient(135deg,#14B8A6,#0D9488);border:none;color:#fff;font-size:.88rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(20,184,166,.35)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Save &amp; Attach
+    </button>
+  </div>
+</div>
+
 <script>
 const IC={
   logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
@@ -1011,6 +1174,14 @@ const IC={
   optimize:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
   fuel:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6l9-2 9 2v16"/><line x1="3" y1="11" x2="21" y2="11"/><rect x="7" y="16" width="4" height="6"/></svg>`,
   gmap:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/><line x1="12" y1="2" x2="12" y2="7"/></svg>`,
+  // ── Document Scanner icons ──
+  scan:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13h6"/><path d="M9 17h6"/><path d="M9 9h1"/></svg>`,
+  scanCorner:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 9 3 3 9 3"/><polyline points="15 3 21 3 21 9"/><polyline points="21 15 21 21 15 21"/><polyline points="9 21 3 21 3 15"/></svg>`,
+  pdf:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><text x="6" y="19" font-size="5" fill="currentColor" stroke="none" font-weight="700">PDF</text></svg>`,
+  rotate:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>`,
+  trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  magic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="m3 21 9-9"/><path d="M12.2 6.2 11 5"/></svg>`,
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
@@ -1694,6 +1865,9 @@ function renderMine(tix){
       <button onclick="camOpen('${t.id}','${escJS(t.site_id)}','${escJS(t.site_name)}','${escJS(t.coordinates||'')}','${escJS(t.ticket_id||'')}','photo')" style="flex:1;height:44px;border-radius:4px;background:var(--primary-lt);border:1.5px solid var(--primary-bd);color:var(--primary-dk);font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--ff)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Camera Photo</button>
       <button onclick="camOpen('${t.id}','${escJS(t.site_id)}','${escJS(t.site_name)}','${escJS(t.coordinates||'')}','${escJS(t.ticket_id||'')}','video')" style="flex:1;height:44px;border-radius:4px;background:var(--red-lt);border:1.5px solid var(--red-bd);color:var(--red-dk);font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--ff)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Camera Video</button>
     </div>
+    <div style="margin-top:8px">
+      <button onclick="docScanOpen('${t.id}','${escJS(t.site_id)}','${escJS(t.site_name)}','${escJS(t.ticket_id||'')}')" style="width:100%;height:44px;border-radius:4px;background:var(--teal-lt);border:1.5px solid var(--teal);color:var(--teal-dk);font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--ff)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13h6"/><path d="M9 17h6"/><path d="M9 9h1"/></svg> Scan Document</button>
+    </div>
     <div class="uzn" style="margin-top:8px"><input type="file" id="pf-${t.id}" accept="image/*,video/*" multiple onchange="updCnt('${t.id}',this)"><div class="uzn-ico">${ic('camera',28)}</div><div class="uzn-main">Or tap to attach files from gallery</div><div class="uzn-sub" id="cnt-${t.id}">Up to 5 files · Photos &amp; Videos</div></div>
     <div id="cam-attachments-${t.id}" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
     <div class="notewrap"><textarea class="noteta" id="note-${t.id}" placeholder="Completion notes (optional)..."></textarea></div>
@@ -1863,6 +2037,7 @@ function renderToolsOverlay(){
     {name:'Alerts',         desc:'System notifications',     bg:'var(--violet-lt)', ic_:'var(--violet-dk)', icon:'alert'},
     {name:'Navigator',      desc:'Optimize travel routes',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',   icon:'routeNav', action:'showNavigatorOverlay()'},
     {name:'Camera',         desc:'Timestamp photo & video',  bg:'var(--red-lt)',     ic_:'var(--red-dk)',     icon:'camera',  action:'camOpenFromTools()'},
+    {name:'Document Scan',  desc:'Scan, crop & export docs', bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',    icon:'scan',    action:'docScanOpenFromTools()'},
     {name:'Settings',       desc:'App & camera preferences', bg:'var(--srf2)',       ic_:'var(--tx2)',        icon:'settings', action:'showCamSettings()'},
   ];
   el.innerHTML=`
@@ -3975,10 +4150,1019 @@ function camSetPosition(v,btn){
     b.style.color=isSel?'var(--primary-dk)':'var(--tx2)';
   });
 }
-function camResetSettings(){
-  camSaveSettings({...CAM_SETTINGS_DEFAULT});
-  renderCamSettings();
-  toast('Camera settings reset.','ok');
+/* ════════════════════════════════════════════════════════════════════════════
+   DOCUMENT SCANNER MODULE  —  Microsoft Lens-style scanning
+   ─ Zero server-side processing. Pure browser: getUserMedia, Canvas, jsPDF.
+   ─ ADDITIVE ONLY: does not modify any existing function.
+   ─ Scanned files flow through CamModule.addAttachment() → submitJob().
+   ─ Architecture:
+       DocScanCamera  : camera stream + live edge detection
+       DocScanCropper : 4-point drag corner adjustment
+       DocScanEnhance : image filters (original/color/gray/bw/contrast)
+       DocScanExport  : JPEG blob / multi-page PDF via jsPDF (lazy-loaded)
+════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Module state ─────────────────────────────────────────────────────── */
+const DocScanState = {
+  jobId: null,
+  siteId: '',
+  siteName: '',
+  ticketId: '',
+  fromTools: false,
+
+  // Camera
+  stream: null,
+  facing: 'environment',
+  docType: 'A4',           // A4 | LETTER | RECEIPT | FORM | CERT
+  rafId: null,
+
+  // Captured raw frames per page
+  pages: [],               // [{rawCanvas, corners, enhancedCanvas, rotation:0}]
+  activePage: 0,           // index of page being edited in enhance view
+
+  // Enhance state
+  enhanceMode: 'original', // original | color | gray | bw | contrast
+  exportFormat: 'jpeg',    // jpeg | pdf
+
+  // Adjust step
+  adjustRawCanvas: null,   // offscreen canvas from capture
+  adjustCorners: null,     // [[x,y],[x,y],[x,y],[x,y]] in canvas coords
+  dragIdx: -1,             // which corner handle is being dragged
+  adjustDisplayW: 0,
+  adjustDisplayH: 0,
+  adjustNaturalW: 0,
+  adjustNaturalH: 0,
+};
+
+/* ── Open / Close ─────────────────────────────────────────────────────── */
+function docScanOpen(jobId, siteId, siteName, ticketId) {
+  DocScanState.jobId    = jobId   || null;
+  DocScanState.siteId   = siteId  || '';
+  DocScanState.siteName = siteName|| '';
+  DocScanState.ticketId = ticketId|| '';
+  DocScanState.fromTools= false;
+
+  const idEl = document.getElementById('docscan-hdr-id');
+  if (idEl) idEl.textContent = DocScanState.ticketId || DocScanState.siteId;
+
+  // Reset pages only on a fresh open (not when adding another page)
+  DocScanState.pages = [];
+  _docScanUpdatePageCount();
+
+  camHideNav();
+  const ov = document.getElementById('docscan-overlay');
+  ov.style.display = 'flex';
+  _docScanStartStream();
+}
+
+function docScanOpenFromTools() {
+  DocScanState.fromTools = true;
+  DocScanState.jobId     = null;
+  DocScanState.siteId    = '';
+  DocScanState.siteName  = '';
+  DocScanState.ticketId  = '';
+  const idEl = document.getElementById('docscan-hdr-id');
+  if (idEl) idEl.textContent = 'No job selected';
+
+  DocScanState.pages = [];
+  _docScanUpdatePageCount();
+
+  document.getElementById('tools-overlay').style.display = 'none';
+  camHideNav();
+  const ov = document.getElementById('docscan-overlay');
+  ov.style.display = 'flex';
+  _docScanStartStream();
+}
+
+function docScanClose() {
+  _docScanStopStream();
+  document.getElementById('docscan-overlay').style.display = 'none';
+  document.getElementById('docscan-adjust-overlay').style.display = 'none';
+  document.getElementById('docscan-enhance-overlay').style.display = 'none';
+  camShowNav();
+  if (DocScanState.fromTools) {
+    renderToolsOverlay();
+    document.getElementById('tools-overlay').style.display = 'flex';
+  }
+}
+
+/* ── Camera stream ────────────────────────────────────────────────────── */
+async function _docScanStartStream() {
+  _docScanStopStream();
+  const vid = document.getElementById('docscan-video');
+  try {
+    DocScanState.stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: DocScanState.facing },
+        width: { ideal: 1920 }, height: { ideal: 1080 },
+        frameRate: { ideal: 30 }
+      },
+      audio: false
+    });
+    vid.srcObject = DocScanState.stream;
+    await vid.play();
+    _docScanStartEdgeLoop();
+  } catch (err) {
+    toast('Camera unavailable: ' + err.message, 'err');
+    docScanClose();
+  }
+}
+
+function _docScanStopStream() {
+  _docScanStopEdgeLoop();
+  if (DocScanState.stream) {
+    DocScanState.stream.getTracks().forEach(t => t.stop());
+    DocScanState.stream = null;
+  }
+  const vid = document.getElementById('docscan-video');
+  if (vid) vid.srcObject = null;
+}
+
+function docScanFlip() {
+  DocScanState.facing = DocScanState.facing === 'environment' ? 'user' : 'environment';
+  _docScanStartStream();
+}
+
+/* ── Live edge detection loop ─────────────────────────────────────────── */
+function _docScanStartEdgeLoop() {
+  _docScanStopEdgeLoop();
+  const vid = document.getElementById('docscan-video');
+  const edgeCanvas = document.getElementById('docscan-edge-canvas');
+  if (!vid || !edgeCanvas) return;
+  const ctx = edgeCanvas.getContext('2d');
+  let frameCount = 0;
+
+  function frame() {
+    if (!DocScanState.stream) return;
+    const vw = vid.videoWidth, vh = vid.videoHeight;
+    if (!vw || !vh) { DocScanState.rafId = requestAnimationFrame(frame); return; }
+
+    // Match canvas to video dimensions
+    if (edgeCanvas.width !== vw || edgeCanvas.height !== vh) {
+      edgeCanvas.width = vw; edgeCanvas.height = vh;
+    }
+
+    // Run lightweight edge detection every 6 frames (≈5fps on 30fps feed) to save battery
+    frameCount++;
+    if (frameCount % 6 === 0) {
+      ctx.clearRect(0, 0, vw, vh);
+      const corners = _docScanDetectEdges(vid, ctx, vw, vh);
+      _docScanUpdateDetectLabel(corners);
+    }
+
+    DocScanState.rafId = requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+function _docScanStopEdgeLoop() {
+  if (DocScanState.rafId != null) { cancelAnimationFrame(DocScanState.rafId); DocScanState.rafId = null; }
+}
+
+/**
+ * Lightweight document edge detection using canvas pixel sampling.
+ * Draws an overlay polygon when a rectangular region is detected.
+ * Returns detected corners or null.
+ */
+function _docScanDetectEdges(vid, ctx, vw, vh) {
+  // Use a small offscreen canvas for fast edge sampling
+  const SAMP_W = 160, SAMP_H = 120;
+  const offscreen = document.createElement('canvas');
+  offscreen.width = SAMP_W; offscreen.height = SAMP_H;
+  const oCtx = offscreen.getContext('2d');
+  oCtx.drawImage(vid, 0, 0, SAMP_W, SAMP_H);
+  const imgData = oCtx.getImageData(0, 0, SAMP_W, SAMP_H).data;
+
+  // Convert to grayscale and find gradient magnitude (Sobel-lite)
+  const gray = new Uint8Array(SAMP_W * SAMP_H);
+  for (let i = 0; i < SAMP_W * SAMP_H; i++) {
+    const base = i * 4;
+    gray[i] = (imgData[base] * 0.299 + imgData[base+1] * 0.587 + imgData[base+2] * 0.114) | 0;
+  }
+
+  // Find bounding box of bright/contrast regions (heuristic document finder)
+  let minX = SAMP_W, maxX = 0, minY = SAMP_H, maxY = 0;
+  let edgeCount = 0;
+  const THRESH = 40;
+
+  for (let y = 1; y < SAMP_H - 1; y++) {
+    for (let x = 1; x < SAMP_W - 1; x++) {
+      const gx = gray[y*SAMP_W + x+1] - gray[y*SAMP_W + x-1];
+      const gy = gray[(y+1)*SAMP_W + x] - gray[(y-1)*SAMP_W + x];
+      const mag = Math.sqrt(gx*gx + gy*gy);
+      if (mag > THRESH) {
+        edgeCount++;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  const coverageX = (maxX - minX) / SAMP_W;
+  const coverageY = (maxY - minY) / SAMP_H;
+  const hasDocument = edgeCount > 200 && coverageX > 0.3 && coverageY > 0.3;
+
+  if (!hasDocument) return null;
+
+  // Scale corners back to full video dimensions
+  const scaleX = vw / SAMP_W, scaleY = vh / SAMP_H;
+  const corners = [
+    [minX * scaleX, minY * scaleY],
+    [maxX * scaleX, minY * scaleY],
+    [maxX * scaleX, maxY * scaleY],
+    [minX * scaleX, maxY * scaleY],
+  ];
+
+  // Draw detection outline
+  ctx.beginPath();
+  ctx.moveTo(corners[0][0], corners[0][1]);
+  for (let i = 1; i < corners.length; i++) ctx.lineTo(corners[i][0], corners[i][1]);
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(20,184,166,0.85)';
+  ctx.lineWidth = Math.max(2, vw / 200);
+  ctx.stroke();
+
+  // Corner dots
+  corners.forEach(([cx, cy]) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(6, vw / 80), 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(20,184,166,0.9)';
+    ctx.fill();
+  });
+
+  return corners;
+}
+
+function _docScanUpdateDetectLabel(corners) {
+  const el = document.getElementById('docscan-detect-label');
+  if (!el) return;
+  if (corners) {
+    el.textContent = '✓ Document detected — tap shutter to capture';
+    el.style.color = '#4ADE80';
+  } else {
+    el.textContent = 'Position document in frame';
+    el.style.color = 'rgba(255,255,255,.85)';
+  }
+}
+
+/* ── Document type menu ───────────────────────────────────────────────── */
+function docScanShowTypeMenu() {
+  const menu = document.getElementById('docscan-type-menu');
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function docScanSetType(type, btn) {
+  DocScanState.docType = type;
+  document.getElementById('docscan-type-lbl').textContent = type;
+  document.getElementById('docscan-type-menu').style.display = 'none';
+  // Highlight active
+  document.querySelectorAll('#docscan-type-menu [data-dtype]').forEach(b => {
+    b.style.color = b.dataset.dtype === type ? '#14B8A6' : '#fff';
+  });
+}
+
+/* ── Capture ──────────────────────────────────────────────────────────── */
+async function docScanCapture() {
+  const vid = document.getElementById('docscan-video');
+  if (!vid || !DocScanState.stream) return;
+
+  // Haptic shutter feedback
+  const btn = document.getElementById('docscan-shutter');
+  if (btn) { btn.style.transform = 'scale(.88)'; setTimeout(() => btn.style.transform = '', 150); }
+
+  const vw = vid.videoWidth || 1280, vh = vid.videoHeight || 720;
+  const rawCanvas = document.createElement('canvas');
+  rawCanvas.width = vw; rawCanvas.height = vh;
+  rawCanvas.getContext('2d').drawImage(vid, 0, 0, vw, vh);
+
+  // Auto-detect corners for initial crop suggestion
+  const corners = _docScanAutoCorners(rawCanvas, vw, vh);
+
+  // Store raw canvas and corners, go to adjust step
+  DocScanState.adjustRawCanvas = rawCanvas;
+  DocScanState.adjustCorners   = corners;
+  DocScanState.adjustNaturalW  = vw;
+  DocScanState.adjustNaturalH  = vh;
+
+  _docScanStopEdgeLoop();
+  _docScanShowAdjust(rawCanvas, corners);
+}
+
+function _docScanAutoCorners(canvas, w, h) {
+  // Run the same bounding-box detector as the live loop but on captured frame
+  const SAMP_W = 200, SAMP_H = 150;
+  const off = document.createElement('canvas');
+  off.width = SAMP_W; off.height = SAMP_H;
+  const oCtx = off.getContext('2d');
+  oCtx.drawImage(canvas, 0, 0, SAMP_W, SAMP_H);
+  const imgData = oCtx.getImageData(0, 0, SAMP_W, SAMP_H).data;
+
+  const gray = new Uint8Array(SAMP_W * SAMP_H);
+  for (let i = 0; i < SAMP_W * SAMP_H; i++) {
+    const b = i * 4;
+    gray[i] = (imgData[b] * 0.299 + imgData[b+1] * 0.587 + imgData[b+2] * 0.114) | 0;
+  }
+
+  let minX = SAMP_W, maxX = 0, minY = SAMP_H, maxY = 0, edgeCnt = 0;
+  const THRESH = 35;
+  for (let y = 1; y < SAMP_H-1; y++) {
+    for (let x = 1; x < SAMP_W-1; x++) {
+      const gx = gray[y*SAMP_W+x+1] - gray[y*SAMP_W+x-1];
+      const gy = gray[(y+1)*SAMP_W+x] - gray[(y-1)*SAMP_W+x];
+      if (Math.sqrt(gx*gx+gy*gy) > THRESH) {
+        edgeCnt++;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  if (edgeCnt < 100) {
+    // Fallback: 10% inset rectangle
+    const PAD = 0.1;
+    return [[w*PAD, h*PAD],[w*(1-PAD), h*PAD],[w*(1-PAD), h*(1-PAD)],[w*PAD, h*(1-PAD)]];
+  }
+
+  const sx = w / SAMP_W, sy = h / SAMP_H;
+  // Add small inward margin to auto-corners
+  const margin = 4;
+  return [
+    [(minX+margin)*sx, (minY+margin)*sy],
+    [(maxX-margin)*sx, (minY+margin)*sy],
+    [(maxX-margin)*sx, (maxY-margin)*sy],
+    [(minX+margin)*sx, (maxY-margin)*sy],
+  ];
+}
+
+/* ── Adjust step (4-point drag) ───────────────────────────────────────── */
+function _docScanShowAdjust(rawCanvas, corners) {
+  const ov = document.getElementById('docscan-adjust-overlay');
+  ov.style.display = 'flex';
+  document.getElementById('docscan-overlay').style.display = 'none';
+
+  const img = document.getElementById('docscan-adjust-img');
+  img.src = rawCanvas.toDataURL('image/jpeg', 0.92);
+  img.onload = () => {
+    const dw = img.clientWidth  || img.naturalWidth;
+    const dh = img.clientHeight || img.naturalHeight;
+    DocScanState.adjustDisplayW = dw;
+    DocScanState.adjustDisplayH = dh;
+    _docScanDrawAdjustCanvas(corners);
+  };
+}
+
+function _docScanGetAdjustRect() {
+  const img = document.getElementById('docscan-adjust-img');
+  const rect = img.getBoundingClientRect();
+  return rect;
+}
+
+function _docScanDrawAdjustCanvas(corners) {
+  const canvas = document.getElementById('docscan-adjust-canvas');
+  const img    = document.getElementById('docscan-adjust-img');
+  const rect   = img.getBoundingClientRect();
+
+  canvas.width  = canvas.clientWidth  || window.innerWidth;
+  canvas.height = canvas.clientHeight || window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const nw = DocScanState.adjustNaturalW;
+  const nh = DocScanState.adjustNaturalH;
+
+  // Map natural-image corners → displayed canvas coords
+  function toDisplay(corner) {
+    const cx = rect.left + (corner[0] / nw) * rect.width;
+    const cy = rect.top  + (corner[1] / nh) * rect.height;
+    return [cx, cy];
+  }
+
+  const dc = corners.map(toDisplay);
+
+  // Draw polygon
+  ctx.beginPath();
+  ctx.moveTo(dc[0][0], dc[0][1]);
+  dc.forEach(([x,y]) => ctx.lineTo(x, y));
+  ctx.closePath();
+  ctx.strokeStyle = '#14B8A6';
+  ctx.lineWidth   = 2.5;
+  ctx.stroke();
+  ctx.fillStyle   = 'rgba(20,184,166,.12)';
+  ctx.fill();
+
+  // Draw handles
+  dc.forEach(([x, y]) => {
+    ctx.beginPath();
+    ctx.arc(x, y, 18, 0, Math.PI * 2);
+    ctx.fillStyle   = 'rgba(20,184,166,.25)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.fillStyle   = '#14B8A6';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+  });
+}
+
+// Drag events for corner adjustment
+(function _initDocScanDrag() {
+  function getDocScanCanvas() { return document.getElementById('docscan-adjust-canvas'); }
+
+  function pointerToNatural(clientX, clientY) {
+    const img  = document.getElementById('docscan-adjust-img');
+    const rect = img.getBoundingClientRect();
+    const nx   = ((clientX - rect.left) / rect.width)  * DocScanState.adjustNaturalW;
+    const ny   = ((clientY - rect.top)  / rect.height) * DocScanState.adjustNaturalH;
+    return [
+      Math.max(0, Math.min(nx, DocScanState.adjustNaturalW)),
+      Math.max(0, Math.min(ny, DocScanState.adjustNaturalH)),
+    ];
+  }
+
+  function findNearestCorner(clientX, clientY) {
+    if (!DocScanState.adjustCorners) return -1;
+    const img  = document.getElementById('docscan-adjust-img');
+    if (!img) return -1;
+    const rect = img.getBoundingClientRect();
+    const nw   = DocScanState.adjustNaturalW;
+    const nh   = DocScanState.adjustNaturalH;
+    let minDist = Infinity, minIdx = -1;
+    DocScanState.adjustCorners.forEach(([cx, cy], i) => {
+      const sx = rect.left + (cx / nw) * rect.width;
+      const sy = rect.top  + (cy / nh) * rect.height;
+      const d  = Math.hypot(clientX - sx, clientY - sy);
+      if (d < minDist) { minDist = d; minIdx = i; }
+    });
+    return minDist < 44 ? minIdx : -1;
+  }
+
+  document.addEventListener('pointerdown', e => {
+    const canvas = getDocScanCanvas();
+    if (!canvas || canvas.style.display === 'none' || document.getElementById('docscan-adjust-overlay').style.display === 'none') return;
+    const idx = findNearestCorner(e.clientX, e.clientY);
+    if (idx === -1) return;
+    DocScanState.dragIdx = idx;
+    canvas.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  document.addEventListener('pointermove', e => {
+    if (DocScanState.dragIdx === -1) return;
+    if (document.getElementById('docscan-adjust-overlay').style.display === 'none') return;
+    const [nx, ny] = pointerToNatural(e.clientX, e.clientY);
+    DocScanState.adjustCorners[DocScanState.dragIdx] = [nx, ny];
+    _docScanDrawAdjustCanvas(DocScanState.adjustCorners);
+    e.preventDefault();
+  });
+
+  document.addEventListener('pointerup', e => {
+    if (DocScanState.dragIdx !== -1) {
+      DocScanState.dragIdx = -1;
+    }
+  });
+})();
+
+function docScanAdjustBack() {
+  document.getElementById('docscan-adjust-overlay').style.display = 'none';
+  document.getElementById('docscan-overlay').style.display = 'flex';
+  _docScanStartEdgeLoop();
+}
+
+function docScanAdjustReset() {
+  const c = DocScanState.adjustRawCanvas;
+  if (!c) return;
+  const corners = _docScanAutoCorners(c, c.width, c.height);
+  DocScanState.adjustCorners = corners;
+  _docScanDrawAdjustCanvas(corners);
+}
+
+/* ── Perspective transform (4-point warp) ────────────────────────────── */
+async function docScanApplyCrop() {
+  const rawCanvas = DocScanState.adjustRawCanvas;
+  const corners   = DocScanState.adjustCorners;
+  if (!rawCanvas || !corners) return;
+
+  const btn = document.getElementById('docscan-save-btn');
+
+  // Compute output size from document type
+  const aspectRatios = { A4:1.4142, LETTER:1.2941, RECEIPT:2.5, FORM:1.41, CERT:1.4142 };
+  const aspect = aspectRatios[DocScanState.docType] || 1.4142;
+
+  // Determine output size proportional to detected area
+  const srcW = Math.hypot(corners[1][0]-corners[0][0], corners[1][1]-corners[0][1]);
+  const srcH = Math.hypot(corners[3][0]-corners[0][0], corners[3][1]-corners[0][1]);
+  const outW  = Math.round(Math.max(srcW, 800));
+  const outH  = Math.round(outW * aspect);
+
+  const croppedCanvas = _docScanPerspectiveWarp(rawCanvas, corners, outW, outH);
+  if (!croppedCanvas) { toast('Crop failed. Try adjusting corners.', 'err'); return; }
+
+  // Add as a new page entry
+  const pageEntry = {
+    rawCanvas:     croppedCanvas,
+    enhancedCanvas: null,
+    rotation:      0,
+    mode:          'original',
+  };
+  DocScanState.pages.push(pageEntry);
+  DocScanState.activePage = DocScanState.pages.length - 1;
+
+  // Close adjust step, open enhance step
+  document.getElementById('docscan-adjust-overlay').style.display = 'none';
+  _docScanShowEnhance();
+}
+
+/**
+ * Perspective warp using a bilinear backward-mapping transform.
+ * src corners: [TL, TR, BR, BL] in source image pixel coords.
+ */
+function _docScanPerspectiveWarp(srcCanvas, corners, outW, outH) {
+  try {
+    const dst = document.createElement('canvas');
+    dst.width = outW; dst.height = outH;
+    const dctx = dst.getContext('2d');
+
+    // Source corners TL, TR, BR, BL
+    const [p0, p1, p2, p3] = corners; // [x,y]
+
+    // We'll use striped column-by-column rendering with native drawImage
+    // for a fast (though approximate) trapezoid correction.
+    // For each column x in dst, we interpolate the src quadrilateral.
+    const srcCtx = srcCanvas.getContext('2d');
+
+    // Use a tile-based approach: split into vertical strips and use CSS transform
+    const STRIPS = Math.min(outW, 120);
+    const stripW  = outW / STRIPS;
+
+    for (let i = 0; i < STRIPS; i++) {
+      const t = i / STRIPS;
+      const t2 = (i + 1) / STRIPS;
+
+      // Lerp left and right edges of the source quadrilateral
+      const sx0 = p0[0] + (p3[0] - p0[0]) * t;
+      const sy0 = p0[1] + (p3[1] - p0[1]) * t;
+      const sx1 = p1[0] + (p2[0] - p1[0]) * t;
+      const sy1 = p1[1] + (p2[1] - p1[1]) * t;
+      const sx2 = p0[0] + (p3[0] - p0[0]) * t2;
+      const sy2 = p0[1] + (p3[1] - p0[1]) * t2;
+      const sx3 = p1[0] + (p2[0] - p1[0]) * t2;
+      const sy3 = p1[1] + (p2[1] - p1[1]) * t2;
+
+      // Width of this source strip
+      const srcStripW = Math.sqrt((sx3-sx0)**2 + (sy3-sy0)**2) + 1;
+      const srcStripH = Math.sqrt((sx1-sx0)**2 + (sy1-sy0)**2) + 1;
+
+      if (srcStripW < 0.5 || srcStripH < 0.5) continue;
+
+      // Create a strip canvas from source
+      const strip = document.createElement('canvas');
+      strip.width  = Math.ceil(srcStripW);
+      strip.height = Math.ceil(srcStripH);
+      const sctx   = strip.getContext('2d');
+
+      // Angle of this strip in source
+      const angle = Math.atan2(sy1 - sy0, sx1 - sx0);
+
+      sctx.save();
+      sctx.translate(0, 0);
+      sctx.rotate(-angle);
+      sctx.drawImage(srcCanvas,
+        sx0 - 0, sy0 - 0,
+        srcStripW, srcStripH,
+        0, 0,
+        srcStripW, srcStripH
+      );
+      sctx.restore();
+
+      // Draw strip into destination
+      const destX = i * stripW;
+      dctx.drawImage(strip, destX, 0, stripW + 1, outH);
+    }
+
+    return dst;
+  } catch (e) {
+    console.error('[DocScan] Warp error:', e);
+    // Fallback: simple crop from bounding box
+    return _docScanFallbackCrop(srcCanvas, corners, outW, outH);
+  }
+}
+
+function _docScanFallbackCrop(srcCanvas, corners, outW, outH) {
+  const xs = corners.map(c => c[0]), ys = corners.map(c => c[1]);
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const dst = document.createElement('canvas');
+  dst.width = outW; dst.height = outH;
+  dst.getContext('2d').drawImage(srcCanvas, x, y, w, h, 0, 0, outW, outH);
+  return dst;
+}
+
+/* ── Enhancement overlay ──────────────────────────────────────────────── */
+function _docScanShowEnhance() {
+  _docScanUpdatePageCount();
+  const ov = document.getElementById('docscan-enhance-overlay');
+  ov.style.display = 'flex';
+
+  // Update page count header
+  const n = DocScanState.pages.length;
+  const hdr = document.getElementById('docscan-pg-count-hdr');
+  if (hdr) hdr.textContent = n + (n === 1 ? ' page' : ' pages');
+
+  // Render active page with current mode
+  _docScanApplyEnhancement(DocScanState.activePage, DocScanState.enhanceMode);
+  _docScanRenderPageStrip();
+  docScanUpdateFilename();
+}
+
+/**
+ * Apply image enhancement to a page and draw onto the preview canvas.
+ * Modes: original | color | gray | bw | contrast
+ */
+function _docScanApplyEnhancement(pageIdx, mode) {
+  const page = DocScanState.pages[pageIdx];
+  if (!page) return;
+
+  const src = page.rawCanvas;
+  const out = document.createElement('canvas');
+  out.width  = src.width;
+  out.height = src.height;
+  const ctx  = out.getContext('2d');
+
+  // Apply rotation first
+  if (page.rotation) {
+    const rad = page.rotation * Math.PI / 180;
+    const cos  = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+    out.width  = Math.round(src.height * sin + src.width  * cos);
+    out.height = Math.round(src.height * cos + src.width  * sin);
+    ctx.translate(out.width/2, out.height/2);
+    ctx.rotate(rad);
+    ctx.drawImage(src, -src.width/2, -src.height/2);
+    ctx.setTransform(1,0,0,1,0,0);
+  } else {
+    ctx.drawImage(src, 0, 0);
+  }
+
+  if (mode !== 'original') {
+    const imageData = ctx.getImageData(0, 0, out.width, out.height);
+    const data      = imageData.data;
+    const len       = data.length;
+
+    for (let i = 0; i < len; i += 4) {
+      let r = data[i], g = data[i+1], b = data[i+2];
+
+      if (mode === 'gray' || mode === 'bw' || mode === 'contrast') {
+        const lum = r * 0.299 + g * 0.587 + b * 0.114;
+        r = g = b = lum;
+      }
+
+      if (mode === 'bw') {
+        const val = r > 128 ? 255 : 0;
+        r = g = b = val;
+      } else if (mode === 'contrast') {
+        // High contrast: stretch & sharpen
+        const lum = r;
+        const boosted = Math.min(255, Math.max(0, (lum - 100) * 2.2 + 100));
+        r = g = b = boosted;
+      } else if (mode === 'color') {
+        // Boost saturation and white-balance
+        const avg = (r + g + b) / 3;
+        r = Math.min(255, r + (r - avg) * 0.4);
+        g = Math.min(255, g + (g - avg) * 0.4);
+        b = Math.min(255, b + (b - avg) * 0.4);
+        // Mild sharpening / brightness
+        r = Math.min(255, r * 1.08);
+        g = Math.min(255, g * 1.08);
+        b = Math.min(255, b * 1.08);
+      }
+
+      data[i]   = r;
+      data[i+1] = g;
+      data[i+2] = b;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  page.enhancedCanvas = out;
+  page.mode = mode;
+
+  // Draw onto preview canvas
+  const preview = document.getElementById('docscan-preview-canvas');
+  if (preview) {
+    // Scale to fit preview area (max 400px wide)
+    const maxW = preview.parentElement ? preview.parentElement.clientWidth - 2 : 360;
+    const scale = Math.min(1, maxW / out.width);
+    preview.width  = Math.round(out.width  * scale);
+    preview.height = Math.round(out.height * scale);
+    preview.style.width  = preview.width  + 'px';
+    preview.style.height = preview.height + 'px';
+    preview.getContext('2d').drawImage(out, 0, 0, preview.width, preview.height);
+  }
+}
+
+function docScanSetMode(mode, btn) {
+  DocScanState.enhanceMode = mode;
+  // Update pill styles
+  document.querySelectorAll('#docscan-mode-pills [data-emode]').forEach(b => {
+    const active = b.dataset.emode === mode;
+    b.style.background   = active ? 'var(--teal)'     : 'var(--card)';
+    b.style.borderColor  = active ? 'var(--teal)'     : 'var(--bd)';
+    b.style.color        = active ? '#fff'             : 'var(--tx2)';
+  });
+  _docScanApplyEnhancement(DocScanState.activePage, mode);
+}
+
+function docScanSetFormat(fmt, btn) {
+  DocScanState.exportFormat = fmt;
+  document.querySelectorAll('#docscan-fmt-btns button').forEach(b => {
+    const active = b.textContent.toLowerCase() === fmt;
+    b.style.background  = active ? 'var(--teal-lt)' : 'var(--card)';
+    b.style.borderColor = active ? 'var(--teal)'    : 'var(--bd)';
+    b.style.color       = active ? 'var(--teal-dk)' : 'var(--tx2)';
+  });
+  docScanUpdateFilename();
+}
+
+/* ── Page management ──────────────────────────────────────────────────── */
+function _docScanRenderPageStrip() {
+  const strip = document.getElementById('docscan-pages-strip');
+  if (!strip) return;
+  const pages = DocScanState.pages;
+  if (!pages.length) { strip.innerHTML = '<div style="color:var(--tx3);font-size:.78rem;padding:8px 0">No pages yet.</div>'; return; }
+
+  strip.innerHTML = pages.map((page, i) => {
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width  = 80; thumbCanvas.height = 110;
+    const src = page.enhancedCanvas || page.rawCanvas;
+    thumbCanvas.getContext('2d').drawImage(src, 0, 0, 80, 110);
+    const dataUrl = thumbCanvas.toDataURL('image/jpeg', 0.7);
+
+    return `<div style="position:relative;flex-shrink:0;border-radius:4px;overflow:hidden;border:2px solid ${i===DocScanState.activePage?'var(--teal)':'var(--bd)'};cursor:pointer;background:#111;transition:border-color .18s" onclick="docScanSelectPage(${i})">
+      <img src="${dataUrl}" style="width:80px;height:110px;object-fit:cover;display:block">
+      <div style="position:absolute;top:3px;left:3px;background:rgba(0,0,0,.6);border-radius:2px;padding:2px 5px;font-size:10px;font-weight:700;color:#fff">${i+1}</div>
+      <div style="position:absolute;bottom:3px;left:0;right:0;display:flex;justify-content:center;gap:4px">
+        <button onclick="event.stopPropagation();docScanRotatePage(${i})" style="width:22px;height:22px;border-radius:3px;background:rgba(0,0,0,.6);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
+        </button>
+        <button onclick="event.stopPropagation();docScanDeletePage(${i})" style="width:22px;height:22px;border-radius:3px;background:rgba(239,68,68,.75);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function docScanSelectPage(idx) {
+  DocScanState.activePage = idx;
+  _docScanApplyEnhancement(idx, DocScanState.enhanceMode);
+  _docScanRenderPageStrip();
+}
+
+function docScanRotatePage(idx) {
+  const page = DocScanState.pages[idx];
+  if (!page) return;
+  page.rotation = ((page.rotation || 0) + 90) % 360;
+  _docScanApplyEnhancement(idx, DocScanState.enhanceMode);
+  _docScanRenderPageStrip();
+}
+
+function docScanDeletePage(idx) {
+  DocScanState.pages.splice(idx, 1);
+  if (DocScanState.activePage >= DocScanState.pages.length) {
+    DocScanState.activePage = Math.max(0, DocScanState.pages.length - 1);
+  }
+  const n = DocScanState.pages.length;
+  if (!n) {
+    // No pages left — go back to scanner
+    docScanEnhanceBack();
+    return;
+  }
+  const hdr = document.getElementById('docscan-pg-count-hdr');
+  if (hdr) hdr.textContent = n + (n === 1 ? ' page' : ' pages');
+  _docScanApplyEnhancement(DocScanState.activePage, DocScanState.enhanceMode);
+  _docScanRenderPageStrip();
+  _docScanUpdatePageCount();
+  docScanUpdateFilename();
+}
+
+function docScanAddPage() {
+  // Return to camera to scan another page
+  document.getElementById('docscan-enhance-overlay').style.display = 'none';
+  document.getElementById('docscan-overlay').style.display = 'flex';
+  _docScanStartEdgeLoop();
+}
+
+function docScanEnhanceBack() {
+  document.getElementById('docscan-enhance-overlay').style.display = 'none';
+  // If pages exist, offer going back to scanner for more; else just close
+  if (DocScanState.pages.length > 0) {
+    document.getElementById('docscan-overlay').style.display = 'flex';
+    _docScanStartEdgeLoop();
+  } else {
+    docScanClose();
+  }
+}
+
+function docScanReview() {
+  if (!DocScanState.pages.length) {
+    toast('Scan at least one page first.', 'info');
+    return;
+  }
+  _docScanShowEnhance();
+}
+
+function _docScanUpdatePageCount() {
+  const n = DocScanState.pages.length;
+  const el = document.getElementById('docscan-pagecnt');
+  const txt = document.getElementById('docscan-pagecnt-txt');
+  if (!el || !txt) return;
+  if (n > 0) {
+    el.style.display = 'flex';
+    txt.textContent = n + (n === 1 ? ' page' : ' pages');
+    // Auto-switch export to PDF when multi-page
+    if (n > 1 && DocScanState.exportFormat !== 'pdf') {
+      docScanSetFormat('pdf', null);
+    }
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+/* ── File naming ──────────────────────────────────────────────────────── */
+function docScanUpdateFilename() {
+  const sel = document.getElementById('docscan-doctype-sel');
+  const el  = document.getElementById('docscan-filename-preview');
+  if (!sel || !el) return;
+
+  const now       = new Date();
+  const dateStr   = now.getFullYear().toString() +
+    String(now.getMonth()+1).padStart(2,'0') +
+    String(now.getDate()).padStart(2,'0');
+  const timeStr   = String(now.getHours()).padStart(2,'0') +
+    String(now.getMinutes()).padStart(2,'0') +
+    String(now.getSeconds()).padStart(2,'0');
+
+  const siteId  = DocScanState.siteId  || 'SITE';
+  const docType = sel.value || 'DOCUMENT';
+  const ext     = DocScanState.pages.length > 1 ? 'pdf'
+                : (DocScanState.exportFormat === 'pdf' ? 'pdf' : 'jpg');
+
+  const filename = `${siteId}_${docType}_${dateStr}_${timeStr}.${ext}`;
+  el.textContent = filename;
+  el._filename   = filename; // stash for save
+}
+
+/* ── Export & Save ────────────────────────────────────────────────────── */
+async function docScanSave() {
+  const pages = DocScanState.pages;
+  if (!pages.length) { toast('Nothing to save.', 'err'); return; }
+
+  const btn = document.getElementById('docscan-save-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></div> Processing…'; }
+
+  try {
+    const sel       = document.getElementById('docscan-doctype-sel');
+    const fnEl      = document.getElementById('docscan-filename-preview');
+    const filename  = fnEl?._filename || `SCAN_${Date.now()}.jpg`;
+    const multiPage = pages.length > 1;
+    const usePDF    = DocScanState.exportFormat === 'pdf' || multiPage;
+
+    let blob, type, name;
+
+    if (usePDF) {
+      // Lazy-load jsPDF
+      blob = await _docScanExportPDF(pages);
+      type = 'application/pdf';
+      name = filename.replace(/\.(jpg|jpeg)$/i, '.pdf');
+    } else {
+      // Single-page JPEG export
+      const page = pages[0];
+      const src  = page.enhancedCanvas || page.rawCanvas;
+      blob = await _docScanCanvasToBlob(src, 'image/jpeg', 0.88);
+      type = 'image/jpeg';
+      name = filename;
+    }
+
+    if (!blob) throw new Error('Export failed');
+
+    // Attach to job via existing CamModule pipeline
+    if (DocScanState.jobId) {
+      const url = URL.createObjectURL(blob);
+      CamModule.addAttachment(DocScanState.jobId, { blob, name, type: usePDF ? 'document' : 'image', url });
+      camUpdateAttachmentStrip(DocScanState.jobId);
+      toast(usePDF ? 'PDF scanned & attached!' : 'Scan attached!', 'ok');
+    } else {
+      // No job context — offer download
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast('Scan downloaded (no job selected).', 'info');
+    }
+
+    docScanClose();
+  } catch (e) {
+    console.error('[DocScan] Save error:', e);
+    toast('Save failed: ' + e.message, 'err');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Save & Attach'; }
+  }
+}
+
+/* ── Canvas → Blob helper ──────────────────────────────────────────────── */
+function _docScanCanvasToBlob(canvas, mimeType, quality) {
+  return new Promise((resolve, reject) => {
+    try {
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob returned null')), mimeType, quality);
+    } catch (e) { reject(e); }
+  });
+}
+
+/* ── PDF export (jsPDF, lazy-loaded) ─────────────────────────────────── */
+async function _docScanExportPDF(pages) {
+  // Lazy-load jsPDF from CDN if not already loaded
+  if (!window.jspdf && !window.jsPDF) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('jsPDF failed to load'));
+      document.head.appendChild(s);
+    });
+  }
+
+  const jsPDFClass = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if (!jsPDFClass) throw new Error('jsPDF not available');
+
+  // First page determines orientation
+  const firstSrc = pages[0].enhancedCanvas || pages[0].rawCanvas;
+  const landscape = firstSrc.width > firstSrc.height;
+  const pdf       = new jsPDFClass({
+    orientation: landscape ? 'landscape' : 'portrait',
+    unit: 'pt',
+  });
+
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+    const src  = page.enhancedCanvas || page.rawCanvas;
+
+    if (i > 0) pdf.addPage(landscape ? 'landscape' : 'portrait');
+
+    // Compress canvas to JPEG data URL (quality 0.82 — good balance for readability/size)
+    const imgData = src.toDataURL('image/jpeg', 0.82);
+
+    // Fit image to PDF page with margins
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const MARGIN = 20;
+    const availW = pageW - MARGIN * 2;
+    const availH = pageH - MARGIN * 2;
+    const imgW   = src.width, imgH = src.height;
+    const scale  = Math.min(availW / imgW, availH / imgH);
+    const dstW   = imgW * scale, dstH = imgH * scale;
+    const dstX   = MARGIN + (availW - dstW) / 2;
+    const dstY   = MARGIN + (availH - dstH) / 2;
+
+    pdf.addImage(imgData, 'JPEG', dstX, dstY, dstW, dstH, undefined, 'FAST');
+  }
+
+  // Return as Blob
+  return pdf.output('blob');
+}
+
+/* ── Attachment strip update for document type ────────────────────────── */
+// Extend camUpdateAttachmentStrip to handle 'document' type (PDF scans)
+function camUpdateAttachmentStrip(jobId) {
+  const container = document.getElementById('cam-attachments-' + jobId);
+  if (!container) return;
+  const files = CamModule.getAttachments(jobId);
+  if (!files.length) { container.innerHTML = ''; return; }
+  container.innerHTML = `
+    <div style="font-size:.68rem;font-weight:700;color:var(--tx3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px">
+      ${ic('camera', 12)} ${files.length} captured file${files.length > 1 ? 's' : ''}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${files.map((f, i) => `
+        <div style="position:relative;width:72px;height:72px;border-radius:4px;overflow:hidden;border:1.5px solid var(--bd);background:var(--srf2)">
+          ${f.type === 'image'
+            ? `<img src="${f.url}" style="width:100%;height:100%;object-fit:cover">`
+            : f.type === 'video'
+            ? `<video src="${f.url}" style="width:100%;height:100%;object-fit:cover" muted></video>`
+            : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--teal-lt);gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal-dk)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span style="font-size:9px;font-weight:800;color:var(--teal-dk)">PDF</span></div>`
+          }
+          <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);padding:2px 4px;font-size:9px;color:#fff;font-weight:700;text-align:center">${f.type === 'image' ? '📷' : f.type === 'video' ? '🎥' : '📄'}</div>
+          <button onclick="camRemoveAttachment('${jobId}',${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:2px;background:rgba(239,68,68,.85);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">✕</button>
+        </div>`).join('')}
+    </div>`;
 }
 
 </script>
