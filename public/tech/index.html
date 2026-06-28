@@ -878,6 +878,97 @@ button{cursor:pointer}
 <div id="navigator-overlay" style="display:none;position:fixed;inset:0;z-index:130;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
 </div>
 
+<!-- ══════════════════════════════════════ CAMERA MODULE (sub-page of ongoing job / Tools) ══════════════════════════════════════ -->
+<div id="camera-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:#000;max-width:480px;margin:0 auto;flex-direction:column">
+  <!-- Camera view (live preview + controls) -->
+  <div id="cam-view" style="display:flex;flex-direction:column;height:100%;width:100%">
+    <!-- Header bar -->
+    <div id="cam-header" style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,12px) 16px 12px;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent)">
+      <button id="cam-close-btn" onclick="camClose()" style="width:38px;height:38px;border-radius:4px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div id="cam-job-info" style="flex:1;text-align:center;padding:0 8px">
+        <div id="cam-site-id-hdr" style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.08em;font-family:'JetBrains Mono',monospace"></div>
+        <div id="cam-site-name-hdr" style="font-size:13px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="cam-flash-btn" onclick="camToggleFlash()" title="Flash" style="width:38px;height:38px;border-radius:4px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;display:none">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </button>
+        <button id="cam-flip-btn" onclick="camFlip()" title="Flip camera" style="width:38px;height:38px;border-radius:4px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Video element (live preview) -->
+    <video id="cam-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;background:#000;position:absolute;inset:0"></video>
+
+    <!-- Canvas overlay for live preview overlay text -->
+    <canvas id="cam-overlay-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
+
+    <!-- Recording indicator -->
+    <div id="cam-rec-indicator" style="display:none;position:absolute;top:60px;right:16px;z-index:12;display:none;align-items:center;gap:6px;background:rgba(0,0,0,.5);border-radius:4px;padding:6px 10px">
+      <div id="cam-rec-dot" style="width:10px;height:10px;border-radius:50%;background:#EF4444;animation:cam-blink 1s ease-in-out infinite;flex-shrink:0"></div>
+      <span id="cam-rec-timer" style="font-size:13px;font-weight:700;color:#fff;font-family:'JetBrains Mono',monospace">00:00</span>
+    </div>
+
+    <!-- Mode switcher -->
+    <div id="cam-mode-bar" style="position:absolute;bottom:120px;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:0">
+      <button id="cam-mode-photo" onclick="camSetMode('photo')" style="padding:8px 24px;background:rgba(0,0,0,.0);border:none;border-bottom:2.5px solid #fff;color:#fff;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em;transition:all .2s">PHOTO</button>
+      <button id="cam-mode-video" onclick="camSetMode('video')" style="padding:8px 24px;background:transparent;border:none;border-bottom:2.5px solid transparent;color:rgba(255,255,255,.5);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em;transition:all .2s">VIDEO</button>
+    </div>
+
+    <!-- Bottom controls -->
+    <div id="cam-controls" style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:0 24px calc(env(safe-area-inset-bottom,0px) + 32px);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to top,rgba(0,0,0,.7),transparent)">
+      <!-- Mic toggle (video mode only) -->
+      <button id="cam-mic-btn" onclick="camToggleMic()" style="width:44px;height:44px;border-radius:4px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;opacity:0;pointer-events:none">
+        <svg id="cam-mic-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+
+      <!-- Shutter / Record button -->
+      <button id="cam-shutter" onclick="camShutter()" style="width:72px;height:72px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.5);cursor:pointer;transition:transform .1s;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.4)">
+        <div id="cam-shutter-inner" style="width:54px;height:54px;border-radius:50%;background:#fff;transition:all .2s"></div>
+      </button>
+
+      <!-- Pause button (video recording only) -->
+      <button id="cam-pause-btn" onclick="camPause()" style="width:44px;height:44px;border-radius:4px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;opacity:0;pointer-events:none">
+        <svg id="cam-pause-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ CAMERA PREVIEW (before attach) ══════════════════════════════════════ -->
+<div id="cam-preview-overlay" style="display:none;position:fixed;inset:0;z-index:210;background:#000;max-width:480px;margin:0 auto;flex-direction:column">
+  <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;padding:env(safe-area-inset-top,12px) 16px 12px;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);gap:12px">
+    <button onclick="camPreviewBack()" style="width:38px;height:38px;border-radius:4px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </button>
+    <div style="font-size:14px;font-weight:700;color:#fff">Preview</div>
+  </div>
+
+  <!-- Preview media -->
+  <img id="cam-preview-img" style="display:none;width:100%;height:100%;object-fit:contain;position:absolute;inset:0">
+  <video id="cam-preview-video" controls style="display:none;width:100%;height:100%;object-fit:contain;position:absolute;inset:0"></video>
+
+  <!-- Bottom action bar -->
+  <div style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 20px);background:linear-gradient(to top,rgba(0,0,0,.85),transparent);display:flex;gap:10px">
+    <button onclick="camPreviewRetake()" style="flex:1;height:50px;border-radius:4px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Retake
+    </button>
+    <button onclick="camPreviewAttach()" style="flex:1.6;height:50px;border-radius:4px;background:linear-gradient(135deg,#14B8A6,#0D9488);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(20,184,166,.4)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Use &amp; Attach to Job
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ CAMERA SETTINGS PANEL ══════════════════════════════════════ -->
+<div id="cam-settings-overlay" style="display:none;position:fixed;inset:0;z-index:150;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+
 <script>
 const IC={
   logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
@@ -1274,6 +1365,7 @@ function logout(){
   document.getElementById('tch-err').classList.remove('show');
   document.getElementById('tools-overlay').style.display='none';
   document.getElementById('profile-overlay').style.display='none';
+  camClose();camPreviewClose();
   go('tech-auth');
 }
 
@@ -1598,7 +1690,12 @@ function renderMine(tix){
     <div class="tc-addr">${t.address}</div>
     ${t.recovered_while_claimed?`<div class="tc-callout canc">${ic('alert',14)}<span>⚠ Site already recovered based on latest monitoring batch.</span></div>`:''}
     <div class="tc-acts" style="margin-bottom:0"><a class="btn nav" href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank">${ic('nav',14)} Navigate to Site</a></div>
-    <div class="uzn"><input type="file" id="pf-${t.id}" accept="image/*,video/*" multiple onchange="updCnt('${t.id}',this)"><div class="uzn-ico">${ic('camera',28)}</div><div class="uzn-main">Tap to attach <strong>Photos or Videos</strong></div><div class="uzn-sub" id="cnt-${t.id}">Up to 5 files</div></div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button onclick="camOpen('${t.id}','${escJS(t.site_id)}','${escJS(t.site_name)}','${escJS(t.coordinates||'')}','${escJS(t.ticket_id||'')}','photo')" style="flex:1;height:44px;border-radius:4px;background:var(--primary-lt);border:1.5px solid var(--primary-bd);color:var(--primary-dk);font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--ff)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Camera Photo</button>
+      <button onclick="camOpen('${t.id}','${escJS(t.site_id)}','${escJS(t.site_name)}','${escJS(t.coordinates||'')}','${escJS(t.ticket_id||'')}','video')" style="flex:1;height:44px;border-radius:4px;background:var(--red-lt);border:1.5px solid var(--red-bd);color:var(--red-dk);font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--ff)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Camera Video</button>
+    </div>
+    <div class="uzn" style="margin-top:8px"><input type="file" id="pf-${t.id}" accept="image/*,video/*" multiple onchange="updCnt('${t.id}',this)"><div class="uzn-ico">${ic('camera',28)}</div><div class="uzn-main">Or tap to attach files from gallery</div><div class="uzn-sub" id="cnt-${t.id}">Up to 5 files · Photos &amp; Videos</div></div>
+    <div id="cam-attachments-${t.id}" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
     <div class="notewrap"><textarea class="noteta" id="note-${t.id}" placeholder="Completion notes (optional)..."></textarea></div>
     <div class="tc-acts"><button class="btn submit" id="sbtn-${t.id}" onclick="submitJob('${t.id}')">${ic('check',14)} Submit &amp; Complete</button><button class="btn cancel sm" onclick="openModal('${t.id}','tech','${t.ticket_id||t.site_id}')">${ic('ban',14)} Cancel</button></div>
   </div></div>`).join('');
@@ -1713,10 +1810,14 @@ function resetSlideClaim(wrap){
 async function submitJob(id){
   const inp=document.getElementById('pf-'+id),btn=document.getElementById('sbtn-'+id);
   const notes=document.getElementById('note-'+id)?.value.trim()||'';
-  if(!inp?.files.length){toast('Please attach at least one photo or video.','err');return;}
+  // Collect gallery-picked files + camera-captured blobs
+  const camFiles=CamModule.getAttachments(id)||[];
+  const galleryCount=inp?.files?.length||0;
+  if(!galleryCount&&!camFiles.length){toast('Please attach at least one photo or video.','err');return;}
   btn.innerHTML=ic('upload',14)+' Uploading...';btn.disabled=true;
   const fd=new FormData();fd.append('id',id);fd.append('technician_id',CU.id);fd.append('notes',notes);
-  for(let i=0;i<inp.files.length;i++)fd.append('proof',inp.files[i]);
+  for(let i=0;i<galleryCount;i++)fd.append('proof',inp.files[i]);
+  for(let i=0;i<camFiles.length;i++)fd.append('proof',camFiles[i].blob,camFiles[i].name);
   try{
     const r=await fetch('/api/tickets/submit',{method:'POST',body:fd});const d=await r.json();
     if(r.ok){toast('Job completed and proof sent!','ok');loadMine();loadDone();}
@@ -1758,7 +1859,8 @@ function renderToolsOverlay(){
     {name:'Income Overview',desc:'Earnings & job summary',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',    icon:'trendUp', action:'showIncomeOverlay()'},
     {name:'Alerts',         desc:'System notifications',     bg:'var(--violet-lt)', ic_:'var(--violet-dk)', icon:'alert'},
     {name:'Navigator',      desc:'Optimize travel routes',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',   icon:'routeNav', action:'showNavigatorOverlay()'},
-    {name:'Settings',       desc:'App preferences',          bg:'var(--srf2)',       ic_:'var(--tx2)',        icon:'settings'},
+    {name:'Camera',         desc:'Timestamp photo & video',  bg:'var(--red-lt)',     ic_:'var(--red-dk)',     icon:'camera',  action:'camOpenFromTools()'},
+    {name:'Settings',       desc:'App & camera preferences', bg:'var(--srf2)',       ic_:'var(--tx2)',        icon:'settings', action:'showCamSettings()'},
   ];
   el.innerHTML=`
     <div class="app-header">
@@ -3119,6 +3221,725 @@ function navShowNextRecommendation(jobId) {
 /* helper setters */
 function navSetSummary(html) { const el = document.getElementById('nav-summary-slot'); if (el) el.innerHTML = html; }
 function navSetStopList(html) { const el = document.getElementById('nav-stop-list'); if (el) el.innerHTML = html; }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CAMERA MODULE  —  Native timestamp camera with overlay, photo + video
+   ─ Zero dependencies. Uses getUserMedia, MediaRecorder, Canvas API.
+   ─ ADDITIVE ONLY: does not modify any existing function or API.
+   ─ Settings persist to localStorage under key 'fo_cam_settings'.
+   ─ Captured blobs are stored in CamModule.getAttachments(jobId).
+   ─ submitJob() reads those blobs and appends them to the proof FormData.
+════════════════════════════════════════════════════════════════════════════ */
+/* helper: escape single quotes for inline onclick values */
+function escJS(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+/* ── Default Camera Settings ─────────────────────────────────────────── */
+const CAM_SETTINGS_KEY='fo_cam_settings';
+const CAM_SETTINGS_DEFAULT={
+  showDate:true, showTime:true, showGPS:true, showSiteId:true, showSiteName:true,
+  use12h:true, gpsPrecision:7,
+  fontSize:14, textColor:'#ffffff', shadowOpacity:0.85,
+  position:'bottom-right'  // top-left|top-right|bottom-left|bottom-right
+};
+
+function camLoadSettings(){
+  try{const s=localStorage.getItem(CAM_SETTINGS_KEY);return s?{...CAM_SETTINGS_DEFAULT,...JSON.parse(s)}:{...CAM_SETTINGS_DEFAULT};}
+  catch(e){return{...CAM_SETTINGS_DEFAULT};}
+}
+function camSaveSettings(s){try{localStorage.setItem(CAM_SETTINGS_KEY,JSON.stringify(s));}catch(e){}}
+
+/* ── Module state ─────────────────────────────────────────────────────── */
+const CamModule=(()=>{
+  // Per-job attachment store: jobId -> [{blob, name, type, url, thumb}]
+  const attachments={};
+  function getAttachments(jobId){return attachments[jobId]||[];}
+  function addAttachment(jobId,entry){
+    if(!attachments[jobId])attachments[jobId]=[];
+    attachments[jobId].push(entry);
+  }
+  return{getAttachments,addAttachment};
+})();
+
+/* ── Internal camera state ────────────────────────────────────────────── */
+let _camStream=null;
+let _camMode='photo';       // 'photo'|'video'
+let _camFacing='environment'; // 'user'|'environment'
+let _camFlash=false;
+let _camMic=true;
+let _camRecorder=null;
+let _camChunks=[];
+let _camRecording=false;
+let _camPaused=false;
+let _camRecSecs=0;
+let _camRecTimer=null;
+let _camOverlayTimer=null;
+let _camCanvas=null;
+let _camCtx=null;
+let _camVideoEl=null;
+let _camRafId=null;
+
+// Current job context
+let _camJobId=null;
+let _camSiteId='';
+let _camSiteName='';
+let _camCoords='';
+let _camTicketId='';
+let _camGPS=null;      // {lat,lng} from fresh Geolocation
+let _camFromTools=false;
+
+/* ── Open camera ──────────────────────────────────────────────────────── */
+async function camOpen(jobId,siteId,siteName,coordinates,ticketId,mode){
+  _camJobId=jobId||null;
+  _camSiteId=siteId||'';
+  _camSiteName=siteName||'';
+  _camCoords=coordinates||'';
+  _camTicketId=ticketId||'';
+  _camFromTools=false;
+  _camMode=mode||'photo';
+
+  // Update header info
+  document.getElementById('cam-site-id-hdr').textContent=_camTicketId||_camSiteId;
+  document.getElementById('cam-site-name-hdr').textContent=_camSiteName;
+
+  // Show overlay
+  const ov=document.getElementById('camera-overlay');
+  ov.style.display='flex';
+
+  // Set mode UI
+  camSetMode(_camMode);
+
+  // Prefetch GPS for overlay (non-blocking)
+  camRefreshGPS();
+
+  // Start stream
+  await camStartStream();
+}
+
+function camOpenFromTools(){
+  // Open camera without a specific job context; user picks mode from camera itself
+  _camFromTools=true;
+  _camJobId=null;
+  _camSiteId='';_camSiteName='';_camCoords='';_camTicketId='';
+  document.getElementById('cam-site-id-hdr').textContent='No job selected';
+  document.getElementById('cam-site-name-hdr').textContent='Camera Preview';
+  document.getElementById('tools-overlay').style.display='none';
+  const ov=document.getElementById('camera-overlay');
+  ov.style.display='flex';
+  camSetMode('photo');
+  camRefreshGPS();
+  camStartStream();
+}
+
+function camClose(){
+  camStopStream();
+  camStopOverlayLoop();
+  camStopRecTimer();
+  const ov=document.getElementById('camera-overlay');
+  if(ov)ov.style.display='none';
+  _camRecording=false;_camPaused=false;_camChunks=[];
+  if(_camFromTools){
+    document.getElementById('tools-overlay').style.display='flex';
+  }
+}
+
+/* ── Camera stream ────────────────────────────────────────────────────── */
+async function camStartStream(){
+  camStopStream();
+  const vidEl=document.getElementById('cam-video');
+  _camVideoEl=vidEl;
+  _camCanvas=document.getElementById('cam-overlay-canvas');
+  _camCtx=_camCanvas.getContext('2d');
+
+  // Constraints: prefer rear camera, high resolution
+  const constraints={
+    video:{
+      facingMode:{ideal:_camFacing},
+      width:{ideal:1920},height:{ideal:1080},
+      frameRate:{ideal:30}
+    },
+    audio:false // audio only needed for recording
+  };
+
+  try{
+    _camStream=await navigator.mediaDevices.getUserMedia(constraints);
+    vidEl.srcObject=_camStream;
+    await vidEl.play();
+    // Show flash btn only if torch is supported
+    const track=_camStream.getVideoTracks()[0];
+    const caps=track.getCapabilities?track.getCapabilities():{};
+    document.getElementById('cam-flash-btn').style.display=caps.torch?'flex':'none';
+    // Start overlay rendering loop
+    camStartOverlayLoop();
+  }catch(err){
+    toast('Camera not available: '+err.message,'err');
+    camClose();
+  }
+}
+
+function camStopStream(){
+  camStopOverlayLoop();
+  if(_camStream){
+    _camStream.getTracks().forEach(t=>t.stop());
+    _camStream=null;
+  }
+  const v=document.getElementById('cam-video');
+  if(v){v.srcObject=null;}
+}
+
+async function camFlip(){
+  _camFacing=_camFacing==='environment'?'user':'environment';
+  _camFlash=false;
+  await camStartStream();
+}
+
+async function camToggleFlash(){
+  const track=_camStream?.getVideoTracks()[0];
+  if(!track)return;
+  _camFlash=!_camFlash;
+  try{await track.applyConstraints({advanced:[{torch:_camFlash}]});}catch(e){}
+  const btn=document.getElementById('cam-flash-btn');
+  btn.style.background=_camFlash?'#FBBF24':'rgba(0,0,0,.4)';
+  btn.style.color=_camFlash?'#000':'#fff';
+}
+
+function camToggleMic(){
+  _camMic=!_camMic;
+  const ico=document.getElementById('cam-mic-ico');
+  const btn=document.getElementById('cam-mic-btn');
+  if(_camMic){
+    ico.style.opacity='1';
+    btn.style.background='rgba(255,255,255,.15)';
+  } else {
+    ico.style.opacity='.35';
+    btn.style.background='rgba(239,68,68,.35)';
+  }
+}
+
+/* ── Mode switching ───────────────────────────────────────────────────── */
+function camSetMode(mode){
+  _camMode=mode;
+  const photoBtn=document.getElementById('cam-mode-photo');
+  const videoBtn=document.getElementById('cam-mode-video');
+  const micBtn=document.getElementById('cam-mic-btn');
+  const pauseBtn=document.getElementById('cam-pause-btn');
+  const shutter=document.getElementById('cam-shutter-inner');
+
+  if(mode==='photo'){
+    photoBtn.style.borderBottomColor='#fff';photoBtn.style.color='#fff';
+    videoBtn.style.borderBottomColor='transparent';videoBtn.style.color='rgba(255,255,255,.5)';
+    micBtn.style.opacity='0';micBtn.style.pointerEvents='none';
+    pauseBtn.style.opacity='0';pauseBtn.style.pointerEvents='none';
+    shutter.style.background='#fff';shutter.style.borderRadius='50%';
+  } else {
+    videoBtn.style.borderBottomColor='#fff';videoBtn.style.color='#fff';
+    photoBtn.style.borderBottomColor='transparent';photoBtn.style.color='rgba(255,255,255,.5)';
+    micBtn.style.opacity='1';micBtn.style.pointerEvents='auto';
+    pauseBtn.style.opacity='0';pauseBtn.style.pointerEvents='none';
+    shutter.style.background='#EF4444';shutter.style.borderRadius='6px';
+  }
+}
+
+/* ── Shutter / Record control ─────────────────────────────────────────── */
+async function camShutter(){
+  if(_camMode==='photo'){
+    await camCapturePhoto();
+  } else {
+    if(!_camRecording){
+      await camStartRecording();
+    } else {
+      await camStopRecording();
+    }
+  }
+}
+
+async function camPause(){
+  if(!_camRecorder)return;
+  if(_camPaused){
+    _camRecorder.resume();
+    _camPaused=false;
+    // Resume timer
+    _camRecTimer=setInterval(()=>{_camRecSecs++;camUpdateRecTimer();},1000);
+    const ico=document.getElementById('cam-pause-ico');
+    ico.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+  } else {
+    _camRecorder.pause();
+    _camPaused=true;
+    clearInterval(_camRecTimer);
+    const ico=document.getElementById('cam-pause-ico');
+    ico.innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';
+  }
+}
+
+/* ── GPS refresh ──────────────────────────────────────────────────────── */
+function camRefreshGPS(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(
+    pos=>{_camGPS={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy};},
+    ()=>{/* silently use last known */},
+    {enableHighAccuracy:true,timeout:6000,maximumAge:10000}
+  );
+  // Also use GeoEngine coords if available
+  if(GeoEngine.coords)_camGPS=GeoEngine.coords;
+}
+
+/* ── Build overlay lines from settings ───────────────────────────────── */
+function camBuildOverlayLines(){
+  const s=camLoadSettings();
+  const lines=[];
+  const now=new Date();
+
+  if(s.showDate){
+    lines.push(now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}));
+  }
+  if(s.showTime){
+    lines.push(now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',hour12:s.use12h}));
+  }
+  if(s.showGPS&&_camGPS){
+    const p=s.gpsPrecision||7;
+    const lat=_camGPS.lat.toFixed(p);
+    const lng=_camGPS.lng.toFixed(p);
+    const latDir=_camGPS.lat>=0?'N':'S';
+    const lngDir=_camGPS.lng>=0?'E':'W';
+    lines.push(`${Math.abs(lat)}${latDir} ${Math.abs(lng)}${lngDir}`);
+  } else if(s.showGPS&&_camCoords){
+    lines.push(_camCoords);
+  }
+  if(s.showSiteId&&_camSiteId)lines.push(_camSiteId);
+  if(s.showSiteName&&_camSiteName)lines.push(_camSiteName);
+  return{lines,s};
+}
+
+/* ── Canvas overlay rendering loop ───────────────────────────────────── */
+function camStartOverlayLoop(){
+  camStopOverlayLoop();
+  const canvas=_camCanvas,ctx=_camCtx,vidEl=_camVideoEl;
+  if(!canvas||!ctx||!vidEl)return;
+
+  function renderFrame(){
+    if(!_camStream){return;}
+    const vw=vidEl.videoWidth||vidEl.clientWidth;
+    const vh=vidEl.videoHeight||vidEl.clientHeight;
+    if(!vw||!vh){_camRafId=requestAnimationFrame(renderFrame);return;}
+
+    canvas.width=vw;canvas.height=vh;
+
+    // Draw the video frame (so canvas mirrors video for photo capture later)
+    ctx.drawImage(vidEl,0,0,vw,vh);
+
+    // Draw overlay text
+    camDrawOverlay(ctx,vw,vh,camLoadSettings());
+
+    _camRafId=requestAnimationFrame(renderFrame);
+  }
+  renderFrame();
+}
+
+function camStopOverlayLoop(){
+  if(_camRafId!=null){cancelAnimationFrame(_camRafId);_camRafId=null;}
+}
+
+function camDrawOverlay(ctx,w,h,s){
+  const {lines}=camBuildOverlayLines();
+  if(!lines.length)return;
+
+  // Scale font relative to image width (reference: 1920px -> 28px)
+  const scaledSize=Math.round((s.fontSize||14)*(w/480));
+  ctx.font=`700 ${scaledSize}px 'JetBrains Mono',monospace`;
+  ctx.textBaseline='bottom';
+
+  const PAD=Math.round(w*0.025);
+  const LINEH=Math.round(scaledSize*1.4);
+  const totalH=lines.length*LINEH;
+
+  let startX,startY;
+  const pos=s.position||'bottom-right';
+  if(pos==='bottom-right'){startX=w-PAD;startY=h-PAD;ctx.textAlign='right';}
+  else if(pos==='bottom-left'){startX=PAD;startY=h-PAD;ctx.textAlign='left';}
+  else if(pos==='top-right'){startX=w-PAD;startY=PAD+totalH;ctx.textAlign='right';}
+  else{startX=PAD;startY=PAD+totalH;ctx.textAlign='left';}
+
+  // Draw each line bottom-to-top (or top-to-bottom for top positions)
+  const isTop=pos.startsWith('top');
+  lines.forEach((line,i)=>{
+    const y=isTop?startY+(i-(lines.length-1))*LINEH+totalH:startY-((lines.length-1-i)*LINEH);
+    // Shadow / outline
+    const alpha=s.shadowOpacity??0.85;
+    ctx.shadowColor=`rgba(0,0,0,${alpha})`;
+    ctx.shadowBlur=scaledSize*0.6;
+    ctx.shadowOffsetX=Math.round(scaledSize*0.07);
+    ctx.shadowOffsetY=Math.round(scaledSize*0.07);
+    ctx.fillStyle=s.textColor||'#ffffff';
+    ctx.fillText(line,startX,y);
+  });
+  // Reset shadow
+  ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
+}
+
+/* ── Photo capture ────────────────────────────────────────────────────── */
+async function camCapturePhoto(){
+  if(!_camStream)return;
+  // Refresh GPS right before capture
+  if(GeoEngine.coords)_camGPS=GeoEngine.coords;
+
+  const canvas=document.createElement('canvas');
+  const vidEl=document.getElementById('cam-video');
+  const w=vidEl.videoWidth||1280,h=vidEl.videoHeight||720;
+  canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(vidEl,0,0,w,h);
+  const s=camLoadSettings();
+  camDrawOverlay(ctx,w,h,s);
+
+  canvas.toBlob(blob=>{
+    const ts=new Date().toISOString().replace(/[:.]/g,'-');
+    const name=`FO_PHOTO_${_camSiteId||'job'}_${ts}.jpg`;
+    const url=URL.createObjectURL(blob);
+    _camCapturedBlob=blob;
+    _camCapturedName=name;
+    _camCapturedType='image';
+    _camCapturedUrl=url;
+    camShowPreview('image',url);
+  },'image/jpeg',0.92);
+}
+
+let _camCapturedBlob=null,_camCapturedName='',_camCapturedType='',_camCapturedUrl='';
+
+/* ── Video recording ──────────────────────────────────────────────────── */
+async function camStartRecording(){
+  if(!_camStream)return;
+  _camChunks=[];
+
+  // Get an audio stream too if mic enabled
+  let combinedStream=_camStream;
+  if(_camMic){
+    try{
+      const audioStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+      combinedStream=new MediaStream([
+        ..._camStream.getVideoTracks(),
+        ...audioStream.getAudioTracks()
+      ]);
+    }catch(e){/* no mic — record video only */}
+  }
+
+  // Pick best supported mime
+  const mimes=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'];
+  const mime=mimes.find(m=>MediaRecorder.isTypeSupported(m))||'';
+  try{
+    _camRecorder=new MediaRecorder(combinedStream,mime?{mimeType:mime}:{});
+  }catch(e){
+    _camRecorder=new MediaRecorder(combinedStream);
+  }
+  _camRecorder.ondataavailable=e=>{if(e.data&&e.data.size>0)_camChunks.push(e.data);};
+  _camRecorder.onstop=camOnRecordingStop;
+  _camRecorder.start(1000); // 1s timeslice for memory efficiency
+  _camRecording=true;_camPaused=false;_camRecSecs=0;
+
+  // Update UI
+  const ind=document.getElementById('cam-rec-indicator');
+  if(ind)ind.style.display='flex';
+  const pauseBtn=document.getElementById('cam-pause-btn');
+  pauseBtn.style.opacity='1';pauseBtn.style.pointerEvents='auto';
+  // Change shutter to stop (square)
+  document.getElementById('cam-shutter-inner').style.borderRadius='4px';
+  document.getElementById('cam-shutter-inner').style.width='32px';
+  document.getElementById('cam-shutter-inner').style.height='32px';
+  document.getElementById('cam-shutter-inner').style.background='#EF4444';
+  // Start timer
+  camStopRecTimer();
+  _camRecTimer=setInterval(()=>{_camRecSecs++;camUpdateRecTimer();},1000);
+}
+
+async function camStopRecording(){
+  if(!_camRecorder||!_camRecording)return;
+  _camRecording=false;
+  _camRecorder.stop();
+  camStopRecTimer();
+  const ind=document.getElementById('cam-rec-indicator');
+  if(ind)ind.style.display='none';
+  const pauseBtn=document.getElementById('cam-pause-btn');
+  pauseBtn.style.opacity='0';pauseBtn.style.pointerEvents='none';
+  // Restore shutter
+  const inner=document.getElementById('cam-shutter-inner');
+  inner.style.borderRadius='50%';inner.style.width='54px';inner.style.height='54px';inner.style.background='#EF4444';
+}
+
+function camOnRecordingStop(){
+  const mime=_camRecorder?.mimeType||'video/webm';
+  const blob=new Blob(_camChunks,{type:mime});
+  const ext=mime.includes('mp4')?'mp4':'webm';
+  const ts=new Date().toISOString().replace(/[:.]/g,'-');
+  const name=`FO_VIDEO_${_camSiteId||'job'}_${ts}.${ext}`;
+  const url=URL.createObjectURL(blob);
+  _camCapturedBlob=blob;_camCapturedName=name;_camCapturedType='video';_camCapturedUrl=url;
+  camShowPreview('video',url);
+}
+
+function camUpdateRecTimer(){
+  const el=document.getElementById('cam-rec-timer');
+  if(!el)return;
+  const m=Math.floor(_camRecSecs/60);
+  const s=_camRecSecs%60;
+  el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function camStopRecTimer(){if(_camRecTimer){clearInterval(_camRecTimer);_camRecTimer=null;}}
+
+/* ── Preview ──────────────────────────────────────────────────────────── */
+function camShowPreview(type,url){
+  // Pause the camera overlay loop while previewing
+  camStopOverlayLoop();
+  const ov=document.getElementById('cam-preview-overlay');
+  ov.style.display='flex';
+  const imgEl=document.getElementById('cam-preview-img');
+  const vidEl=document.getElementById('cam-preview-video');
+  if(type==='image'){
+    imgEl.src=url;imgEl.style.display='block';
+    vidEl.style.display='none';vidEl.src='';
+  } else {
+    vidEl.src=url;vidEl.style.display='block';
+    imgEl.style.display='none';imgEl.src='';
+  }
+}
+
+function camPreviewClose(){
+  const ov=document.getElementById('cam-preview-overlay');
+  if(ov)ov.style.display='none';
+}
+
+function camPreviewBack(){
+  camPreviewClose();
+  if(_camStream){camStartOverlayLoop();}
+}
+
+function camPreviewRetake(){
+  camPreviewClose();
+  // Reset captured
+  if(_camCapturedUrl)URL.revokeObjectURL(_camCapturedUrl);
+  _camCapturedBlob=null;_camCapturedName='';_camCapturedType='';_camCapturedUrl='';
+  if(_camStream){camStartOverlayLoop();}
+}
+
+async function camPreviewAttach(){
+  if(!_camCapturedBlob){toast('Nothing to attach.','err');return;}
+  if(!_camJobId){
+    toast('No active job selected. Open a job first.','err');
+    return;
+  }
+  const entry={blob:_camCapturedBlob,name:_camCapturedName,type:_camCapturedType,url:_camCapturedUrl};
+  CamModule.addAttachment(_camJobId,entry);
+
+  // Update the attachment preview strip in the job card
+  camUpdateAttachmentStrip(_camJobId);
+
+  // Close preview and camera
+  camPreviewClose();
+  camClose();
+
+  toast(`${_camCapturedType==='video'?'Video':'Photo'} attached to job!`,'ok');
+  _camCapturedBlob=null;_camCapturedName='';_camCapturedType='';_camCapturedUrl='';
+}
+
+/* ── Show attached files in job card ─────────────────────────────────── */
+function camUpdateAttachmentStrip(jobId){
+  const container=document.getElementById('cam-attachments-'+jobId);
+  if(!container)return;
+  const files=CamModule.getAttachments(jobId);
+  if(!files.length){container.innerHTML='';return;}
+  container.innerHTML=`
+    <div style="font-size:.68rem;font-weight:700;color:var(--tx3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px">
+      ${ic('camera',12)} ${files.length} captured file${files.length>1?'s':''}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${files.map((f,i)=>`
+        <div style="position:relative;width:72px;height:72px;border-radius:4px;overflow:hidden;border:1.5px solid var(--bd);background:var(--srf2)">
+          ${f.type==='image'
+            ?`<img src="${f.url}" style="width:100%;height:100%;object-fit:cover">`
+            :`<video src="${f.url}" style="width:100%;height:100%;object-fit:cover" muted></video>`
+          }
+          <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);padding:2px 4px;font-size:9px;color:#fff;font-weight:700;text-align:center">${f.type==='image'?'📷':'🎥'}</div>
+          <button onclick="camRemoveAttachment('${jobId}',${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:2px;background:rgba(239,68,68,.85);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">✕</button>
+        </div>`).join('')}
+    </div>`;
+}
+
+function camRemoveAttachment(jobId,idx){
+  const files=CamModule.getAttachments(jobId);
+  if(files[idx]&&files[idx].url)URL.revokeObjectURL(files[idx].url);
+  files.splice(idx,1);
+  camUpdateAttachmentStrip(jobId);
+}
+
+/* ── CSS keyframe for recording blink ────────────────────────────────── */
+(function(){
+  const style=document.createElement('style');
+  style.textContent=`@keyframes cam-blink{0%,100%{opacity:1}50%{opacity:.25}}`;
+  document.head.appendChild(style);
+})();
+
+/* ════════════════════════════════════════════════════════════════════════
+   CAMERA SETTINGS PANEL
+════════════════════════════════════════════════════════════════════════ */
+function showCamSettings(){
+  // Hide tools overlay before showing settings
+  document.getElementById('tools-overlay').style.display='none';
+  const ov=document.getElementById('cam-settings-overlay');
+  ov.style.display='flex';
+  renderCamSettings();
+}
+
+function closeCamSettings(){
+  document.getElementById('cam-settings-overlay').style.display='none';
+  renderToolsOverlay();
+  document.getElementById('tools-overlay').style.display='flex';
+}
+
+function renderCamSettings(){
+  const ov=document.getElementById('cam-settings-overlay');
+  const s=camLoadSettings();
+  ov.innerHTML=`
+    <div class="app-header" style="flex-shrink:0">
+      <button class="icon-btn" onclick="closeCamSettings()">${ic('arrowL',18)}</button>
+      <div class="app-brand-info">
+        <div class="app-brand-name">Camera Settings</div>
+        <div class="app-brand-role">Overlay & capture preferences</div>
+      </div>
+    </div>
+    <div class="app-scroll" style="flex:1;overflow-y:auto;padding:16px 16px 80px">
+
+      <!-- Overlay Fields -->
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px;margin-top:4px">Overlay Fields</div>
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;overflow:hidden;margin-bottom:16px">
+        ${[
+          ['showDate','Show Date'],
+          ['showTime','Show Time'],
+          ['showGPS','Show GPS Coordinates'],
+          ['showSiteId','Show Site ID'],
+          ['showSiteName','Show Site Name'],
+        ].map(([k,label],i,arr)=>`
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;${i<arr.length-1?'border-bottom:1px solid var(--bd)':''}cursor:pointer">
+          <span style="font-size:.84rem;font-weight:600;color:var(--tx)">${label}</span>
+          <div style="position:relative;width:44px;height:24px;border-radius:12px;background:${s[k]?'var(--primary)':'var(--bd)'};transition:background .2s;flex-shrink:0" onclick="camToggleSetting('${k}',this)">
+            <div style="position:absolute;top:2px;left:${s[k]?'20':'2'}px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.25)"></div>
+          </div>
+        </label>`).join('')}
+      </div>
+
+      <!-- Time format -->
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Time Format</div>
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;overflow:hidden;margin-bottom:16px">
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer">
+          <span style="font-size:.84rem;font-weight:600;color:var(--tx)">12-hour format (AM/PM)</span>
+          <div style="position:relative;width:44px;height:24px;border-radius:12px;background:${s.use12h?'var(--primary)':'var(--bd)'};transition:background .2s;flex-shrink:0" onclick="camToggleSetting('use12h',this)">
+            <div style="position:absolute;top:2px;left:${s.use12h?'20':'2'}px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.25)"></div>
+          </div>
+        </label>
+      </div>
+
+      <!-- GPS precision -->
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">GPS Coordinate Precision</div>
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:.84rem;font-weight:600;color:var(--tx)">Decimal places</span>
+          <span id="cam-gps-prec-val" style="font-size:.84rem;font-weight:700;color:var(--primary);font-family:'JetBrains Mono',monospace">${s.gpsPrecision}</span>
+        </div>
+        <input type="range" min="4" max="10" value="${s.gpsPrecision}" oninput="camSetGpsPrecision(this.value)" style="width:100%;accent-color:var(--primary)">
+        <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--tx3);margin-top:4px"><span>4 places</span><span>10 places</span></div>
+      </div>
+
+      <!-- Font size -->
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Overlay Font Size</div>
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:.84rem;font-weight:600;color:var(--tx)">Font size (base px)</span>
+          <span id="cam-font-size-val" style="font-size:.84rem;font-weight:700;color:var(--primary);font-family:'JetBrains Mono',monospace">${s.fontSize}px</span>
+        </div>
+        <input type="range" min="10" max="22" value="${s.fontSize}" oninput="camSetFontSize(this.value)" style="width:100%;accent-color:var(--primary)">
+        <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--tx3);margin-top:4px"><span>Small</span><span>Large</span></div>
+      </div>
+
+      <!-- Text color -->
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Text Color</div>
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:14px 16px;margin-bottom:16px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${[['#ffffff','White'],['#ffff00','Yellow'],['#00ff88','Lime'],['#ff6b6b','Red']].map(([c,name])=>`
+          <button onclick="camSetTextColor('${c}',this)" style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:4px;border:2px solid ${s.textColor===c?'var(--primary)':'var(--bd)'};background:${s.textColor===c?'var(--primary-lt)':'var(--card)'};cursor:pointer;font-size:.78rem;font-weight:700;color:var(--tx)" data-color="${c}">
+            <div style="width:16px;height:16px;border-radius:2px;background:${c};border:1px solid rgba(0,0,0,.15)"></div>${name}
+          </button>`).join('')}
+        </div>
+      </div>
+
+      <!-- Shadow opacity -->
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Shadow Intensity</div>
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:.84rem;font-weight:600;color:var(--tx)">Opacity</span>
+          <span id="cam-shadow-val" style="font-size:.84rem;font-weight:700;color:var(--primary);font-family:'JetBrains Mono',monospace">${Math.round(s.shadowOpacity*100)}%</span>
+        </div>
+        <input type="range" min="0" max="100" value="${Math.round(s.shadowOpacity*100)}" oninput="camSetShadow(this.value)" style="width:100%;accent-color:var(--primary)">
+        <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--tx3);margin-top:4px"><span>None</span><span>Full</span></div>
+      </div>
+
+      <!-- Overlay position -->
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Overlay Position</div>
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:14px 16px;margin-bottom:24px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${[['top-left','Top Left'],['top-right','Top Right'],['bottom-left','Bottom Left'],['bottom-right','Bottom Right']].map(([v,label])=>`
+          <button onclick="camSetPosition('${v}',this)" style="padding:11px;border-radius:4px;border:2px solid ${s.position===v?'var(--primary)':'var(--bd)'};background:${s.position===v?'var(--primary-lt)':'var(--card)'};cursor:pointer;font-size:.78rem;font-weight:700;color:${s.position===v?'var(--primary-dk)':'var(--tx2)'}" data-pos="${v}">${label}</button>`).join('')}
+        </div>
+      </div>
+
+      <button onclick="camResetSettings()" style="width:100%;height:46px;border-radius:4px;background:var(--red-lt);border:1.5px solid var(--red-bd);color:var(--red-dk);font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        ${ic('refresh',15)} Reset to Defaults
+      </button>
+    </div>`;
+}
+
+/* ── Settings mutators ────────────────────────────────────────────────── */
+function camToggleSetting(key,toggleEl){
+  const s=camLoadSettings();
+  s[key]=!s[key];
+  camSaveSettings(s);
+  // Update toggle visual
+  const on=s[key];
+  toggleEl.style.background=on?'var(--primary)':'var(--bd)';
+  const thumb=toggleEl.querySelector('div');
+  if(thumb)thumb.style.left=on?'20px':'2px';
+}
+function camSetGpsPrecision(v){
+  const s=camLoadSettings();s.gpsPrecision=parseInt(v);camSaveSettings(s);
+  const el=document.getElementById('cam-gps-prec-val');if(el)el.textContent=v;
+}
+function camSetFontSize(v){
+  const s=camLoadSettings();s.fontSize=parseInt(v);camSaveSettings(s);
+  const el=document.getElementById('cam-font-size-val');if(el)el.textContent=v+'px';
+}
+function camSetTextColor(c,btn){
+  const s=camLoadSettings();s.textColor=c;camSaveSettings(s);
+  document.querySelectorAll('#cam-settings-overlay [data-color]').forEach(b=>{
+    const isSel=b.dataset.color===c;
+    b.style.borderColor=isSel?'var(--primary)':'var(--bd)';
+    b.style.background=isSel?'var(--primary-lt)':'var(--card)';
+  });
+}
+function camSetShadow(v){
+  const s=camLoadSettings();s.shadowOpacity=parseInt(v)/100;camSaveSettings(s);
+  const el=document.getElementById('cam-shadow-val');if(el)el.textContent=v+'%';
+}
+function camSetPosition(v,btn){
+  const s=camLoadSettings();s.position=v;camSaveSettings(s);
+  document.querySelectorAll('#cam-settings-overlay [data-pos]').forEach(b=>{
+    const isSel=b.dataset.pos===v;
+    b.style.borderColor=isSel?'var(--primary)':'var(--bd)';
+    b.style.background=isSel?'var(--primary-lt)':'var(--card)';
+    b.style.color=isSel?'var(--primary-dk)':'var(--tx2)';
+  });
+}
+function camResetSettings(){
+  camSaveSettings({...CAM_SETTINGS_DEFAULT});
+  renderCamSettings();
+  toast('Camera settings reset.','ok');
+}
+
 </script>
 </body>
 </html>
