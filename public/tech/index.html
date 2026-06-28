@@ -1699,6 +1699,9 @@ function renderMine(tix){
     <div class="notewrap"><textarea class="noteta" id="note-${t.id}" placeholder="Completion notes (optional)..."></textarea></div>
     <div class="tc-acts"><button class="btn submit" id="sbtn-${t.id}" onclick="submitJob('${t.id}')">${ic('check',14)} Submit &amp; Complete</button><button class="btn cancel sm" onclick="openModal('${t.id}','tech','${t.ticket_id||t.site_id}')">${ic('ban',14)} Cancel</button></div>
   </div></div>`).join('');
+  // Re-render any camera attachment strips that survived navigation
+  // (blobs live in CamModule memory; DOM was just rebuilt by innerHTML above)
+  camRestoreAttachmentStrips(tix.map(t=>t.id));
 }
 
 async function loadDone(){
@@ -1820,7 +1823,7 @@ async function submitJob(id){
   for(let i=0;i<camFiles.length;i++)fd.append('proof',camFiles[i].blob,camFiles[i].name);
   try{
     const r=await fetch('/api/tickets/submit',{method:'POST',body:fd});const d=await r.json();
-    if(r.ok){toast('Job completed and proof sent!','ok');loadMine();loadDone();}
+    if(r.ok){toast('Job completed and proof sent!','ok');CamModule.clearAttachments(id);loadMine();loadDone();}
     else{toast(d.error||'Submission failed.','err');btn.innerHTML=ic('check',14)+' Submit & Complete';btn.disabled=false;}
   }catch(e){toast('Cannot reach server.','err');btn.innerHTML=ic('check',14)+' Submit & Complete';btn.disabled=false;}
 }
@@ -3254,11 +3257,19 @@ const CamModule=(()=>{
   // Per-job attachment store: jobId -> [{blob, name, type, url, thumb}]
   const attachments={};
   function getAttachments(jobId){return attachments[jobId]||[];}
+  function getAllJobIds(){return Object.keys(attachments).filter(k=>attachments[k]&&attachments[k].length);}
   function addAttachment(jobId,entry){
     if(!attachments[jobId])attachments[jobId]=[];
     attachments[jobId].push(entry);
   }
-  return{getAttachments,addAttachment};
+  function clearAttachments(jobId){
+    if(attachments[jobId]){
+      // Revoke blob URLs to free memory
+      attachments[jobId].forEach(f=>{if(f.url)URL.revokeObjectURL(f.url);});
+      delete attachments[jobId];
+    }
+  }
+  return{getAttachments,getAllJobIds,addAttachment,clearAttachments};
 })();
 
 /* ── Internal camera state ────────────────────────────────────────────── */
@@ -3778,6 +3789,18 @@ function camUpdateAttachmentStrip(jobId){
           <button onclick="camRemoveAttachment('${jobId}',${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:2px;background:rgba(239,68,68,.85);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">✕</button>
         </div>`).join('')}
     </div>`;
+}
+
+/* Re-paint all cam attachment strips after renderMine rebuilds the DOM.
+   Blobs stay alive in CamModule.getAttachments(); only the DOM nodes were lost. */
+function camRestoreAttachmentStrips(jobIds){
+  // jobIds = IDs from the freshly rendered DOM; also sweep any stored IDs
+  // so blobs from a previous render cycle are not lost
+  const ids=new Set([...(jobIds||[]),...CamModule.getAllJobIds()]);
+  ids.forEach(id=>{
+    const files=CamModule.getAttachments(id);
+    if(files&&files.length)camUpdateAttachmentStrip(id);
+  });
 }
 
 function camRemoveAttachment(jobId,idx){
