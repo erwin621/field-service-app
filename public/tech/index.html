@@ -1041,8 +1041,11 @@ button{cursor:pointer}
   <!-- Doc type menu popup -->
   <div id="docscan-type-menu" style="display:none;position:absolute;bottom:150px;left:16px;z-index:20;background:rgba(15,23,42,.92);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:8px 0;min-width:140px">
     <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);padding:4px 14px 8px">Document Type</div>
-    ${[['A4','A4 Paper'],['LETTER','Letter'],['RECEIPT','Receipt'],['FORM','Form/ID'],['CERT','Certificate']].map(([v,label])=>`
-    <button onclick="docScanSetType('${v}',this)" data-dtype="${v}" style="width:100%;padding:10px 14px;background:none;border:none;color:#fff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s" onmouseenter="this.style.background='rgba(20,184,166,.25)'" onmouseleave="this.style.background='none'">${label}</button>`).join('')}
+    <button onclick="docScanSetType('A4',this)" data-dtype="A4" style="width:100%;padding:10px 14px;background:none;border:none;color:#fff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='rgba(20,184,166,.25)'" onmouseleave="this.style.background='none'">A4 Paper</button>
+    <button onclick="docScanSetType('LETTER',this)" data-dtype="LETTER" style="width:100%;padding:10px 14px;background:none;border:none;color:#fff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='rgba(20,184,166,.25)'" onmouseleave="this.style.background='none'">Letter</button>
+    <button onclick="docScanSetType('RECEIPT',this)" data-dtype="RECEIPT" style="width:100%;padding:10px 14px;background:none;border:none;color:#fff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='rgba(20,184,166,.25)'" onmouseleave="this.style.background='none'">Receipt</button>
+    <button onclick="docScanSetType('FORM',this)" data-dtype="FORM" style="width:100%;padding:10px 14px;background:none;border:none;color:#fff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='rgba(20,184,166,.25)'" onmouseleave="this.style.background='none'">Form / ID</button>
+    <button onclick="docScanSetType('CERT',this)" data-dtype="CERT" style="width:100%;padding:10px 14px;background:none;border:none;color:#fff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseenter="this.style.background='rgba(20,184,166,.25)'" onmouseleave="this.style.background='none'">Certificate</button>
   </div>
 </div>
 
@@ -1079,11 +1082,14 @@ button{cursor:pointer}
   </div>
 
   <div id="docscan-enhance-scroll" style="flex:1;overflow-y:auto;padding:14px 16px 160px">
-    <!-- Enhancement mode pills -->
+    <!-- Enhancement mode pills — populated by _docScanShowEnhance() -->
     <div style="font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">Enhancement Mode</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="docscan-mode-pills">
-      ${[['original','Original'],['color','Color'],['gray','Grayscale'],['bw','B&W'],['contrast','Hi-Contrast']].map(([v,label],i)=>`
-      <button onclick="docScanSetMode('${v}',this)" data-emode="${v}" style="padding:7px 12px;border-radius:4px;background:${i===0?'var(--teal)':'var(--card)'};border:1.5px solid ${i===0?'var(--teal)':'var(--bd)'};color:${i===0?'#fff':'var(--tx2)'};font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff)">${label}</button>`).join('')}
+      <button onclick="docScanSetMode('original',this)" data-emode="original" style="padding:7px 12px;border-radius:4px;background:var(--teal);border:1.5px solid var(--teal);color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff)">Original</button>
+      <button onclick="docScanSetMode('color',this)" data-emode="color" style="padding:7px 12px;border-radius:4px;background:var(--card);border:1.5px solid var(--bd);color:var(--tx2);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff)">Color</button>
+      <button onclick="docScanSetMode('gray',this)" data-emode="gray" style="padding:7px 12px;border-radius:4px;background:var(--card);border:1.5px solid var(--bd);color:var(--tx2);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff)">Grayscale</button>
+      <button onclick="docScanSetMode('bw',this)" data-emode="bw" style="padding:7px 12px;border-radius:4px;background:var(--card);border:1.5px solid var(--bd);color:var(--tx2);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff)">B&amp;W</button>
+      <button onclick="docScanSetMode('contrast',this)" data-emode="contrast" style="padding:7px 12px;border-radius:4px;background:var(--card);border:1.5px solid var(--bd);color:var(--tx2);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff)">Hi-Contrast</button>
     </div>
 
     <!-- Current page preview -->
@@ -4651,109 +4657,206 @@ async function docScanApplyCrop() {
   const corners   = DocScanState.adjustCorners;
   if (!rawCanvas || !corners) return;
 
-  const btn = document.getElementById('docscan-save-btn');
+  // Show processing state
+  const applyBtn = document.querySelector('#docscan-adjust-overlay button:last-child');
+  if (applyBtn) { applyBtn.disabled = true; applyBtn.textContent = 'Processing…'; }
 
-  // Compute output size from document type
-  const aspectRatios = { A4:1.4142, LETTER:1.2941, RECEIPT:2.5, FORM:1.41, CERT:1.4142 };
-  const aspect = aspectRatios[DocScanState.docType] || 1.4142;
+  // Run in next tick so UI updates first
+  await new Promise(r => setTimeout(r, 30));
 
-  // Determine output size proportional to detected area
-  const srcW = Math.hypot(corners[1][0]-corners[0][0], corners[1][1]-corners[0][1]);
-  const srcH = Math.hypot(corners[3][0]-corners[0][0], corners[3][1]-corners[0][1]);
-  const outW  = Math.round(Math.max(srcW, 800));
-  const outH  = Math.round(outW * aspect);
+  try {
+    // Compute output size from document type aspect ratio
+    const aspectRatios = { A4:1.4142, LETTER:1.2941, RECEIPT:2.5, FORM:1.41, CERT:1.4142 };
+    const aspect = aspectRatios[DocScanState.docType] || 1.4142;
 
-  const croppedCanvas = _docScanPerspectiveWarp(rawCanvas, corners, outW, outH);
-  if (!croppedCanvas) { toast('Crop failed. Try adjusting corners.', 'err'); return; }
+    // Determine the width of the selected region in source pixels
+    const srcW = Math.round(Math.hypot(
+      corners[1][0]-corners[0][0], corners[1][1]-corners[0][1]
+    ));
+    const srcH = Math.round(Math.hypot(
+      corners[3][0]-corners[0][0], corners[3][1]-corners[0][1]
+    ));
 
-  // Add as a new page entry
-  const pageEntry = {
-    rawCanvas:     croppedCanvas,
-    enhancedCanvas: null,
-    rotation:      0,
-    mode:          'original',
-  };
-  DocScanState.pages.push(pageEntry);
-  DocScanState.activePage = DocScanState.pages.length - 1;
+    // Cap output at 1600px wide for mobile performance (still very readable)
+    const outW = Math.min(Math.max(srcW, 600), 1600);
+    const outH = Math.round(outW * aspect);
 
-  // Close adjust step, open enhance step
-  document.getElementById('docscan-adjust-overlay').style.display = 'none';
-  _docScanShowEnhance();
+    // Downscale source canvas if very large (> 2MP) to speed up pixel iteration
+    let warpSrc = rawCanvas;
+    const MAX_SRC = 1920;
+    if (rawCanvas.width > MAX_SRC || rawCanvas.height > MAX_SRC) {
+      const scale = Math.min(MAX_SRC / rawCanvas.width, MAX_SRC / rawCanvas.height);
+      const sc = document.createElement('canvas');
+      sc.width  = Math.round(rawCanvas.width  * scale);
+      sc.height = Math.round(rawCanvas.height * scale);
+      sc.getContext('2d').drawImage(rawCanvas, 0, 0, sc.width, sc.height);
+      // Scale corners proportionally
+      DocScanState.adjustCorners = corners.map(([x,y]) => [x*scale, y*scale]);
+      warpSrc = sc;
+    }
+
+    const croppedCanvas = _docScanPerspectiveWarp(warpSrc, DocScanState.adjustCorners, outW, outH);
+    if (!croppedCanvas) { toast('Crop failed. Try adjusting corners.', 'err'); return; }
+
+    // Add as a new page entry
+    DocScanState.pages.push({
+      rawCanvas:     croppedCanvas,
+      enhancedCanvas: null,
+      rotation:      0,
+      mode:          'original',
+    });
+    DocScanState.activePage = DocScanState.pages.length - 1;
+
+    // Reset enhance mode for new page
+    DocScanState.enhanceMode = 'original';
+
+    // Close adjust step, open enhance step
+    document.getElementById('docscan-adjust-overlay').style.display = 'none';
+    _docScanShowEnhance();
+  } finally {
+    if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply Crop'; }
+  }
 }
 
 /**
- * Perspective warp using a bilinear backward-mapping transform.
- * src corners: [TL, TR, BR, BL] in source image pixel coords.
+ * Perspective warp using a proper homography (8-DOF projective transform).
+ * We solve H such that H * src_corner = dst_corner for the 4 corner pairs,
+ * then do an inverse-map: for every dst pixel, find the src pixel via H⁻¹.
+ * This is the same algorithm used by OpenCV warpPerspective.
+ *
+ * corners = [TL, TR, BR, BL] in source-image pixel coords.
  */
 function _docScanPerspectiveWarp(srcCanvas, corners, outW, outH) {
   try {
-    const dst = document.createElement('canvas');
-    dst.width = outW; dst.height = outH;
-    const dctx = dst.getContext('2d');
+    // Destination corners (flat rectangle)
+    const dst = [[0,0],[outW,0],[outW,outH],[0,outH]];
+    // Source corners (user-adjusted quadrilateral) — reorder to match TL/TR/BR/BL
+    const src = corners; // already [TL,TR,BR,BL]
 
-    // Source corners TL, TR, BR, BL
-    const [p0, p1, p2, p3] = corners; // [x,y]
+    // Compute the forward homography H: src → dst using the DLT algorithm
+    const H = _computeHomography(src, dst);
+    if (!H) return _docScanFallbackCrop(srcCanvas, corners, outW, outH);
 
-    // We'll use striped column-by-column rendering with native drawImage
-    // for a fast (though approximate) trapezoid correction.
-    // For each column x in dst, we interpolate the src quadrilateral.
-    const srcCtx = srcCanvas.getContext('2d');
+    // Compute inverse homography H⁻¹: dst → src
+    const Hinv = _invertHomography(H);
+    if (!Hinv) return _docScanFallbackCrop(srcCanvas, corners, outW, outH);
 
-    // Use a tile-based approach: split into vertical strips and use CSS transform
-    const STRIPS = Math.min(outW, 120);
-    const stripW  = outW / STRIPS;
+    // Read source pixels
+    const srcCtx  = srcCanvas.getContext('2d');
+    const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+    const sw = srcCanvas.width, sh = srcCanvas.height;
 
-    for (let i = 0; i < STRIPS; i++) {
-      const t = i / STRIPS;
-      const t2 = (i + 1) / STRIPS;
+    // Create destination canvas
+    const dstCanvas = document.createElement('canvas');
+    dstCanvas.width = outW; dstCanvas.height = outH;
+    const dstCtx  = dstCanvas.getContext('2d');
+    const dstData = dstCtx.createImageData(outW, outH);
 
-      // Lerp left and right edges of the source quadrilateral
-      const sx0 = p0[0] + (p3[0] - p0[0]) * t;
-      const sy0 = p0[1] + (p3[1] - p0[1]) * t;
-      const sx1 = p1[0] + (p2[0] - p1[0]) * t;
-      const sy1 = p1[1] + (p2[1] - p1[1]) * t;
-      const sx2 = p0[0] + (p3[0] - p0[0]) * t2;
-      const sy2 = p0[1] + (p3[1] - p0[1]) * t2;
-      const sx3 = p1[0] + (p2[0] - p1[0]) * t2;
-      const sy3 = p1[1] + (p2[1] - p1[1]) * t2;
+    const srcPx = srcData.data;
+    const dstPx = dstData.data;
 
-      // Width of this source strip
-      const srcStripW = Math.sqrt((sx3-sx0)**2 + (sy3-sy0)**2) + 1;
-      const srcStripH = Math.sqrt((sx1-sx0)**2 + (sy1-sy0)**2) + 1;
+    // Inverse-map each destination pixel to a source pixel (bilinear interpolation)
+    for (let dy = 0; dy < outH; dy++) {
+      for (let dx = 0; dx < outW; dx++) {
+        // Apply H⁻¹ to (dx, dy)
+        const w_ = Hinv[6]*dx + Hinv[7]*dy + Hinv[8];
+        const sx  = (Hinv[0]*dx + Hinv[1]*dy + Hinv[2]) / w_;
+        const sy  = (Hinv[3]*dx + Hinv[4]*dy + Hinv[5]) / w_;
 
-      if (srcStripW < 0.5 || srcStripH < 0.5) continue;
+        // Bilinear sample from source
+        const x0 = Math.floor(sx), y0 = Math.floor(sy);
+        const x1 = x0 + 1,        y1 = y0 + 1;
+        const fx  = sx - x0,       fy  = sy - y0;
 
-      // Create a strip canvas from source
-      const strip = document.createElement('canvas');
-      strip.width  = Math.ceil(srcStripW);
-      strip.height = Math.ceil(srcStripH);
-      const sctx   = strip.getContext('2d');
+        if (x0 < 0 || y0 < 0 || x1 > sw || y1 > sh) {
+          // Out of bounds → white pixel (document background)
+          const di = (dy * outW + dx) * 4;
+          dstPx[di]=255; dstPx[di+1]=255; dstPx[di+2]=255; dstPx[di+3]=255;
+          continue;
+        }
 
-      // Angle of this strip in source
-      const angle = Math.atan2(sy1 - sy0, sx1 - sx0);
+        // Clamp coords
+        const cx0 = Math.max(0, Math.min(sw-1, x0));
+        const cy0 = Math.max(0, Math.min(sh-1, y0));
+        const cx1 = Math.max(0, Math.min(sw-1, x1));
+        const cy1 = Math.max(0, Math.min(sh-1, y1));
 
-      sctx.save();
-      sctx.translate(0, 0);
-      sctx.rotate(-angle);
-      sctx.drawImage(srcCanvas,
-        sx0 - 0, sy0 - 0,
-        srcStripW, srcStripH,
-        0, 0,
-        srcStripW, srcStripH
-      );
-      sctx.restore();
+        const i00 = (cy0*sw + cx0)*4, i10 = (cy0*sw + cx1)*4;
+        const i01 = (cy1*sw + cx0)*4, i11 = (cy1*sw + cx1)*4;
 
-      // Draw strip into destination
-      const destX = i * stripW;
-      dctx.drawImage(strip, destX, 0, stripW + 1, outH);
+        const di = (dy * outW + dx) * 4;
+        for (let c = 0; c < 3; c++) {
+          dstPx[di+c] = Math.round(
+            srcPx[i00+c]*(1-fx)*(1-fy) +
+            srcPx[i10+c]*fx*(1-fy) +
+            srcPx[i01+c]*(1-fx)*fy +
+            srcPx[i11+c]*fx*fy
+          );
+        }
+        dstPx[di+3] = 255;
+      }
     }
 
-    return dst;
-  } catch (e) {
+    dstCtx.putImageData(dstData, 0, 0);
+    return dstCanvas;
+  } catch(e) {
     console.error('[DocScan] Warp error:', e);
-    // Fallback: simple crop from bounding box
     return _docScanFallbackCrop(srcCanvas, corners, outW, outH);
   }
+}
+
+/**
+ * Compute 3x3 homography matrix from 4 point correspondences using DLT.
+ * Returns flat array [h00,h01,h02, h10,h11,h12, h20,h21,h22] or null.
+ */
+function _computeHomography(srcPts, dstPts) {
+  // Build 8x8 matrix A and vector b from the 4 point pairs
+  // Each point pair gives 2 equations
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) {
+    const [x,y] = srcPts[i], [u,v] = dstPts[i];
+    A.push([-x,-y,-1, 0, 0, 0, u*x, u*y]);  b.push(-u);
+    A.push([ 0, 0, 0,-x,-y,-1, v*x, v*y]);  b.push(-v);
+  }
+  // Solve Ah = b via Gaussian elimination
+  const h = _solveLinear8(A, b);
+  if (!h) return null;
+  return [h[0],h[1],h[2], h[3],h[4],h[5], h[6],h[7],1];
+}
+
+/** Gaussian elimination for 8x8 system Ax=b. Returns x or null on failure. */
+function _solveLinear8(A, b) {
+  const n = 8;
+  const M = A.map((row,i) => [...row, b[i]]);
+  for (let col = 0; col < n; col++) {
+    // Find pivot
+    let maxRow = col;
+    for (let row = col+1; row < n; row++) {
+      if (Math.abs(M[row][col]) > Math.abs(M[maxRow][col])) maxRow = row;
+    }
+    [M[col], M[maxRow]] = [M[maxRow], M[col]];
+    if (Math.abs(M[col][col]) < 1e-10) return null;
+    // Eliminate
+    for (let row = 0; row < n; row++) {
+      if (row === col) continue;
+      const f = M[row][col] / M[col][col];
+      for (let j = col; j <= n; j++) M[row][j] -= f * M[col][j];
+    }
+  }
+  return M.map((row,i) => row[n] / row[i]);
+}
+
+/** Invert a 3x3 homography matrix (flat 9-element array). */
+function _invertHomography(H) {
+  const [h0,h1,h2,h3,h4,h5,h6,h7,h8] = H;
+  const det = h0*(h4*h8-h5*h7) - h1*(h3*h8-h5*h6) + h2*(h3*h7-h4*h6);
+  if (Math.abs(det) < 1e-10) return null;
+  const inv = [
+     (h4*h8-h5*h7)/det, -(h1*h8-h2*h7)/det,  (h1*h5-h2*h4)/det,
+    -(h3*h8-h5*h6)/det,  (h0*h8-h2*h6)/det, -(h0*h5-h2*h3)/det,
+     (h3*h7-h4*h6)/det, -(h0*h7-h1*h6)/det,  (h0*h4-h1*h3)/det,
+  ];
+  return inv;
 }
 
 function _docScanFallbackCrop(srcCanvas, corners, outW, outH) {
@@ -4776,6 +4879,14 @@ function _docScanShowEnhance() {
   const n = DocScanState.pages.length;
   const hdr = document.getElementById('docscan-pg-count-hdr');
   if (hdr) hdr.textContent = n + (n === 1 ? ' page' : ' pages');
+
+  // Sync pill UI to current enhanceMode (reset to 'original' on new page)
+  document.querySelectorAll('#docscan-mode-pills [data-emode]').forEach(b => {
+    const active = b.dataset.emode === DocScanState.enhanceMode;
+    b.style.background  = active ? 'var(--teal)'  : 'var(--card)';
+    b.style.borderColor = active ? 'var(--teal)'  : 'var(--bd)';
+    b.style.color       = active ? '#fff'          : 'var(--tx2)';
+  });
 
   // Render active page with current mode
   _docScanApplyEnhancement(DocScanState.activePage, DocScanState.enhanceMode);
