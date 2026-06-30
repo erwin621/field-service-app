@@ -600,6 +600,92 @@ button{cursor:pointer}
 }
 
 /* ══════════════════════════════════════
+   DUTY STATUS TOGGLE
+══════════════════════════════════════ */
+.duty-toggle-wrap{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:13px 16px;margin-bottom:14px;box-shadow:var(--s1)}
+.duty-toggle-info{flex:1;min-width:0}
+.duty-toggle-label{font-size:.8rem;font-weight:700;color:var(--tx)}
+.duty-toggle-sub{font-size:.7rem;color:var(--tx3);margin-top:1px}
+.duty-switch{position:relative;width:48px;height:26px;flex-shrink:0}
+.duty-switch input{opacity:0;width:0;height:0;position:absolute}
+.duty-slider{position:absolute;cursor:pointer;inset:0;background:var(--bd2);border-radius:13px;transition:background .2s}
+.duty-slider::before{content:'';position:absolute;height:20px;width:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.duty-switch input:checked+.duty-slider{background:var(--green)}
+.duty-switch input:checked+.duty-slider::before{transform:translateX(22px)}
+.duty-status-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.duty-status-pill.on{background:var(--green-lt);color:var(--green-dk);border:1px solid var(--green-bd)}
+.duty-status-pill.off{background:var(--srf2);color:var(--tx3);border:1px solid var(--bd)}
+.duty-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.duty-dot.on{background:var(--green);box-shadow:0 0 0 3px rgba(34,197,94,.2)}
+.duty-dot.off{background:var(--tx3)}
+.hdr-duty-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:3px;font-size:.58rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;border:none;transition:all .18s;font-family:var(--ff)}
+.hdr-duty-pill.on{background:var(--green-lt);color:var(--green-dk)}
+.hdr-duty-pill.off{background:var(--red-lt);color:var(--red)}
+/* ══════════════════════════════════════
+   MY ROUTE overlay
+══════════════════════════════════════ */
+.route-hdr{display:flex;align-items:center;height:var(--header-h);padding:0 16px;background:rgba(255,255,255,.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd);gap:11px;flex-shrink:0}
+.route-hdr-title{flex:1;font-size:15px;font-weight:800;letter-spacing:-.02em;color:var(--tx)}
+.route-hdr-sub{font-size:11px;font-weight:500;color:var(--tx3);margin-top:1px}
+.route-banner{background:linear-gradient(135deg,#0EA5E9,#14B8A6);border-radius:4px;padding:16px;margin-bottom:14px;color:#fff;position:relative;overflow:hidden}
+.route-banner::before{content:'';position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.07)}
+.route-banner-locality{font-size:.64rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:4px}
+.route-banner-stats{display:flex;gap:16px;align-items:flex-end}
+.route-banner-num{font-size:2.2rem;font-weight:800;letter-spacing:-.04em;line-height:1}
+.route-banner-unit{font-size:.72rem;font-weight:600;opacity:.8;margin-bottom:5px}
+.route-banner-meta{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.route-banner-tag{font-size:.65rem;background:rgba(255,255,255,.18);border-radius:3px;padding:3px 8px;font-weight:700}
+.route-progress-bar{height:4px;background:rgba(255,255,255,.25);border-radius:2px;margin-top:10px;overflow:hidden}
+.route-progress-fill{height:100%;background:#fff;border-radius:2px;transition:width .5s ease}
+.route-site{background:var(--card);border:1px solid var(--bd);border-radius:4px;margin-bottom:8px;display:flex;overflow:hidden;box-shadow:var(--s1);transition:all .18s}
+.route-site:hover{box-shadow:var(--s2)}
+.route-site-seq{width:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--teal-lt);color:var(--teal-dk);font-size:.82rem;font-weight:800;border-right:1px solid var(--bd)}
+.route-site-body{flex:1;padding:11px 13px;min-width:0}
+.route-site-name{font-size:.88rem;font-weight:700;color:var(--tx);margin-bottom:3px;line-height:1.3}
+.route-site-meta{font-size:.7rem;color:var(--tx3);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.route-site-meta .dvd{width:3px;height:3px;border-radius:50%;background:var(--bd2);flex-shrink:0}
+.route-site-acts{display:flex;gap:6px;align-items:center;margin-top:8px}
+.route-site-remove{height:30px;padding:0 10px;border-radius:3px;background:var(--red-lt);border:1px solid var(--red-bd);color:var(--red-dk);font-size:.68rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:.18s;font-family:var(--ff)}
+.route-site-remove:hover{background:var(--red);color:#fff}
+.route-site-claim{height:30px;padding:0 10px;border-radius:3px;background:linear-gradient(135deg,var(--teal),var(--teal-dk));border:none;color:#fff;font-size:.68rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:.18s;font-family:var(--ff)}
+.route-site-claim:hover{opacity:.88}
+.route-locality-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.route-locality-btn{padding:13px 12px;background:var(--card);border:1.5px solid var(--bd);border-radius:4px;cursor:pointer;text-align:left;transition:all .18s;font-family:var(--ff)}
+.route-locality-btn:hover{border-color:var(--teal);background:var(--teal-lt)}
+.route-locality-btn.selected{border-color:var(--teal);background:var(--teal-lt)}
+.route-locality-name{font-size:.82rem;font-weight:700;color:var(--tx)}
+.route-locality-count{font-size:.68rem;color:var(--tx3);margin-top:2px}
+.route-empty{text-align:center;padding:44px 20px}
+.route-empty-ico{width:72px;height:72px;margin:0 auto 16px;background:linear-gradient(135deg,var(--teal-lt),var(--primary-lt));border:1.5px solid var(--bd);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--teal-dk)}
+.route-empty-title{font-size:.94rem;font-weight:700;color:var(--tx2);margin-bottom:6px}
+.route-empty-sub{font-size:.76rem;color:var(--tx3);line-height:1.5;margin-bottom:16px}
+.route-empty-btn{display:inline-flex;align-items:center;gap:7px;padding:12px 20px;background:linear-gradient(135deg,var(--teal),var(--teal-dk));border:none;border-radius:4px;color:#fff;font-size:.84rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff);box-shadow:0 3px 12px rgba(20,184,166,.28)}
+.route-empty-btn:hover{background:linear-gradient(135deg,var(--teal-dk),#0A7A70)}
+.reserved-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:3px;background:var(--amber-lt);border:1px solid var(--amber-bd);color:var(--amber-dk);font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0}
+.reserved-mine{background:var(--teal-lt);border-color:rgba(20,184,166,.35);color:var(--teal-dk)}
+.slide-claim.locked{opacity:.65;pointer-events:none}
+.slide-claim-locked-label{display:none;font-size:.7rem;font-weight:700;color:var(--amber-dk);text-align:center;padding:7px 12px;background:var(--amber-lt);border:1px solid var(--amber-bd);border-radius:3px;margin-top:4px;line-height:1.4}
+/* ══════════════════════════════════════
+   ADMIN FIELD STATUS PANEL
+══════════════════════════════════════ */
+.fs-card{background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--s1);transition:all .2s}
+.fs-card:hover{box-shadow:var(--s2)}
+.fs-card-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.fs-avatar{width:40px;height:40px;border-radius:4px;background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fs-name{font-size:.88rem;font-weight:700;color:var(--tx);line-height:1.3}
+.fs-meta{font-size:.68rem;color:var(--tx3);margin-top:1px;display:flex;gap:6px;align-items:center}
+.fs-card-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.fs-stat{background:var(--srf2);border:1px solid var(--bd);border-radius:3px;padding:8px 10px;text-align:center}
+.fs-stat-val{font-size:1.15rem;font-weight:800;color:var(--tx);letter-spacing:-.02em}
+.fs-stat-lbl{font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);margin-top:2px}
+.fs-route-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:var(--teal-lt);border:1px solid rgba(20,184,166,.25);border-radius:3px;font-size:.72rem;font-weight:700;color:var(--teal-dk);margin-bottom:8px}
+.fs-acts{display:flex;gap:6px;flex-wrap:wrap}
+.fs-act-btn{height:32px;padding:0 12px;border-radius:3px;border:1.5px solid var(--bd);background:var(--card);color:var(--tx2);font-size:.7rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:.18s;font-family:var(--ff);white-space:nowrap}
+.fs-act-btn:hover{border-color:var(--red-bd);background:var(--red-lt);color:var(--red-dk)}
+.fs-act-btn.duty{border-color:var(--amber-bd);background:var(--amber-lt);color:var(--amber-dk)}
+
+
+/* ══════════════════════════════════════
    NAVIGATOR — Route Optimizer
 ══════════════════════════════════════ */
 /* ── MapLibre GL override ── */
@@ -788,6 +874,7 @@ button{cursor:pointer}
       <div class="app-brand-role" id="tch-dn">Technician</div>
     </div>
     <div class="app-header-actions">
+      <button id="hdr-duty-btn" class="hdr-duty-pill on" onclick="handleDutyToggle()" title="Toggle duty status"><span id="hdr-duty-dot" class="duty-dot on"></span><span id="hdr-duty-lbl">ON DUTY</span></button>
       <button class="icon-btn" id="bell-btn"></button>
       <button class="avatar-btn" id="avatar-btn" onclick="techNav('tasks')">T</button>
     </div>
@@ -1174,6 +1261,9 @@ const IC={
   download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
   fileText:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
   routeNav:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17V7a2 2 0 0 1 2-2h4"/><path d="M18 7v10a2 2 0 0 1-2 2h-4"/><polyline points="14 3 18 7 14 11"/><polyline points="10 13 6 17 2 13"/></svg>`,
+  lock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  unlock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`,
+  power:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`,
   mapPin:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
   route:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/><path d="M10 6.5h4"/><path d="M17.5 10v4"/><path d="M10 17.5h4"/><path d="M6.5 10v4"/></svg>`,
   waze:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><circle cx="9" cy="11" r="1.5" fill="currentColor"/><circle cx="15" cy="11" r="1.5" fill="currentColor"/><path d="M8.5 15.5c1 1 5.5 1 7 0" stroke-linecap="round"/></svg>`,
@@ -1432,7 +1522,7 @@ async function loginTech(){
     document.getElementById('tch-dn').textContent=d.display_name;
     document.getElementById('avatar-btn').textContent=(d.display_name||'T').trim().charAt(0).toUpperCase();
     showTchLogin();
-    go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();
+    go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
 }
 
@@ -1480,7 +1570,7 @@ async function registerTech(){
         CU={id:ld.tech_code,name:ld.display_name};CR='tech';
         document.getElementById('tch-dn').textContent=ld.display_name;
         document.getElementById('avatar-btn').textContent=(ld.display_name||'T').trim().charAt(0).toUpperCase();
-        go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();
+        go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
       } else { showTchLogin(); }
     },1200);
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
@@ -1823,6 +1913,9 @@ function updateFilterDot(){
 
 function renderOpen(tix){
   const c=document.getElementById('open-list');
+  if(typeof DutyState!=='undefined' && DutyState.ready && !DutyState.isOnDuty){
+    c.innerHTML=emptyState(ic('power',22),'You are Off Duty','Switch to On Duty from the header to view and claim open jobs.');return;
+  }
   if(!tix.length){
     const filteredMsg=activeLocalities.size?'No jobs match the selected locality filter.':'No open jobs — all clear!';
     c.innerHTML=emptyState(ic('check',22),openCache.length?filteredMsg:'No open jobs — all clear!','Open jobs will appear here after batch upload.');return;
@@ -1832,22 +1925,30 @@ function renderOpen(tix){
     if(t.distanceKm!=null){
       distLabel=t.distanceKm<1?`(~ ${Math.round(t.distanceKm*1000)} m)`:`(~ ${t.distanceKm.toFixed(1)} km)`;
     }
+    const res=t.reservation;
+    const isMine=res&&CU&&res.reserved_by===CU.id;
+    const isOthers=res&&CU&&res.reserved_by!==CU.id;
+    const resBadge=res
+      ? `<span class="reserved-badge${isMine?' reserved-mine':''}">${ic(isMine?'routeNav':'lock',11)} ${isMine?'In Your Route':'Reserved'}</span>`
+      : '';
     return `<div class="jc ${t.priority} fade-up" id="oc-${t.id}" style="animation-delay:${Math.min(i,5)*0.04}s">
     <div class="jc-head">
       <span class="jc-dist">${distLabel}</span>
-      <span class="jc-pbdg">${t.priority}</span>
+      <div style="display:flex;align-items:center;gap:6px">${resBadge}<span class="jc-pbdg">${t.priority}</span></div>
     </div>
     <div class="jc-body">
     <div class="jc-title">${ic('build',22)} <span>${t.site_name}</span></div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.recurrence_count>1?`<span class="dvd"></span><span>${ic('refresh',13)} Reported ${t.recurrence_count}x</span>`:''}</div>
     <div class="tc-addr">${t.address}</div>
     <div class="jc-acts">
-      <div class="slide-claim" data-id="${t.id}">
+      <div class="slide-claim${isOthers?' locked':''}" data-id="${t.id}">
         <span class="slide-claim-label">Slide to Claim</span>
         <div class="slide-claim-thumb">${ic('chevR',15)}${ic('chevR',15)}</div>
       </div>
       <a class="btn nav" href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank">${ic('nav',14)} Navigate</a>
     </div>
+    ${isOthers?`<div class="slide-claim-locked-label">${ic('lock',12)} Reserved by ${res.reserved_by_name||'another technician'} — wait for release</div>`:''}
+    ${isMine&&!isOthers?`<div style="font-size:.7rem;color:var(--teal-dk);margin-top:6px;display:flex;align-items:center;gap:5px">${ic('routeNav',12)} This site is part of your active route</div>`:''}
     </div></div>`;
   }).join('');
 }
@@ -1948,7 +2049,7 @@ function resetSlideClaim(wrap){
     const t=e.target.closest('.slide-claim-thumb');
     if(!t)return;
     const w=t.closest('.slide-claim');
-    if(!w||w.classList.contains('claimed')||w.classList.contains('disabled'))return;
+    if(!w||w.classList.contains('claimed')||w.classList.contains('disabled')||w.classList.contains('locked'))return;
     wrap=w;thumb=t;label=w.querySelector('.slide-claim-label');
     curX=0;
     const cx=e.touches?e.touches[0].clientX:e.clientX;
@@ -2033,6 +2134,361 @@ async function reopenTicket(id){
   catch(e){const t=AT.find(x=>x.id===id);if(t){t.status='OPEN';t.cancellation_reason=null;t.cancelled_by=null;t.assigned_to=null;}toast('Ticket re-opened (demo).','ok');loadAdminData();}
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   DUTY STATUS  +  ROUTE RESERVATION
+   ─ DutyState tracks On/Off Duty, mirrored to header pill + Open tab visibility
+   ─ RouteState tracks the technician's single active route (if any)
+   ─ A lightweight poll (sync/poll) keeps reservation locks fresh across users
+════════════════════════════════════════════════════════════════════════════ */
+const DutyState  = { isOnDuty: true, ready: false };
+const RouteState = { active: null }; // null | { id, locality, site_ids, claimed_ids, tickets, created_at, last_activity }
+let _syncPollHandle = null;
+let _lastOpenFingerprint = '';
+
+/* ── Duty status: init / toggle / persist ── */
+async function initDutyStatus(){
+  try{
+    const r=await fetch(`/api/duty/status?technician_id=${CU.id}`);
+    const d=r.ok?await r.json():{is_on_duty:true};
+    DutyState.isOnDuty = d.is_on_duty!==false;
+  }catch(e){ DutyState.isOnDuty=true; }
+  DutyState.ready=true;
+  updateDutyPill();
+  await loadMyRoute();
+  if(!DutyState.isOnDuty) renderOpen([]);
+}
+
+function updateDutyPill(){
+  const btn=document.getElementById('hdr-duty-btn');
+  if(!btn)return;
+  btn.classList.toggle('on',DutyState.isOnDuty);
+  btn.classList.toggle('off',!DutyState.isOnDuty);
+  const dot=document.getElementById('hdr-duty-dot'),lbl=document.getElementById('hdr-duty-lbl');
+  if(dot){dot.classList.toggle('on',DutyState.isOnDuty);dot.classList.toggle('off',!DutyState.isOnDuty);}
+  if(lbl) lbl.textContent=DutyState.isOnDuty?'ON DUTY':'OFF DUTY';
+}
+
+async function handleDutyToggle(){
+  if(DutyState.isOnDuty){
+    await loadMyRoute(true);
+    if(RouteState.active && (RouteState.active.site_ids||[]).length){
+      document.getElementById('modal-offduty-loc').textContent=RouteState.active.locality;
+      document.getElementById('modal-offduty-ico').innerHTML=ic('power',18);
+      document.getElementById('modal-offduty-keep-ico').innerHTML=ic('lock',16);
+      document.getElementById('modal-offduty-rel-ico').innerHTML=ic('unlock',16);
+      document.getElementById('modal-offduty').style.display='flex';
+      return;
+    }
+    await setDuty(false);
+  }else{
+    await setDuty(true);
+  }
+}
+async function setDuty(on){
+  try{
+    const gps=GeoEngine.coords?`${GeoEngine.coords.lat},${GeoEngine.coords.lng}`:null;
+    const r=await fetch('/api/duty/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,technician_name:CU.name,is_on_duty:on,current_gps:gps})});
+    if(r.ok){
+      DutyState.isOnDuty=on;
+      updateDutyPill();
+      toast(on?'You are now On Duty.':'You are now Off Duty.',on?'ok':'info');
+      if(on){loadOpen();}else{renderOpen([]);}
+    }else{toast('Could not update duty status.','err');}
+  }catch(e){toast('Cannot reach server.','err');}
+}
+function offDutyKeepRoute(){
+  document.getElementById('modal-offduty').style.display='none';
+  setDuty(false);
+}
+async function offDutyReleaseRoute(){
+  document.getElementById('modal-offduty').style.display='none';
+  await releaseRoute(true);
+  await setDuty(false);
+}
+
+/* ── Lightweight real-time sync: poll every 7s for reservation/duty changes ── */
+function startSyncPolling(){
+  if(_syncPollHandle) return;
+  _syncPollHandle=setInterval(async()=>{
+    try{
+      const r=await fetch('/api/sync/poll');
+      if(!r.ok)return;
+      const d=await r.json();
+      const fp=JSON.stringify(d.routes)+'|'+d.open_count;
+      if(fp!==_lastOpenFingerprint){
+        _lastOpenFingerprint=fp;
+        if(document.getElementById('tp-open-panel')?.classList.contains('on')) loadOpen();
+        if(document.getElementById('route-overlay').style.display==='flex') loadMyRoute().then(renderRouteOverlay);
+      }
+    }catch(e){/* silent — offline-tolerant */}
+    // heartbeat keeps the tech's own route/session fresh
+    if(CU) fetch('/api/duty/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,current_gps:GeoEngine.coords?`${GeoEngine.coords.lat},${GeoEngine.coords.lng}`:null})}).catch(()=>{});
+  },7000);
+}
+
+/* ── Route data ── */
+async function loadMyRoute(silent){
+  try{
+    const r=await fetch(`/api/routes/my-route?technician_id=${CU.id}`);
+    RouteState.active = r.ok ? await r.json() : null;
+  }catch(e){ if(!silent) RouteState.active=null; }
+  return RouteState.active;
+}
+
+/* ── Overlay open/close ── */
+function showRouteOverlay(){
+  document.getElementById('tools-overlay').style.display='none';
+  const ov=document.getElementById('route-overlay');
+  ov.style.display='flex';
+  loadMyRoute().then(renderRouteOverlay);
+}
+function closeRouteOverlay(){
+  document.getElementById('route-overlay').style.display='none';
+  renderToolsOverlay();
+  document.getElementById('tools-overlay').style.display='flex';
+  navHide.attach(document.querySelector('#tools-overlay .app-scroll'));
+}
+
+function renderRouteOverlay(){
+  const ov=document.getElementById('route-overlay');
+  const route=RouteState.active;
+  ov.innerHTML=`
+    <div class="route-hdr">
+      <button class="icon-btn" onclick="closeRouteOverlay()">${ic('arrowL',18)}</button>
+      <div><div class="route-hdr-title">My Route</div><div class="route-hdr-sub">${DutyState.isOnDuty?'Reserve sites & plan your day':'You are off duty'}</div></div>
+      ${route?`<button class="icon-btn" onclick="loadMyRoute().then(renderRouteOverlay)" title="Refresh">${ic('refresh',16)}</button>`:''}
+    </div>
+    <div class="app-scroll" id="route-body"></div>`;
+  const body=document.getElementById('route-body');
+  if(!DutyState.isOnDuty){
+    body.innerHTML=`<div class="route-empty fade-up">
+      <div class="route-empty-ico">${ic('power',30)}</div>
+      <div class="route-empty-title">You're Off Duty</div>
+      <div class="route-empty-sub">Switch to On Duty from the header to reserve a route and claim jobs.</div>
+      <button class="route-empty-btn" onclick="handleDutyToggle()">${ic('power',16)} Go On Duty</button>
+    </div>`;
+    return;
+  }
+  if(!route || (!(route.site_ids||[]).length && !(route.claimed_ids||[]).length)){
+    renderRouteEmpty(body);
+  }else{
+    renderRouteActive(body,route);
+  }
+}
+
+/* ── Empty state → locality picker ── */
+function renderRouteEmpty(body){
+  body.innerHTML=`<div class="route-empty fade-up">
+    <div class="route-empty-ico">${ic('routeNav',30)}</div>
+    <div class="route-empty-title">No Active Route</div>
+    <div class="route-empty-sub">Pick a city or area to reserve all its open sites as your route. Other technicians will see them locked while you work.</div>
+    <button class="route-empty-btn" onclick="renderRouteLocalityPicker()">${ic('plus',16)} Start a Route</button>
+  </div>`;
+}
+
+function renderRouteLocalityPicker(){
+  const body=document.getElementById('route-body');
+  const resMap=buildLocalReservationLookup();
+  const localityCounts={};
+  openCache.forEach(t=>{
+    if(resMap[t.id] && resMap[t.id].reserved_by!==CU.id) return; // skip sites locked by others
+    const loc=(t.locality||'Unknown').trim();
+    localityCounts[loc]=(localityCounts[loc]||0)+1;
+  });
+  const localities=Object.keys(localityCounts).sort();
+  body.innerHTML=`
+    <div class="fade-up" style="margin-bottom:10px">
+      <button onclick="renderRouteOverlay()" style="background:none;border:none;color:var(--tx3);font-size:.74rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0">${ic('arrowL',13)} Back</button>
+    </div>
+    <div class="section-label">Choose a destination</div>
+    ${localities.length?`<div class="route-locality-grid">${localities.map(loc=>`
+      <button class="route-locality-btn" onclick="selectRouteLocality('${loc.replace(/'/g,"\\'")}')">
+        <div class="route-locality-name">${loc}</div>
+        <div class="route-locality-count">${localityCounts[loc]} open site${localityCounts[loc]>1?'s':''}</div>
+      </button>`).join('')}</div>`
+      :emptyState(ic('routeNav',22),'No claimable sites right now','All open sites are either reserved or none are available.')}
+  `;
+}
+
+function buildLocalReservationLookup(){
+  const map={};
+  openCache.forEach(t=>{ if(t.reservation) map[t.id]=t.reservation; });
+  return map;
+}
+
+async function selectRouteLocality(locality){
+  const resMap=buildLocalReservationLookup();
+  const siteIds=openCache
+    .filter(t=>(t.locality||'Unknown').trim()===locality)
+    .filter(t=>!resMap[t.id] || resMap[t.id].reserved_by===CU.id)
+    .map(t=>t.id);
+  if(!siteIds.length){toast('No claimable sites in this area.','err');return;}
+  try{
+    const r=await fetch('/api/routes/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,technician_name:CU.name,locality,site_ids:siteIds})});
+    const d=await r.json();
+    if(r.ok){
+      toast(`Route reserved — ${siteIds.length} site${siteIds.length>1?'s':''} in ${locality}.`,'ok');
+      await loadMyRoute();
+      renderRouteOverlay();
+      loadOpen();
+    }else{toast(d.error||'Could not reserve route.','err');}
+  }catch(e){toast('Cannot reach server.','err');}
+}
+
+/* ── Active route view ── */
+function orderRouteStops(tickets){
+  // Nearest-neighbor ordering using GeoEngine; falls back to original order without coords.
+  if(!GeoEngine.coords || !tickets.length) return tickets.map(t=>({...t,_legKm:null}));
+  const remaining=[...tickets];
+  const ordered=[];
+  let cursor=GeoEngine.coords;
+  while(remaining.length){
+    let bestI=0,bestD=Infinity;
+    remaining.forEach((t,i)=>{
+      const tc=GeoEngine.parseCoords(t.coordinates);
+      const d=tc?GeoEngine.distanceKm(cursor,tc):Infinity;
+      if(d<bestD){bestD=d;bestI=i;}
+    });
+    const next=remaining.splice(bestI,1)[0];
+    const tc=GeoEngine.parseCoords(next.coordinates);
+    ordered.push({...next,_legKm:isFinite(bestD)?bestD:null});
+    if(tc) cursor=tc;
+  }
+  return ordered;
+}
+
+function renderRouteActive(body,route){
+  const reserved=(route.tickets||[]).filter(t=>(route.site_ids||[]).includes(t.id));
+  const claimed=(route.tickets||[]).filter(t=>(route.claimed_ids||[]).includes(t.id));
+  const total=reserved.length+claimed.length;
+  const pct=total?Math.round((claimed.length/total)*100):0;
+  const ordered=orderRouteStops(reserved);
+  const totalKm=ordered.reduce((s,t)=>s+(t._legKm||0),0);
+  const etaMin=Math.round(totalKm/25*60); // ~25km/h average 2-wheeler urban speed
+
+  body.innerHTML=`
+    <div class="route-banner fade-up">
+      <div class="route-banner-locality">${ic('pin',11)} ${route.locality}</div>
+      <div class="route-banner-stats">
+        <div><div class="route-banner-num">${reserved.length}</div><div class="route-banner-unit">site${reserved.length!==1?'s':''} left</div></div>
+        ${totalKm>0?`<div><div class="route-banner-num" style="font-size:1.3rem">${totalKm.toFixed(1)}</div><div class="route-banner-unit">km · ~${etaMin} min</div></div>`:''}
+      </div>
+      <div class="route-banner-meta">
+        <span class="route-banner-tag">${claimed.length}/${total} claimed</span>
+        ${GeoEngine.coords?`<span class="route-banner-tag">${ic('routeNav',10)} Optimized order</span>`:`<span class="route-banner-tag">Enable location to optimize</span>`}
+      </div>
+      <div class="route-progress-bar"><div class="route-progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button onclick="renderRouteAddSites()" style="flex:1;height:38px;border-radius:4px;background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx2);font-size:.74rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--ff)">${ic('plus',13)} Add Sites</button>
+      <button onclick="confirmReleaseRoute()" style="flex:1;height:38px;border-radius:4px;background:var(--red-lt);border:1.5px solid var(--red-bd);color:var(--red-dk);font-size:.74rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--ff)">${ic('x',13)} Release Route</button>
+    </div>
+    <div class="section-label">Suggested Order</div>
+    ${ordered.length?ordered.map((t,i)=>`
+      <div class="route-site fade-up" style="animation-delay:${Math.min(i,6)*0.04}s">
+        <div class="route-site-seq">${i+1}</div>
+        <div class="route-site-body">
+          <div class="route-site-name">${t.site_name}</div>
+          <div class="route-site-meta"><span>${ic('tag',11)} ${t.site_id}</span><span class="dvd"></span><span>${t.priority}</span>${t._legKm!=null?`<span class="dvd"></span><span>${t._legKm<1?Math.round(t._legKm*1000)+' m':t._legKm.toFixed(1)+' km'} leg</span>`:''}</div>
+          <div class="route-site-acts">
+            <button class="route-site-claim" onclick="claimFromRoute('${t.id}')">${ic('check',12)} Claim</button>
+            <button class="route-site-remove" onclick="removeSiteFromRoute('${t.id}')">${ic('x',12)} Remove</button>
+            <a href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank" style="margin-left:auto;font-size:.68rem;color:var(--primary);font-weight:700;display:flex;align-items:center;gap:3px">${ic('nav',11)} Navigate</a>
+          </div>
+        </div>
+      </div>`).join(''):''}
+    ${claimed.length?`<div class="section-label" style="margin-top:14px">Already Claimed</div>
+      ${claimed.map(t=>`<div class="route-site" style="opacity:.7">
+        <div class="route-site-seq" style="background:var(--green-lt);color:var(--green-dk)">${ic('check',14)}</div>
+        <div class="route-site-body">
+          <div class="route-site-name">${t.site_name}</div>
+          <div class="route-site-meta"><span>${ic('tag',11)} ${t.site_id}</span><span class="dvd"></span><span style="color:var(--green-dk);font-weight:700">Claimed</span></div>
+        </div>
+      </div>`).join('')}`:''}
+  `;
+}
+
+async function claimFromRoute(id){
+  try{
+    const r=await fetch('/api/tickets/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,technician_id:CU.id})});
+    const d=await r.json();
+    if(r.ok){
+      toast('Job claimed — ticket '+(d.ticket_id||'')+'!','ok');
+      await loadMyRoute();renderRouteOverlay();loadOpen();loadMine();
+    }else{toast(d.error||'Could not claim job.','err');}
+  }catch(e){toast('Cannot reach server.','err');}
+}
+
+async function removeSiteFromRoute(id){
+  const route=RouteState.active;
+  if(!route)return;
+  const newIds=(route.site_ids||[]).filter(s=>s!==id);
+  try{
+    const r=await fetch('/api/routes/update-sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,site_ids:newIds})});
+    if(r.ok){
+      toast('Site removed from route.','info');
+      await loadMyRoute();renderRouteOverlay();loadOpen();
+    }else{toast('Could not remove site.','err');}
+  }catch(e){toast('Cannot reach server.','err');}
+}
+
+function renderRouteAddSites(){
+  const body=document.getElementById('route-body');
+  const route=RouteState.active;
+  const resMap=buildLocalReservationLookup();
+  const inRoute=new Set([...(route.site_ids||[]),...(route.claimed_ids||[])]);
+  const candidates=openCache.filter(t=>
+    (t.locality||'Unknown').trim()===route.locality &&
+    !inRoute.has(t.id) &&
+    (!resMap[t.id] || resMap[t.id].reserved_by===CU.id)
+  );
+  body.innerHTML=`
+    <div class="fade-up" style="margin-bottom:10px">
+      <button onclick="renderRouteOverlay()" style="background:none;border:none;color:var(--tx3);font-size:.74rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0">${ic('arrowL',13)} Back</button>
+    </div>
+    <div class="section-label">Add sites in ${route.locality}</div>
+    ${candidates.length?candidates.map(t=>`
+      <div class="route-site fade-up">
+        <div class="route-site-seq">${ic('plus',16)}</div>
+        <div class="route-site-body">
+          <div class="route-site-name">${t.site_name}</div>
+          <div class="route-site-meta"><span>${ic('tag',11)} ${t.site_id}</span><span class="dvd"></span><span>${t.priority}</span></div>
+          <div class="route-site-acts"><button class="route-site-claim" onclick="addSiteToRoute('${t.id}')">${ic('plus',12)} Add to Route</button></div>
+        </div>
+      </div>`).join(''):emptyState(ic('check',20),'No more sites to add','Every open site in this area is already in your route.')}
+  `;
+}
+async function addSiteToRoute(id){
+  const route=RouteState.active;
+  if(!route)return;
+  const newIds=[...(route.site_ids||[]),id];
+  try{
+    const r=await fetch('/api/routes/update-sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,site_ids:newIds})});
+    if(r.ok){
+      toast('Site added to route.','ok');
+      await loadMyRoute();
+      renderRouteAddSites();
+      loadOpen();
+    }else{toast('Could not add site.','err');}
+  }catch(e){toast('Cannot reach server.','err');}
+}
+
+function confirmReleaseRoute(){
+  if(confirm('Release your entire route? All reserved sites will become available to other technicians.')){
+    releaseRoute();
+  }
+}
+async function releaseRoute(silent){
+  try{
+    const r=await fetch('/api/routes/release',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id})});
+    if(r.ok){
+      RouteState.active=null;
+      if(!silent){toast('Route released.','info');renderRouteOverlay();}
+      loadOpen();
+    }
+  }catch(e){if(!silent)toast('Cannot reach server.','err');}
+}
+
 /* ── TOOLS overlay ── */
 function renderToolsOverlay(){
   const el=document.getElementById('tools-overlay');
@@ -2041,7 +2497,8 @@ function renderToolsOverlay(){
     {name:'Timer',          desc:'Track job duration',       bg:'var(--green-lt)',   ic_:'var(--green-dk)',   icon:'clock'},
     {name:'Income Overview',desc:'Earnings & job summary',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',    icon:'trendUp', action:'showIncomeOverlay()'},
     {name:'Alerts',         desc:'System notifications',     bg:'var(--violet-lt)', ic_:'var(--violet-dk)', icon:'alert'},
-    {name:'Navigator',      desc:'Optimize travel routes',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',   icon:'routeNav', action:'showNavigatorOverlay()'},
+    {name:'My Route',       desc:'Reserve & plan your route', bg:'var(--teal-lt)',   ic_:'var(--teal-dk)',   icon:'routeNav', action:'showRouteOverlay()'},
+    {name:'Navigator',      desc:'Optimize travel routes',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',   icon:'nav', action:'showNavigatorOverlay()'},
     {name:'Camera',         desc:'Timestamp photo & video',  bg:'var(--red-lt)',     ic_:'var(--red-dk)',     icon:'camera',  action:'camOpenFromTools()'},
     {name:'Document Scan',  desc:'Scan, crop & export docs', bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',    icon:'scan',    action:'docScanOpenFromTools()'},
     {name:'Settings',       desc:'App & camera preferences', bg:'var(--srf2)',       ic_:'var(--tx2)',        icon:'settings', action:'showCamSettings()'},
@@ -5277,5 +5734,20 @@ function camUpdateAttachmentStrip(jobId) {
 }
 
 </script>
+
+<!-- ══════════════════════════════════════ MY ROUTE PANEL (sub-page of Tools) ══════════════════════════════════════ -->
+<div id="route-overlay" style="display:none;position:fixed;inset:0;z-index:135;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+<!-- ══════════════════════════════════════ OFF-DUTY ROUTE MODAL ══════════════════════════════════════ -->
+<div id="modal-offduty" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--card);border-radius:4px;padding:24px;max-width:360px;width:100%;box-shadow:var(--s4);border:1px solid var(--bd)">
+    <div style="font-size:1rem;font-weight:800;color:var(--tx);margin-bottom:8px;display:flex;align-items:center;gap:8px"><span id="modal-offduty-ico"></span>Going Off Duty</div>
+    <div style="font-size:.8rem;color:var(--tx2);line-height:1.55;margin-bottom:20px">You have an active route reservation for <strong id="modal-offduty-loc"></strong>. What do you want to do with it?</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="offDutyKeepRoute()" style="width:100%;padding:13px;border-radius:4px;background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx);font-size:.85rem;font-weight:700;cursor:pointer;font-family:var(--ff);text-align:left;display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0" id="modal-offduty-keep-ico"></span><div><div>Keep route reserved</div><div style="font-size:.7rem;color:var(--tx3);margin-top:2px">Sites stay locked until your next session</div></div></button>
+      <button onclick="offDutyReleaseRoute()" style="width:100%;padding:13px;border-radius:4px;background:var(--red-lt);border:1.5px solid var(--red-bd);color:var(--red-dk);font-size:.85rem;font-weight:700;cursor:pointer;font-family:var(--ff);text-align:left;display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:4px;background:var(--red-lt);color:var(--red-dk);display:flex;align-items:center;justify-content:center;flex-shrink:0" id="modal-offduty-rel-ico"></span><div><div>Release route</div><div style="font-size:.7rem;color:var(--tx3);margin-top:2px">Sites become available to other technicians</div></div></button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

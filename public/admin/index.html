@@ -441,6 +441,36 @@ button{cursor:pointer}
 .fade-up{animation:fadeUp .3s cubic-bezier(.34,1.4,.64,1) both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
+/* ══════════════════════════════════════
+   FIELD STATUS PANEL (Route Reservation + Duty Status)
+══════════════════════════════════════ */
+.fs-card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r2);padding:16px 18px;margin-bottom:12px;box-shadow:var(--s1);transition:all .2s}
+.fs-card:hover{box-shadow:var(--s2);border-color:var(--bd2)}
+.fs-card-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.fs-avatar{width:42px;height:42px;border-radius:var(--r4);background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fs-name{font-size:.9rem;font-weight:700;color:var(--tx);line-height:1.3}
+.fs-meta{font-size:.7rem;color:var(--tx3);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fs-meta .dvd{width:3px;height:3px;border-radius:50%;background:var(--bd2);flex-shrink:0}
+.fs-duty-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-left:auto;flex-shrink:0}
+.fs-duty-pill.on{background:var(--green-lt);color:var(--green-dk);border:1px solid var(--green-bd)}
+.fs-duty-pill.off{background:var(--srf2);color:var(--tx3);border:1px solid var(--bd)}
+.fs-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.fs-dot.on{background:var(--green)}
+.fs-dot.off{background:var(--tx3)}
+.fs-card-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.fs-stat{background:var(--srf2);border:1px solid var(--bd);border-radius:var(--r4);padding:9px 10px;text-align:center}
+.fs-stat-val{font-size:1.15rem;font-weight:800;color:var(--tx);letter-spacing:-.02em}
+.fs-stat-lbl{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-top:2px}
+.fs-route-tag{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--teal-lt);border:1px solid rgba(20,184,166,.25);border-radius:var(--r4);font-size:.76rem;font-weight:700;color:var(--teal-dk);margin-bottom:10px}
+.fs-route-tag-sub{font-size:.66rem;font-weight:500;color:var(--teal-dk);opacity:.8;margin-top:1px}
+.fs-progress-bar{height:5px;background:rgba(20,184,166,.18);border-radius:3px;margin-top:8px;overflow:hidden;flex-shrink:0}
+.fs-progress-fill{height:100%;background:var(--teal);border-radius:3px}
+.fs-acts{display:flex;gap:8px;flex-wrap:wrap}
+.fs-act-btn{height:34px;padding:0 13px;border-radius:var(--r4);border:1.5px solid var(--bd);background:var(--card);color:var(--tx2);font-size:.72rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.18s;font-family:var(--ff);white-space:nowrap}
+.fs-act-btn:hover{border-color:var(--red-bd);background:var(--red-lt);color:var(--red-dk)}
+.fs-act-btn.duty{border-color:var(--amber-bd);background:var(--amber-lt);color:var(--amber-dk)}
+.fs-act-btn.duty:hover{border-color:var(--amber);background:var(--amber);color:#fff}
+
 @media(max-width:440px){
   .role-grid{gap:11px}
   .acard{padding:32px 22px}
@@ -515,6 +545,7 @@ button{cursor:pointer}
   <div class="dbtabs" id="at">
     <button class="tbtn on" id="at-ov" onclick="admTab('ov',this)">Overview</button>
     <button class="tbtn" id="at-tx" onclick="admTab('tx',this)">All Tickets</button>
+    <button class="tbtn" id="at-fs" onclick="admTab('fs',this)">Field Status</button>
     <button class="tbtn" id="at-rec" onclick="admTab('rec',this)">Recovered</button>
     <button class="tbtn" id="at-up" onclick="admTab('up',this)">Batch Upload</button>
   </div>
@@ -534,6 +565,20 @@ button{cursor:pointer}
     <div id="ap-tx" class="tpanel">
       <div class="filters"><button class="fbtn on" onclick="admFil('ALL',this)">All</button><button class="fbtn" onclick="admFil('OPEN',this)">Open</button><button class="fbtn" onclick="admFil('ON_GOING',this)">On Going</button><button class="fbtn" onclick="admFil('COMPLETED',this)">Completed</button><button class="fbtn" onclick="admFil('CANCELLED',this)">Cancelled</button><button class="fbtn" onclick="admFil('RECOVERED',this)">Recovered</button></div>
       <div id="adm-all"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div>
+    </div>
+    <div id="ap-fs" class="tpanel">
+      <div class="sgrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px">
+        <div class="scard" style="flex-direction:column;align-items:flex-start;gap:6px"><div class="sico" style="background:var(--green-lt);color:var(--green-dk);width:32px;height:32px" id="fs-sico-on"></div><div><div class="slbl">On Duty</div><div class="sval" id="fs-s-on" style="color:var(--green-dk);font-size:1.3rem">—</div></div></div>
+        <div class="scard" style="flex-direction:column;align-items:flex-start;gap:6px"><div class="sico" style="background:var(--srf2);color:var(--tx3);width:32px;height:32px" id="fs-sico-off"></div><div><div class="slbl">Off Duty</div><div class="sval" id="fs-s-off" style="font-size:1.3rem">—</div></div></div>
+        <div class="scard" style="flex-direction:column;align-items:flex-start;gap:6px"><div class="sico" style="background:var(--teal-lt);color:var(--teal-dk);width:32px;height:32px" id="fs-sico-routes"></div><div><div class="slbl">Active Routes</div><div class="sval" id="fs-s-routes" style="color:var(--teal-dk);font-size:1.3rem">—</div></div></div>
+      </div>
+      <div class="filters">
+        <button class="fbtn on" onclick="fsFil('ALL',this)">All</button>
+        <button class="fbtn" onclick="fsFil('ON_DUTY',this)">On Duty</button>
+        <button class="fbtn" onclick="fsFil('OFF_DUTY',this)">Off Duty</button>
+        <button class="fbtn" onclick="fsFil('HAS_ROUTE',this)">Has Route</button>
+      </div>
+      <div id="adm-fieldstatus"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div>
     </div>
     <div id="ap-rec" class="tpanel">
       <p style="font-size:.78rem;color:var(--tx2);margin-bottom:14px">Sites that disappeared from the latest Full Snapshot — audit trail of automatic recoveries, including jobs that were already claimed when the site recovered.</p>
@@ -621,6 +666,11 @@ const IC={
   filter:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`,
   chevR:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
   settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  power:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`,
+  lock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  unlock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`,
+  routeNav:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17V7a2 2 0 0 1 2-2h4"/><path d="M18 7v10a2 2 0 0 1-2 2h-4"/><polyline points="14 3 18 7 14 11"/><polyline points="10 13 6 17 2 13"/></svg>`,
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
@@ -986,7 +1036,7 @@ function admTab(id,btn){
   document.querySelectorAll('#scr-admin-db .tbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
   document.querySelectorAll('#scr-admin-db .tpanel').forEach(p=>p.classList.remove('on'));
   document.getElementById('ap-'+id).classList.add('on');
-  if(id==='tx')renderAdmAll(AF);if(id==='ov')loadAdminData();if(id==='rec')loadRecovered();
+  if(id==='tx')renderAdmAll(AF);if(id==='ov')loadAdminData();if(id==='rec')loadRecovered();if(id==='fs')loadFieldStatus();
 }
 
 /* ── Tech bottom-nav (OPEN / TASKS / TOOLS / PROFILE) ── */
@@ -1081,6 +1131,112 @@ function renderRecoveredList(tix){
   </div></div>`;
   }).join('');
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FIELD STATUS — admin view of technician availability + route reservations
+════════════════════════════════════════════════════════════════════════════ */
+let FSData=[],FSFilter='ALL';
+
+async function loadFieldStatus(){
+  setLoad('adm-fieldstatus');
+  try{
+    const r=await fetch('/api/duty/all');
+    FSData=r.ok?await r.json():[];
+  }catch(e){FSData=[];}
+  updateFsStats(FSData);
+  renderFieldStatus(FSFilter);
+}
+function updateFsStats(list){
+  document.getElementById('fs-s-on').textContent=list.filter(t=>t.is_on_duty).length;
+  document.getElementById('fs-s-off').textContent=list.filter(t=>!t.is_on_duty).length;
+  document.getElementById('fs-s-routes').textContent=list.filter(t=>t.active_route).length;
+}
+function fsFil(f,btn){
+  FSFilter=f;
+  document.querySelectorAll('#ap-fs .fbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  renderFieldStatus(f);
+}
+function timeAgo(iso){
+  if(!iso)return 'No activity yet';
+  const diffMs=Date.now()-new Date(iso).getTime();
+  const mins=Math.round(diffMs/60000);
+  if(mins<1)return 'Just now';
+  if(mins<60)return mins+' min ago';
+  const hrs=Math.round(mins/60);
+  if(hrs<24)return hrs+' hr'+(hrs>1?'s':'')+' ago';
+  return Math.round(hrs/24)+' day(s) ago';
+}
+function renderFieldStatus(filter){
+  const list=FSData.filter(t=>{
+    if(filter==='ON_DUTY')return t.is_on_duty;
+    if(filter==='OFF_DUTY')return !t.is_on_duty;
+    if(filter==='HAS_ROUTE')return !!t.active_route;
+    return true;
+  });
+  const c=document.getElementById('adm-fieldstatus');
+  if(!list.length){c.innerHTML=emptyState(ic('user',22),'No technicians match this filter','Technician availability will appear here once they sign in.');return;}
+  c.innerHTML=list.map(t=>{
+    const initial=(t.technician_name||t.technician_id||'T').trim().charAt(0).toUpperCase();
+    const route=t.active_route;
+    const reservedN=route?(route.site_ids||[]).length:0;
+    const claimedN=route?(route.claimed_ids||[]).length:0;
+    const totalN=reservedN+claimedN;
+    const pct=totalN?Math.round((claimedN/totalN)*100):0;
+    return `<div class="fs-card fade-up">
+      <div class="fs-card-head">
+        <div class="fs-avatar">${initial}</div>
+        <div style="flex:1;min-width:0">
+          <div class="fs-name">${t.technician_name||t.technician_id}</div>
+          <div class="fs-meta">
+            <span>${ic('clock',11)} ${timeAgo(t.last_activity)}</span>
+            ${t.current_gps?`<span class="dvd"></span><span>${ic('pin',11)} GPS available</span>`:''}
+          </div>
+        </div>
+        <span class="fs-duty-pill ${t.is_on_duty?'on':'off'}"><span class="fs-dot ${t.is_on_duty?'on':'off'}"></span>${t.is_on_duty?'On Duty':'Off Duty'}</span>
+      </div>
+      <div class="fs-card-stats">
+        <div class="fs-stat"><div class="fs-stat-val">${reservedN}</div><div class="fs-stat-lbl">Reserved</div></div>
+        <div class="fs-stat"><div class="fs-stat-val">${claimedN}</div><div class="fs-stat-lbl">Claimed</div></div>
+        <div class="fs-stat"><div class="fs-stat-val">${t.claimed_count!=null?t.claimed_count:'—'}</div><div class="fs-stat-lbl">On-Going</div></div>
+      </div>
+      ${route?`<div class="fs-route-tag">
+        ${ic('routeNav',16)}
+        <div style="flex:1;min-width:0">
+          <div>${route.locality} · ${totalN} site${totalN!==1?'s':''}</div>
+          <div class="fs-route-tag-sub">${claimedN}/${totalN} claimed · reserved ${timeAgo(route.created_at)}</div>
+          <div class="fs-progress-bar"><div class="fs-progress-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div>`:''}
+      <div class="fs-acts">
+        ${route?`<button class="fs-act-btn" onclick="adminReleaseRoute('${t.technician_id}')">${ic('unlock',13)} Release Route</button>`:''}
+        <button class="fs-act-btn duty" onclick="adminToggleDuty('${t.technician_id}',${t.is_on_duty})">${ic('power',13)} ${t.is_on_duty?'Mark Off Duty':'Mark On Duty'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function adminReleaseRoute(techId){
+  if(!confirm('Release this route? All reserved sites become available to everyone.'))return;
+  try{
+    const r=await fetch('/api/routes/admin-release',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:techId})});
+    if(r.ok){toast('Route released.','ok');loadFieldStatus();}
+    else{toast('Could not release route.','err');}
+  }catch(e){toast('Cannot reach server.','err');}
+}
+async function adminToggleDuty(techId,current){
+  const next=!current;
+  try{
+    const r=await fetch('/api/duty/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:techId,is_on_duty:next})});
+    if(r.ok){toast(`Technician marked ${next?'On':'Off'} Duty.`,'ok');loadFieldStatus();}
+    else{toast('Could not update status.','err');}
+  }catch(e){toast('Cannot reach server.','err');}
+}
+
+// Auto-refresh Field Status every 8s while that tab is visible — keeps admin view
+// in sync with technician duty toggles and route reservations without a manual reload.
+setInterval(()=>{
+  if(document.getElementById('ap-fs')?.classList.contains('on') && CR==='admin') loadFieldStatus();
+},8000);
 
 function admCard(t){
   const sm={OPEN:'Open',ON_GOING:'On Going',COMPLETED:'Completed',CANCELLED:'Cancelled',RECOVERED:'Recovered'};

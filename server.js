@@ -37,15 +37,70 @@ const DB_PATH = path.join(__dirname, 'database.json');
 // local-JSON mode (and the new sync engine's local fallback) actually works.
 function readDB() {
     if (!fs.existsSync(DB_PATH)) {
-        return { users: [], tickets: [], task_batches: [], task_sync_logs: [] };
+        return { users: [], tickets: [], task_batches: [], task_sync_logs: [], route_reservations: [], technician_statuses: [] };
     }
     const raw = fs.readFileSync(DB_PATH, 'utf8');
     const db  = raw.trim() ? JSON.parse(raw) : {};
-    db.users           = db.users           || [];
-    db.tickets         = db.tickets         || [];
-    db.task_batches    = db.task_batches    || [];
-    db.task_sync_logs  = db.task_sync_logs  || [];
+    db.users                 = db.users                 || [];
+    db.tickets               = db.tickets               || [];
+    db.task_batches          = db.task_batches          || [];
+    db.task_sync_logs        = db.task_sync_logs        || [];
+    db.route_reservations    = db.route_reservations    || [];
+    db.technician_statuses   = db.technician_statuses   || [];
     return db;
+}
+
+// ─── Route Reservation helpers ──────────────────────────────────────────────
+const ROUTE_EXPIRY_HOURS = 4; // default — reservations expire after 4 hrs inactivity
+
+function nowIso() { return new Date().toISOString(); }
+
+/** Returns the active (non-expired) reservation for a given tech (local mode). */
+function getActiveRouteLocal(db, technicianId) {
+    const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+    return db.route_reservations.find(r =>
+        r.technician_id === technicianId &&
+        r.status === 'ACTIVE' &&
+        r.last_activity >= cutoff
+    ) || null;
+}
+
+/** Lazily expires overdue reservations and returns the cleaned list (local mode). */
+function expireRoutesLocal(db) {
+    const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+    let changed = false;
+    db.route_reservations.forEach(r => {
+        if (r.status === 'ACTIVE' && r.last_activity < cutoff) {
+            r.status = 'EXPIRED';
+            r.expired_at = nowIso();
+            changed = true;
+        }
+    });
+    if (changed) writeDB(db);
+    return db;
+}
+
+/** Returns a map of ticketId → { reserved_by, reserved_by_name } for ACTIVE reservations (local). */
+function buildReservationMapLocal(db) {
+    const map = {};
+    const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+    for (const r of db.route_reservations) {
+        if (r.status !== 'ACTIVE' || r.last_activity < cutoff) continue;
+        for (const sid of (r.site_ids || [])) {
+            map[sid] = { reserved_by: r.technician_id, reserved_by_name: r.technician_name };
+        }
+    }
+    return map;
+}
+
+/** Get or create a technician status record (local). */
+function getTechStatusLocal(db, technicianId) {
+    let rec = db.technician_statuses.find(s => s.technician_id === technicianId);
+    if (!rec) {
+        rec = { technician_id: technicianId, is_on_duty: true, last_activity: nowIso(), current_gps: null };
+        db.technician_statuses.push(rec);
+    }
+    return rec;
 }
 function writeDB(db) {
     fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
@@ -538,10 +593,34 @@ app.get('/api/tickets/open', async (req, res) => {
                 .is('assigned_to', null)
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            return res.json(data);
+
+            // Attach active reservation metadata so the client can render lock badges
+            const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+            const { data: routes } = await supabase
+                .from('route_reservations')
+                .select('technician_id, technician_name, site_ids')
+                .eq('status', 'ACTIVE')
+                .gte('last_activity', cutoff);
+
+            const resMap = {};
+            for (const r of (routes || [])) {
+                for (const sid of (r.site_ids || [])) {
+                    resMap[sid] = { reserved_by: r.technician_id, reserved_by_name: r.technician_name };
+                }
+            }
+            const enriched = data.map(t => ({
+                ...t,
+                reservation: resMap[t.id] || null
+            }));
+            return res.json(enriched);
         }
-        const { tickets } = readDB();
-        res.json(tickets.filter(t => t.status === 'OPEN' && !t.assigned_to));
+        let db = readDB();
+        db = expireRoutesLocal(db);
+        const resMap = buildReservationMapLocal(db);
+        const tickets = db.tickets
+            .filter(t => t.status === 'OPEN' && !t.assigned_to)
+            .map(t => ({ ...t, reservation: resMap[t.id] || null }));
+        res.json(tickets);
     } catch (err) {
         console.error('[GET /open]', err.message);
         res.status(500).json({ error: err.message });
@@ -710,6 +789,21 @@ app.post('/api/tickets/claim', async (req, res) => {
             if (!existing || existing.status !== 'OPEN')
                 return res.status(409).json({ error: 'Ticket is no longer available' });
 
+            // Check route reservation — only block if reserved by ANOTHER technician
+            const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+            const { data: routes } = await supabase
+                .from('route_reservations')
+                .select('technician_id, technician_name, site_ids')
+                .eq('status', 'ACTIVE')
+                .gte('last_activity', cutoff);
+            for (const r of (routes || [])) {
+                if ((r.site_ids || []).includes(id) && r.technician_id !== technician_id) {
+                    return res.status(409).json({
+                        error: `This site is reserved by ${r.technician_name}. Wait for them to release it.`
+                    });
+                }
+            }
+
             // Immutable ticket number — generate once, on claim, never again
             let ticketNumber = existing.ticket_id;
             if (!ticketNumber) {
@@ -725,6 +819,26 @@ app.post('/api/tickets/claim', async (req, res) => {
                 ticket_id:   ticketNumber
             }).eq('id', id);
             if (error) throw error;
+
+            // Move this site from "reserved" to "claimed" on any active route of the claiming tech
+            // (keeps it in the route for progress display, but no longer locks it for others)
+            await supabase.from('route_reservations')
+                .select('id, site_ids, claimed_ids')
+                .eq('technician_id', technician_id)
+                .eq('status', 'ACTIVE')
+                .then(async ({ data: myRoutes }) => {
+                    for (const r of (myRoutes || [])) {
+                        if (!(r.site_ids || []).includes(id)) continue;
+                        const newIds = (r.site_ids || []).filter(s => s !== id);
+                        const newClaimed = [...(r.claimed_ids || []), id];
+                        await supabase.from('route_reservations').update({
+                            site_ids: newIds,
+                            claimed_ids: newClaimed,
+                            last_activity: new Date().toISOString()
+                        }).eq('id', r.id);
+                    }
+                });
+
             return res.json({
                 message:   `Ticket ${ticketNumber} claimed by ${user.display_name}`,
                 ticket_id: ticketNumber
@@ -732,14 +846,34 @@ app.post('/api/tickets/claim', async (req, res) => {
         }
         // Local fallback
         const db = readDB();
+        expireRoutesLocal(db);
         const t  = db.tickets.find(x => x.id === id);
         if (!t) return res.status(404).json({ error: 'Ticket not found' });
         if (t.status !== 'OPEN')
             return res.status(409).json({ error: 'Ticket is no longer available' });
+
+        // Check reservation by another tech
+        const resMap = buildReservationMapLocal(db);
+        if (resMap[id] && resMap[id].reserved_by !== technician_id) {
+            return res.status(409).json({
+                error: `This site is reserved by ${resMap[id].reserved_by_name}. Wait for them to release it.`
+            });
+        }
+
         if (!t.ticket_id) t.ticket_id = genTicketNumberLocal(db);
         t.status      = 'ON_GOING';
         t.assigned_to = technician_id;
         t.claimed_at  = new Date().toISOString();
+
+        // Move this site from "reserved" to "claimed" on the tech's active route
+        // (keeps it in the route for progress display, but no longer locks it for others)
+        const myRoute = getActiveRouteLocal(db, technician_id);
+        if (myRoute && (myRoute.site_ids || []).includes(id)) {
+            myRoute.site_ids = (myRoute.site_ids || []).filter(s => s !== id);
+            myRoute.claimed_ids = [...(myRoute.claimed_ids || []), id];
+            myRoute.last_activity = nowIso();
+        }
+
         writeDB(db);
         res.json({ message: `Ticket ${t.ticket_id} claimed by ${technician_id}`, ticket_id: t.ticket_id });
     } catch (err) {
@@ -1209,7 +1343,399 @@ async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteNam
     }
 }
 
-// ─── Start server ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  ROUTE RESERVATION ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── GET /api/routes/my-route?technician_id= ──────────────────────────────
+app.get('/api/routes/my-route', async (req, res) => {
+    const { technician_id } = req.query;
+    if (!technician_id) return res.status(400).json({ error: 'Missing technician_id' });
+    try {
+        if (supabase) {
+            const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+            const { data: routes, error } = await supabase
+                .from('route_reservations')
+                .select('*')
+                .eq('technician_id', technician_id)
+                .eq('status', 'ACTIVE')
+                .gte('last_activity', cutoff)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (error) throw error;
+            if (!routes || !routes.length) return res.json(null);
+            const route = routes[0];
+            // Hydrate ticket details for both reserved (unclaimed) and claimed sites
+            const allIds = [...(route.site_ids || []), ...(route.claimed_ids || [])];
+            let tickets = [];
+            if (allIds.length) {
+                const { data: tix } = await supabase.from('tickets')
+                    .select('*').in('id', allIds);
+                tickets = tix || [];
+            }
+            return res.json({ ...route, tickets });
+        }
+        let db = readDB();
+        db = expireRoutesLocal(db);
+        const route = getActiveRouteLocal(db, technician_id);
+        if (!route) return res.json(null);
+        const allIds = [...(route.site_ids || []), ...(route.claimed_ids || [])];
+        const tickets = allIds
+            .map(sid => db.tickets.find(t => t.id === sid))
+            .filter(Boolean);
+        res.json({ ...route, tickets });
+    } catch (err) {
+        console.error('[GET /routes/my-route]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/routes/reserve ──────────────────────────────────────────────
+// body: { technician_id, technician_name, locality, site_ids[] }
+app.post('/api/routes/reserve', async (req, res) => {
+    const { technician_id, technician_name, locality, site_ids } = req.body;
+    if (!technician_id || !locality || !Array.isArray(site_ids))
+        return res.status(400).json({ error: 'technician_id, locality, and site_ids are required' });
+    if (!site_ids.length)
+        return res.status(400).json({ error: 'site_ids must not be empty' });
+    try {
+        const expiresAt = new Date(Date.now() + ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+        if (supabase) {
+            // Release any existing active route for this tech first
+            await supabase.from('route_reservations')
+                .update({ status: 'RELEASED', released_at: nowIso() })
+                .eq('technician_id', technician_id).eq('status', 'ACTIVE');
+            const { data, error } = await supabase.from('route_reservations').insert({
+                technician_id,
+                technician_name: technician_name || technician_id,
+                locality,
+                site_ids,
+                claimed_ids: [],
+                status: 'ACTIVE',
+                created_at: nowIso(),
+                last_activity: nowIso(),
+                expires_at: expiresAt
+            }).select().single();
+            if (error) throw error;
+            return res.json({ message: `Route reserved for ${locality}`, route: data });
+        }
+        const db = readDB();
+        // Release existing active routes
+        db.route_reservations.forEach(r => {
+            if (r.technician_id === technician_id && r.status === 'ACTIVE') {
+                r.status = 'RELEASED'; r.released_at = nowIso();
+            }
+        });
+        const newRoute = {
+            id: generateId(),
+            technician_id,
+            technician_name: technician_name || technician_id,
+            locality,
+            site_ids,
+            claimed_ids: [],
+            status: 'ACTIVE',
+            created_at: nowIso(),
+            last_activity: nowIso(),
+            expires_at: expiresAt
+        };
+        db.route_reservations.push(newRoute);
+        writeDB(db);
+        res.json({ message: `Route reserved for ${locality}`, route: newRoute });
+    } catch (err) {
+        console.error('[POST /routes/reserve]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/routes/update-sites ─────────────────────────────────────────
+// body: { technician_id, site_ids[] }  — replace site list in-place
+app.post('/api/routes/update-sites', async (req, res) => {
+    const { technician_id, site_ids } = req.body;
+    if (!technician_id || !Array.isArray(site_ids))
+        return res.status(400).json({ error: 'technician_id and site_ids are required' });
+    try {
+        if (supabase) {
+            const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+            const { error } = await supabase.from('route_reservations')
+                .update({ site_ids, last_activity: nowIso() })
+                .eq('technician_id', technician_id)
+                .eq('status', 'ACTIVE')
+                .gte('last_activity', cutoff);
+            if (error) throw error;
+            return res.json({ message: 'Route updated' });
+        }
+        const db = readDB();
+        const route = getActiveRouteLocal(db, technician_id);
+        if (!route) return res.status(404).json({ error: 'No active route found' });
+        route.site_ids = site_ids;
+        route.last_activity = nowIso();
+        writeDB(db);
+        res.json({ message: 'Route updated' });
+    } catch (err) {
+        console.error('[POST /routes/update-sites]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/routes/release ──────────────────────────────────────────────
+// body: { technician_id }
+app.post('/api/routes/release', async (req, res) => {
+    const { technician_id } = req.body;
+    if (!technician_id) return res.status(400).json({ error: 'technician_id required' });
+    try {
+        if (supabase) {
+            const { error } = await supabase.from('route_reservations')
+                .update({ status: 'RELEASED', released_at: nowIso() })
+                .eq('technician_id', technician_id).eq('status', 'ACTIVE');
+            if (error) throw error;
+            return res.json({ message: 'Route released' });
+        }
+        const db = readDB();
+        db.route_reservations.forEach(r => {
+            if (r.technician_id === technician_id && r.status === 'ACTIVE') {
+                r.status = 'RELEASED'; r.released_at = nowIso();
+            }
+        });
+        writeDB(db);
+        res.json({ message: 'Route released' });
+    } catch (err) {
+        console.error('[POST /routes/release]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/routes/admin-release ───────────────────────────────────────
+// Admin-only: release any tech's route. body: { technician_id, admin_id }
+app.post('/api/routes/admin-release', async (req, res) => {
+    const { technician_id } = req.body;
+    if (!technician_id) return res.status(400).json({ error: 'technician_id required' });
+    try {
+        if (supabase) {
+            const { error } = await supabase.from('route_reservations')
+                .update({ status: 'RELEASED', released_at: nowIso() })
+                .eq('technician_id', technician_id).eq('status', 'ACTIVE');
+            if (error) throw error;
+            return res.json({ message: `Route released for ${technician_id}` });
+        }
+        const db = readDB();
+        db.route_reservations.forEach(r => {
+            if (r.technician_id === technician_id && r.status === 'ACTIVE') {
+                r.status = 'RELEASED'; r.released_at = nowIso();
+            }
+        });
+        writeDB(db);
+        res.json({ message: `Route released for ${technician_id}` });
+    } catch (err) {
+        console.error('[POST /routes/admin-release]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── GET /api/routes/all  — admin view of all active routes ───────────────
+app.get('/api/routes/all', async (req, res) => {
+    try {
+        if (supabase) {
+            const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+            const { data, error } = await supabase
+                .from('route_reservations')
+                .select('*')
+                .eq('status', 'ACTIVE')
+                .gte('last_activity', cutoff)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return res.json(data || []);
+        }
+        let db = readDB();
+        db = expireRoutesLocal(db);
+        const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+        res.json(db.route_reservations.filter(r => r.status === 'ACTIVE' && r.last_activity >= cutoff));
+    } catch (err) {
+        console.error('[GET /routes/all]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  DUTY STATUS ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── POST /api/duty/toggle ─────────────────────────────────────────────────
+// body: { technician_id, technician_name, is_on_duty, current_gps? }
+app.post('/api/duty/toggle', async (req, res) => {
+    const { technician_id, technician_name, is_on_duty, current_gps } = req.body;
+    if (!technician_id || is_on_duty === undefined)
+        return res.status(400).json({ error: 'technician_id and is_on_duty required' });
+    try {
+        if (supabase) {
+            const { data: existing } = await supabase.from('technician_statuses')
+                .select('id').eq('technician_id', technician_id).maybeSingle();
+            if (existing) {
+                await supabase.from('technician_statuses')
+                    .update({ is_on_duty, last_activity: nowIso(), current_gps: current_gps || null })
+                    .eq('technician_id', technician_id);
+            } else {
+                await supabase.from('technician_statuses').insert({
+                    technician_id,
+                    technician_name: technician_name || technician_id,
+                    is_on_duty,
+                    last_activity: nowIso(),
+                    current_gps: current_gps || null
+                });
+            }
+            return res.json({ message: `Status set to ${is_on_duty ? 'On Duty' : 'Off Duty'}` });
+        }
+        const db = readDB();
+        const rec = getTechStatusLocal(db, technician_id);
+        rec.is_on_duty = is_on_duty;
+        rec.last_activity = nowIso();
+        rec.technician_name = technician_name || technician_id;
+        if (current_gps) rec.current_gps = current_gps;
+        writeDB(db);
+        res.json({ message: `Status set to ${is_on_duty ? 'On Duty' : 'Off Duty'}` });
+    } catch (err) {
+        console.error('[POST /duty/toggle]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/duty/heartbeat ──────────────────────────────────────────────
+// body: { technician_id, current_gps? }  — keeps session alive, updates GPS
+app.post('/api/duty/heartbeat', async (req, res) => {
+    const { technician_id, current_gps } = req.body;
+    if (!technician_id) return res.status(400).json({ error: 'technician_id required' });
+    try {
+        if (supabase) {
+            await supabase.from('technician_statuses')
+                .update({ last_activity: nowIso(), current_gps: current_gps || null })
+                .eq('technician_id', technician_id);
+            // Also bump active route last_activity to prevent premature expiry
+            await supabase.from('route_reservations')
+                .update({ last_activity: nowIso() })
+                .eq('technician_id', technician_id).eq('status', 'ACTIVE');
+            return res.json({ ok: true });
+        }
+        const db = readDB();
+        const rec = getTechStatusLocal(db, technician_id);
+        rec.last_activity = nowIso();
+        if (current_gps) rec.current_gps = current_gps;
+        const route = getActiveRouteLocal(db, technician_id);
+        if (route) route.last_activity = nowIso();
+        writeDB(db);
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── GET /api/duty/status?technician_id= ──────────────────────────────────
+app.get('/api/duty/status', async (req, res) => {
+    const { technician_id } = req.query;
+    if (!technician_id) return res.status(400).json({ error: 'technician_id required' });
+    try {
+        if (supabase) {
+            const { data } = await supabase.from('technician_statuses')
+                .select('*').eq('technician_id', technician_id).maybeSingle();
+            return res.json(data || { technician_id, is_on_duty: true });
+        }
+        const db = readDB();
+        const rec = getTechStatusLocal(db, technician_id);
+        res.json(rec);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── GET /api/duty/all — admin view of all technician statuses + routes ────
+app.get('/api/duty/all', async (req, res) => {
+    try {
+        if (supabase) {
+            const [{ data: statuses }, { data: routes }, { data: techs }] = await Promise.all([
+                supabase.from('technician_statuses').select('*').order('last_activity', { ascending: false }),
+                supabase.from('route_reservations').select('*').eq('status', 'ACTIVE'),
+                supabase.from('users').select('tech_code, display_name').eq('role', 'technician')
+            ]);
+            // Build combined view
+            const routeMap = {};
+            for (const r of (routes || [])) routeMap[r.technician_id] = r;
+            const statusMap = {};
+            for (const s of (statuses || [])) statusMap[s.technician_id] = s;
+            const result = (techs || []).map(t => ({
+                technician_id: t.tech_code,
+                technician_name: t.display_name,
+                is_on_duty: statusMap[t.tech_code]?.is_on_duty ?? false,
+                last_activity: statusMap[t.tech_code]?.last_activity || null,
+                current_gps: statusMap[t.tech_code]?.current_gps || null,
+                active_route: routeMap[t.tech_code] || null
+            }));
+            return res.json(result);
+        }
+        let db = readDB();
+        db = expireRoutesLocal(db);
+        const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+        const techs = db.users.filter(u => u.role === 'technician');
+        const routeMap = {};
+        for (const r of db.route_reservations) {
+            if (r.status === 'ACTIVE' && r.last_activity >= cutoff) routeMap[r.technician_id] = r;
+        }
+        const statusMap = {};
+        for (const s of db.technician_statuses) statusMap[s.technician_id] = s;
+        // Count claimed tickets per tech
+        const claimedMap = {};
+        for (const t of db.tickets) {
+            if (t.status === 'ON_GOING' && t.assigned_to) {
+                claimedMap[t.assigned_to] = (claimedMap[t.assigned_to] || 0) + 1;
+            }
+        }
+        res.json(techs.map(t => ({
+            technician_id: t.tech_code,
+            technician_name: t.display_name,
+            is_on_duty: statusMap[t.tech_code]?.is_on_duty ?? false,
+            last_activity: statusMap[t.tech_code]?.last_activity || null,
+            current_gps: statusMap[t.tech_code]?.current_gps || null,
+            active_route: routeMap[t.tech_code] || null,
+            claimed_count: claimedMap[t.tech_code] || 0
+        })));
+    } catch (err) {
+        console.error('[GET /duty/all]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── GET /api/sync/poll — lightweight state fingerprint for real-time polling
+// Returns a compact snapshot for efficient change detection on the client
+app.get('/api/sync/poll', async (req, res) => {
+    try {
+        if (supabase) {
+            const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+            const [{ data: openTix }, { data: routes }, { data: statuses }] = await Promise.all([
+                supabase.from('tickets').select('id, updated_at').eq('status', 'OPEN').is('assigned_to', null),
+                supabase.from('route_reservations').select('id, technician_id, site_ids, last_activity').eq('status', 'ACTIVE').gte('last_activity', cutoff),
+                supabase.from('technician_statuses').select('technician_id, is_on_duty, last_activity')
+            ]);
+            return res.json({
+                ts: nowIso(),
+                open_count: (openTix || []).length,
+                routes: (routes || []).map(r => ({ id: r.id, tech: r.technician_id, sites: r.site_ids?.length || 0 })),
+                statuses: statuses || []
+            });
+        }
+        let db = readDB();
+        db = expireRoutesLocal(db);
+        const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+        res.json({
+            ts: nowIso(),
+            open_count: db.tickets.filter(t => t.status === 'OPEN' && !t.assigned_to).length,
+            routes: db.route_reservations
+                .filter(r => r.status === 'ACTIVE' && r.last_activity >= cutoff)
+                .map(r => ({ id: r.id, tech: r.technician_id, sites: r.site_ids?.length || 0 })),
+            statuses: db.technician_statuses.map(s => ({ technician_id: s.technician_id, is_on_duty: s.is_on_duty, last_activity: s.last_activity }))
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 app.listen(PORT, () => {
     console.log(`\n🚀  FieldOps running → http://localhost:${PORT}`);
     console.log(`    Mode : ${supabase ? 'Supabase (cloud database)' : 'Local JSON  (database.json)'}`);
