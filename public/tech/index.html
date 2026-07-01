@@ -2355,8 +2355,15 @@ async function reserveSiteFromModal(id,locality,wrap){
 ══════════════════════════════════════════════════════════════════════ */
 let exitModalOpen=false,_backGuardSkipNext=false;
 
+// Small buffer instead of exactly 1 entry: on some Android Chrome/WebView
+// versions a single Back press can pop more than one history entry (a
+// timing/IPC quirk between the renderer and the browser process), which
+// would let a press slip past a 1-entry trap. Keeping a couple of spare
+// entries absorbs that without changing any other behavior.
+const BACK_GUARD_DEPTH=2;
 function _armBackGuard(){
-  history.pushState({fieldOpsGuard:true},'');
+  for(let i=0;i<BACK_GUARD_DEPTH;i++) history.pushState({fieldOpsGuard:true},'');
+  console.log('[BackGuard] armed — history.length='+history.length);
 }
 _armBackGuard(); // arm once at boot so the very first Back press is always interceptable
 
@@ -2382,7 +2389,9 @@ const BACK_GUARD_LAYERS=[
   ()=>document.getElementById('locality-drawer')?.style.display==='block' && (()=>{document.getElementById('locality-drawer').style.display='none';}),
 ];
 
-window.addEventListener('popstate',function(){
+window.addEventListener('popstate',function(e){
+  console.log('[BackGuard] popstate — state='+JSON.stringify(e.state)+' history.length='+history.length+' skip='+_backGuardSkipNext);
+
   if(_backGuardSkipNext){
     _backGuardSkipNext=false;
     // The tab may not have actually closed — scripts can't force-close a
@@ -2397,12 +2406,12 @@ window.addEventListener('popstate',function(){
 
   for(const check of BACK_GUARD_LAYERS){
     const closeFn=check();
-    if(closeFn){ closeFn(); return; }
+    if(closeFn){ console.log('[BackGuard] closing layer: '+closeFn.name); closeFn(); return; }
   }
 
   // Nothing left to close — already on a top-level screen.
-  if(!exitModalOpen) showExitConfirm();
-  // else: a rapid repeated press while the dialog is showing — ignored per spec, trap already re-armed above.
+  if(!exitModalOpen){ console.log('[BackGuard] nothing open — showing exit confirm'); showExitConfirm(); }
+  else console.log('[BackGuard] exit confirm already showing — repeated press ignored');
 });
 
 // Defensive re-arm: Android can restore this page from the browser's
@@ -2411,7 +2420,10 @@ window.addEventListener('popstate',function(){
 // leave our trap entry missing without a popstate ever firing for it.
 // Re-check whenever the page becomes visible again.
 function _ensureBackGuardArmed(){
-  if(!history.state || !history.state.fieldOpsGuard) _armBackGuard();
+  if(!history.state || !history.state.fieldOpsGuard){
+    console.log('[BackGuard] guard missing on visibility/pageshow — re-arming');
+    _armBackGuard();
+  }
 }
 window.addEventListener('pageshow',_ensureBackGuardArmed);
 document.addEventListener('visibilitychange',function(){
@@ -2436,11 +2448,14 @@ function confirmExitApp(){
   document.getElementById('exit-confirm-modal').classList.remove('open');
   _backGuardSkipNext=true;
   try{ window.close(); }catch(e){}
-  // Hand control back to the browser's own history/back behavior — this
-  // is what actually closes the tab / finishes the PWA activity when
-  // there's nothing left before our trap entry, matching normal
-  // Android back-button exit behavior instead of us faking it.
-  history.back();
+  // window.close() only works when this tab was opened by a script, which
+  // is rare for a normally-opened tab or an installed PWA — so it silently
+  // does nothing in most real environments. As a fallback that's guaranteed
+  // to actually do something visible, navigate the whole app away after a
+  // brief delay (skipped automatically if window.close() already worked
+  // and the page is gone). This tears down all in-memory state, timers,
+  // and any camera/GPS usage, so nothing keeps running in the background.
+  setTimeout(function(){ location.href='about:blank'; },80);
 }
 
 async function submitJob(id){
