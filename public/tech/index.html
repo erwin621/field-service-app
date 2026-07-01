@@ -2345,9 +2345,13 @@ async function reserveSiteFromModal(id,locality,wrap){
         dialog or slipping through to a real exit.
 
    "Take a break" briefly disarms the trap and performs the browser's
-   normal exit behavior (closing the tab/PWA); "Stay Online" and the
-   × button just hide the dialog — no history action needed, so no
-   app state is disturbed either way.
+   normal exit behavior (closing the tab/PWA). If the tab doesn't
+   actually close — the common case in a plain browser tab, since
+   scripts can't force-close a page they didn't open — the trap is
+   re-armed as soon as the resulting popstate fires, so Back stays
+   protected instead of being left exposed for the rest of the session.
+   "Stay Online" and the × button just hide the dialog — no history
+   action needed, so no app state is disturbed either way.
 ══════════════════════════════════════════════════════════════════════ */
 let exitModalOpen=false,_backGuardSkipNext=false;
 
@@ -2379,7 +2383,15 @@ const BACK_GUARD_LAYERS=[
 ];
 
 window.addEventListener('popstate',function(){
-  if(_backGuardSkipNext){_backGuardSkipNext=false;return;} // intentional exit in progress — let it proceed untouched
+  if(_backGuardSkipNext){
+    _backGuardSkipNext=false;
+    // The tab may not have actually closed — scripts can't force-close a
+    // page they didn't open themselves, which is the common case for a
+    // plain browser tab. Re-arm so Back stays protected either way instead
+    // of leaving the guard permanently missing for the rest of the session.
+    _armBackGuard();
+    return;
+  }
 
   _armBackGuard(); // re-arm immediately so every subsequent Back press stays interceptable
 
@@ -2391,6 +2403,19 @@ window.addEventListener('popstate',function(){
   // Nothing left to close — already on a top-level screen.
   if(!exitModalOpen) showExitConfirm();
   // else: a rapid repeated press while the dialog is showing — ignored per spec, trap already re-armed above.
+});
+
+// Defensive re-arm: Android can restore this page from the browser's
+// back/forward cache (bfcache) or resume it after the app was backgrounded
+// (switching apps, notifications, screen lock), which can occasionally
+// leave our trap entry missing without a popstate ever firing for it.
+// Re-check whenever the page becomes visible again.
+function _ensureBackGuardArmed(){
+  if(!history.state || !history.state.fieldOpsGuard) _armBackGuard();
+}
+window.addEventListener('pageshow',_ensureBackGuardArmed);
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible') _ensureBackGuardArmed();
 });
 
 function showExitConfirm(){
