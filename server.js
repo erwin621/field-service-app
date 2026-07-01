@@ -255,6 +255,7 @@ async function runTaskSync({ sites, upload_type, batch_name, uploaded_by }) {
                     locality:    site.locality    || '',
                     address:     site.address     || '',
                     coordinates: site.coordinates || '',
+                    site_notes:  site.notes || '', // optional admin-entered site notes (distinct from technician completion `notes`)
                     status:      'OPEN',
                     priority:    (site.priority || DEFAULT_NEW_SITE_PRIORITY).toUpperCase(),
                     ticket_id:   null, // ticket NUMBER only exists from claim onward
@@ -339,6 +340,7 @@ async function runTaskSync({ sites, upload_type, batch_name, uploaded_by }) {
                 id: generateId(), ticket_id: null,
                 site_id: siteId, site_name: site.site_name,
                 locality: site.locality || '', address: site.address || '', coordinates: site.coordinates || '',
+                site_notes: site.notes || '', // optional admin-entered site notes (distinct from technician completion `notes`)
                 status: 'OPEN', priority: (site.priority || DEFAULT_NEW_SITE_PRIORITY).toUpperCase(),
                 assigned_to: null, proof_url: [], notes: '',
                 cancellation_reason: null, cancelled_by: null,
@@ -1129,7 +1131,7 @@ app.post('/api/admin/batch-upload', async (req, res) => {
 //  ignored — re-adding those sites is allowed.
 // ═══════════════════════════════════════════════════════════════════════════
 app.post('/api/admin/single-site', async (req, res) => {
-    const { site_id, site_name, locality, address, coordinates, priority, uploaded_by } = req.body;
+    const { site_id, site_name, locality, address, coordinates, priority, uploaded_by, notes } = req.body;
     if (!site_id || !site_name)
         return res.status(400).json({ error: 'site_id and site_name are required' });
 
@@ -1183,6 +1185,7 @@ app.post('/api/admin/single-site', async (req, res) => {
                 locality:    locality    || '',
                 address:     address     || '',
                 coordinates: coordinates || '',
+                site_notes:  notes || '', // optional admin-entered site notes (distinct from technician completion `notes`)
                 status:      'OPEN',
                 priority:    (priority || 'MEDIUM').toUpperCase(),
                 ticket_id:   null,
@@ -1228,6 +1231,7 @@ app.post('/api/admin/single-site', async (req, res) => {
                 id: generateId(), ticket_id: null,
                 site_id: siteId, site_name: site_name.trim(),
                 locality: locality || '', address: address || '', coordinates: coordinates || '',
+                site_notes: notes || '', // optional admin-entered site notes (distinct from technician completion `notes`)
                 status: 'OPEN', priority: (priority || 'MEDIUM').toUpperCase(),
                 assigned_to: null, proof_url: [], notes: '',
                 cancellation_reason: null, cancelled_by: null,

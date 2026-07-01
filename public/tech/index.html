@@ -805,6 +805,57 @@ button{cursor:pointer}
 
 /* ── Pulse on map marker ── */
 @keyframes markerPop{from{transform:scale(0) translateY(8px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+
+/* ══════════════════════════════════════
+   SITE DETAILS MODAL — full-screen page that slides in from the right
+   when a site card in the Open tab is tapped. The underlying screen is
+   left completely untouched underneath (scroll position, filters,
+   tabs, route state all persist automatically since we never tear
+   down or re-render the page behind it).
+══════════════════════════════════════ */
+.jc{cursor:pointer}
+#site-modal{
+  position:fixed;inset:0;z-index:140;
+  background:var(--bg);
+  max-width:480px;margin:0 auto;
+  display:flex;flex-direction:column;
+  transform:translateX(100%);
+  visibility:hidden;
+  transition:transform .32s cubic-bezier(.34,.9,.4,1),visibility 0s linear .32s;
+  will-change:transform;
+}
+#site-modal.open{
+  transform:translateX(0);
+  visibility:visible;
+  transition:transform .32s cubic-bezier(.34,.9,.4,1);
+}
+.sm-hdr{
+  position:relative;z-index:2;flex-shrink:0;
+  display:flex;align-items:center;gap:11px;
+  height:var(--header-h);padding:0 16px;
+  background:rgba(255,255,255,.97);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--bd);
+}
+.sm-hdr-title{flex:1;font-size:14.5px;font-weight:800;letter-spacing:-.02em;color:var(--tx)}
+.sm-card{background:var(--card);border:1px solid rgba(229,231,235,.8);border-radius:4px;box-shadow:var(--s2);overflow:hidden;margin-bottom:20px}
+.sm-card-strip{height:6px}
+.sm-card-strip.LOW{background:linear-gradient(120deg,var(--teal),var(--teal-dk))}
+.sm-card-strip.MEDIUM{background:linear-gradient(120deg,#FBBF24,var(--amber-dk))}
+.sm-card-strip.HIGH{background:linear-gradient(120deg,#F87171,var(--red-dk))}
+.sm-card-strip.CRITICAL{background:linear-gradient(120deg,#9B1C1C,#4C0808)}
+.sm-card-body{padding:20px 18px}
+.sm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+.sm-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--fm);font-size:.78rem;font-weight:700;color:var(--tx2);background:var(--srf2);border:1px solid var(--bd);border-radius:4px;padding:6px 10px}
+.sm-copy-btn{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;border-radius:4px;border:1.5px solid var(--teal);background:transparent;color:var(--teal-dk);font-size:.7rem;font-weight:800;letter-spacing:.03em;cursor:pointer;transition:all .18s;font-family:var(--ff)}
+.sm-copy-btn:hover{background:var(--teal-lt)}
+.sm-copy-btn:active{transform:scale(.93)}
+.sm-name{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;color:var(--tx);line-height:1.3;margin-bottom:12px}
+.sm-meta{display:flex;align-items:center;gap:6px;color:var(--tx2);font-size:.8rem;font-weight:500}
+.sm-notes-box{background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:16px;font-size:.84rem;line-height:1.65;color:var(--tx);white-space:pre-wrap;word-break:break-word;box-shadow:var(--s1)}
+.sm-notes-box.empty{color:var(--tx3);font-style:italic}
+.sm-acts{display:flex;flex-direction:column;gap:10px;margin-top:24px}
+.sm-reserved-state{display:flex;align-items:center;gap:8px;height:50px;padding:0 16px;border-radius:4px;background:var(--teal-lt);border:1.5px solid rgba(20,184,166,.3);color:var(--teal-dk);font-size:.8rem;font-weight:800}
+.sm-locked-state{display:flex;align-items:center;gap:8px;height:auto;min-height:50px;padding:12px 16px;border-radius:4px;background:var(--amber-lt);border:1.5px solid var(--amber-bd);color:var(--amber-dk);font-size:.76rem;font-weight:700;line-height:1.45}
 </style>
 </style>
 </head>
@@ -1297,6 +1348,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[];
+let smTicket=null,smHistoryPushed=false,cardClickGuardId=null,cardClickGuardUntil=0;
 let selectedUploadType='FULL_SNAPSHOT';
 function selectUploadType(t){
   selectedUploadType=t;
@@ -1632,6 +1684,7 @@ function logout(){
   document.getElementById('tch-err').classList.remove('show');
   document.getElementById('tools-overlay').style.display='none';
   document.getElementById('profile-overlay').style.display='none';
+  closeSiteModal();
   camClose();camPreviewClose();
   go('tech-auth');
 }
@@ -1649,6 +1702,7 @@ function techNav(section){
   document.getElementById('navtab-'+section).classList.add('active');
   document.getElementById('tools-overlay').style.display='none';
   document.getElementById('profile-overlay').style.display='none';
+  closeSiteModal();
   navHide.show();
 
   if(section==='open'){
@@ -1931,7 +1985,7 @@ function renderOpen(tix){
     const resBadge=res
       ? `<span class="reserved-badge${isMine?' reserved-mine':''}">${ic(isMine?'routeNav':'lock',11)} ${isMine?'In Your Route':'Reserved'}</span>`
       : '';
-    return `<div class="jc ${t.priority} fade-up" id="oc-${t.id}" style="animation-delay:${Math.min(i,5)*0.04}s">
+    return `<div class="jc ${t.priority} fade-up" id="oc-${t.id}" style="animation-delay:${Math.min(i,5)*0.04}s" onclick="cardTap('${t.id}')">
     <div class="jc-head">
       <span class="jc-dist">${distLabel}</span>
       <div style="display:flex;align-items:center;gap:6px">${resBadge}<span class="jc-pbdg">${t.priority}</span></div>
@@ -1945,7 +1999,7 @@ function renderOpen(tix){
         <span class="slide-claim-label">Slide to Claim</span>
         <div class="slide-claim-thumb">${ic('chevR',15)}${ic('chevR',15)}</div>
       </div>
-      <a class="btn nav" href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank">${ic('nav',14)} Navigate</a>
+      <a class="btn nav" href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank" onclick="event.stopPropagation()">${ic('nav',14)} Navigate</a>
     </div>
     ${isOthers?`<div class="slide-claim-locked-label">${ic('lock',12)} Reserved by ${res.reserved_by_name||'another technician'} — wait for release</div>`:''}
     ${isMine&&!isOthers?`<div style="font-size:.7rem;color:var(--teal-dk);margin-top:6px;display:flex;align-items:center;gap:5px">${ic('routeNav',12)} This site is part of your active route</div>`:''}
@@ -2042,7 +2096,10 @@ function resetSlideClaim(wrap){
   if(thumb){thumb.style.transition='transform .25s cubic-bezier(.34,1.4,.64,1)';thumb.style.transform='translateX(0)';}
   if(label){label.textContent='Slide to Claim';label.style.opacity=1;}
 }
-/* ── Slide-to-claim drag handling (event delegation; cards re-render on every loadOpen) ── */
+/* ── Slide-to-claim drag handling (event delegation; cards re-render on every loadOpen) ──
+   Also powers the Site Details Modal's "Slide to Reserve" control: any wrapper with
+   data-action="reserve" routes to reserveSiteFromModal() instead of claimJob() on
+   a successful slide. Default (no data-action) preserves the original claim behavior. ── */
 (function(){
   let wrap=null,thumb=null,label=null,startX=0,curX=0,maxX=0;
   function down(e){
@@ -2077,11 +2134,19 @@ function resetSlideClaim(wrap){
     document.removeEventListener('touchend',up);
     thumb.style.transition='transform .25s cubic-bezier(.34,1.4,.64,1)';
     const w=wrap,id=w.dataset.id,lbl=label;
+    if(curX>4){ // any meaningful drag — suppress a stray card-tap click right after
+      cardClickGuardId=id;cardClickGuardUntil=Date.now()+400;
+    }
     if(curX>=maxX*0.8){
       thumb.style.transform=`translateX(${maxX}px)`;
       w.classList.add('claimed','disabled');
-      if(lbl){lbl.textContent='Claiming...';lbl.style.opacity=1;}
-      claimJob(id,w);
+      if(w.dataset.action==='reserve'){
+        if(lbl){lbl.textContent='Reserving...';lbl.style.opacity=1;}
+        reserveSiteFromModal(id,w.dataset.locality,w);
+      } else {
+        if(lbl){lbl.textContent='Claiming...';lbl.style.opacity=1;}
+        claimJob(id,w);
+      }
     }else{
       thumb.style.transform='translateX(0)';
       if(lbl)lbl.style.opacity=1;
@@ -2091,6 +2156,153 @@ function resetSlideClaim(wrap){
   document.addEventListener('mousedown',down);
   document.addEventListener('touchstart',down,{passive:true});
 })();
+
+/* ══════════════════════════════════════════════════════════════════════
+   SITE DETAILS MODAL
+   Opens as a full-screen page sliding in from the right when a site
+   card in the Open tab is tapped. The screen underneath is never torn
+   down or re-rendered while the modal is open, so scroll position,
+   active filters, search results, selected tabs, route state, and
+   open/claimed job state are all preserved automatically.
+
+   Back-button behavior: opening the modal pushes one history entry;
+   the system Back button (or gesture) fires `popstate`, which closes
+   the modal in place without affecting the underlying screen. Tapping
+   the in-modal Back button closes the modal the same way, by calling
+   history.back() so both paths stay in sync with the browser's
+   history stack.
+══════════════════════════════════════════════════════════════════════ */
+function cardTap(id){
+  // Ignore the synthetic click that can follow a slide-to-claim drag
+  if(cardClickGuardId===id && Date.now()<cardClickGuardUntil) return;
+  openSiteModal(id);
+}
+
+function openSiteModal(id){
+  const t=openCache.find(x=>x.id===id);
+  if(!t) return;
+  smTicket=t;
+  renderSiteModalContent(t);
+  const body=document.getElementById('sm-body');
+  if(body) body.scrollTop=0;
+  const card=document.querySelector('#site-modal .sm-card');
+  if(card){ card.classList.remove('fade-up'); void card.offsetWidth; card.classList.add('fade-up'); }
+  document.getElementById('site-modal').classList.add('open');
+  if(!smHistoryPushed){
+    history.pushState({siteDetailsModal:true},'');
+    smHistoryPushed=true;
+  }
+}
+
+function closeSiteModal(fromPopstate){
+  const modal=document.getElementById('site-modal');
+  if(!modal.classList.contains('open')) return;
+  modal.classList.remove('open');
+  if(smHistoryPushed){
+    smHistoryPushed=false;
+    if(!fromPopstate) history.back();
+  }
+}
+
+window.addEventListener('popstate',function(){
+  const modal=document.getElementById('site-modal');
+  if(modal && modal.classList.contains('open')) closeSiteModal(true);
+});
+
+function renderSiteModalContent(t){
+  document.getElementById('sm-tag-row').innerHTML=`${ic('tag',13)} ${t.site_id||'—'}`;
+  document.getElementById('sm-site-name').textContent=t.site_name||'Untitled Site';
+  document.getElementById('sm-meta-row').innerHTML=`${ic('pin',13)} ${t.locality||'—'}`;
+  document.getElementById('sm-copy-btn').innerHTML=`${ic('clipboard',13)} Copy`;
+  document.querySelector('#site-modal .sm-card-strip').className='sm-card-strip '+(t.priority||'MEDIUM');
+
+  const notesEl=document.getElementById('sm-notes');
+  const notesVal=(t.site_notes||'').trim();
+  if(notesVal){
+    notesEl.textContent=notesVal;
+    notesEl.classList.remove('empty');
+  } else {
+    notesEl.textContent='No notes available.';
+    notesEl.classList.add('empty');
+  }
+
+  const mapsLink=document.getElementById('sm-maps-link');
+  mapsLink.href=`https://www.google.com/maps/search/?api=1&query=${t.coordinates||''}`;
+  mapsLink.innerHTML=`${ic('nav',14)} Open in Maps`;
+
+  renderSiteModalReserveZone(t);
+}
+
+function renderSiteModalReserveZone(t){
+  const zone=document.getElementById('sm-reserve-zone');
+  const res=t.reservation;
+  const isMine=res&&CU&&res.reserved_by===CU.id;
+  const isOthers=res&&CU&&res.reserved_by!==CU.id;
+  if(isOthers){
+    zone.innerHTML=`<div class="sm-locked-state">${ic('lock',15)} Reserved by ${res.reserved_by_name||'another technician'} — wait for release</div>`;
+  } else if(isMine){
+    zone.innerHTML=`<div class="sm-reserved-state">${ic('routeNav',16)} Already in your route</div>`;
+  } else {
+    const loc=(t.locality||'').replace(/"/g,'&quot;');
+    zone.innerHTML=`<div class="slide-claim" data-id="${t.id}" data-action="reserve" data-locality="${loc}">
+      <span class="slide-claim-label">Slide to Reserve</span>
+      <div class="slide-claim-thumb">${ic('chevR',15)}${ic('chevR',15)}</div>
+    </div>`;
+  }
+}
+
+async function copySiteInfo(){
+  if(!smTicket) return;
+  const t=smTicket;
+  const notesVal=(t.site_notes||'').trim()||'No notes available.';
+  const text=`Site ID: ${t.site_id||'—'}\nSite Name: ${t.site_name||'—'}\nLocality: ${t.locality||'—'}\nNotes: ${notesVal}`;
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta=document.createElement('textarea');
+      ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.focus();ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    toast('Site info copied!','ok');
+  }catch(e){
+    toast('Could not copy to clipboard.','err');
+  }
+}
+
+async function reserveSiteFromModal(id,locality,wrap){
+  const label=wrap?wrap.querySelector('.slide-claim-label'):null;
+  if(!CU){toast('Please sign in again.','err');resetSlideClaim(wrap);return;}
+  try{
+    let r;
+    if(RouteState.active && Array.isArray(RouteState.active.site_ids)){
+      const newIds=[...new Set([...(RouteState.active.site_ids||[]),id])];
+      r=await fetch('/api/routes/update-sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,site_ids:newIds})});
+    } else {
+      r=await fetch('/api/routes/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,technician_name:CU.name,locality:locality||'Unknown',site_ids:[id]})});
+    }
+    const d=await r.json();
+    if(r.ok){
+      toast('Site added to your route.','ok');
+      if(label) label.textContent='Reserved ✓';
+      await loadMyRoute();
+      loadOpen();
+      if(smTicket && smTicket.id===id){
+        smTicket={...smTicket,reservation:{reserved_by:CU.id,reserved_by_name:CU.name}};
+        renderSiteModalReserveZone(smTicket);
+      }
+    } else {
+      toast(d.error||'Could not reserve site.','err');
+      resetSlideClaim(wrap);
+    }
+  }catch(e){
+    toast('Cannot reach server.','err');
+    resetSlideClaim(wrap);
+  }
+}
+
 async function submitJob(id){
   const inp=document.getElementById('pf-'+id),btn=document.getElementById('sbtn-'+id);
   const notes=document.getElementById('note-'+id)?.value.trim()||'';
@@ -5738,6 +5950,35 @@ function camUpdateAttachmentStrip(jobId) {
 <!-- ══════════════════════════════════════ MY ROUTE PANEL (sub-page of Tools) ══════════════════════════════════════ -->
 <div id="route-overlay" style="display:none;position:fixed;inset:0;z-index:135;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
 </div>
+<!-- ══════════════════════════════════════ SITE DETAILS MODAL (full-screen page, slides in from a tapped Open-tab card) ══════════════════════════════════════ -->
+<div id="site-modal">
+  <div class="sm-hdr">
+    <button class="icon-btn" onclick="closeSiteModal()" aria-label="Back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </button>
+    <div class="sm-hdr-title">Site Details</div>
+  </div>
+  <div class="app-scroll" id="sm-body" style="padding-top:18px">
+    <div class="sm-card fade-up">
+      <div class="sm-card-strip MEDIUM"></div>
+      <div class="sm-card-body">
+        <div class="sm-row">
+          <span class="sm-tag" id="sm-tag-row"></span>
+          <button class="sm-copy-btn" onclick="copySiteInfo()" id="sm-copy-btn"></button>
+        </div>
+        <div class="sm-name" id="sm-site-name"></div>
+        <div class="sm-meta" id="sm-meta-row"></div>
+      </div>
+    </div>
+    <div class="section-label">Notes</div>
+    <div class="sm-notes-box" id="sm-notes"></div>
+    <div class="sm-acts">
+      <a class="btn nav xl" id="sm-maps-link" href="#" target="_blank" rel="noopener" style="width:100%"></a>
+      <div id="sm-reserve-zone"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════ OFF-DUTY ROUTE MODAL ══════════════════════════════════════ -->
 <div id="modal-offduty" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:24px">
   <div style="background:var(--card);border-radius:4px;padding:24px;max-width:360px;width:100%;box-shadow:var(--s4);border:1px solid var(--bd)">

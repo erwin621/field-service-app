@@ -606,7 +606,10 @@ button{cursor:pointer}
         <div class="fg"><label class="flbl">Locality</label><input class="finp" id="ss-loc" type="text" placeholder="e.g. Caloocan City"></div>
         <div class="fg"><label class="flbl">Address</label><input class="finp" id="ss-addr" type="text" placeholder="e.g. 450 A. Mabini St, Poblacion, Caloocan"></div>
         <div class="fg"><label class="flbl">Coordinates <span style="font-weight:400;color:var(--tx3)">(lat, lng)</span></label><input class="finp" id="ss-coords" type="text" placeholder="e.g. 14.647097, 120.972037" inputmode="decimal"></div>
-        <div class="fg" style="margin-bottom:0"><label class="flbl">Priority</label>
+        <div class="fg" style="margin-bottom:0"><label class="flbl">Notes <span style="font-weight:400;color:var(--tx3)">(optional)</span></label>
+          <textarea class="finp" id="ss-notes" rows="3" style="height:auto;padding:11px 14px;resize:vertical;font-family:var(--ff)" placeholder="e.g. Gate code is 4471, ask for the site caretaker on arrival..."></textarea>
+        </div>
+        <div class="fg" style="margin-top:14px;margin-bottom:0"><label class="flbl">Priority</label>
           <select class="fsel" id="ss-prio">
             <option value="MEDIUM">MEDIUM (default)</option>
             <option value="LOW">LOW</option>
@@ -621,10 +624,10 @@ button{cursor:pointer}
       <div class="batchbox">
         <div class="stitle">CSV Batch Upload</div>
         <p style="font-size:.78rem;color:var(--tx2);margin-bottom:12px">One site per line. Header row is skipped automatically.</p>
-        <textarea class="batchta" id="batch-in" placeholder="site_id,site_name,locality,address,coordinates,priority
-SITE-201,Tower Alpha,Caloocan,Rizal Ave,14.65 120.98,HIGH
+        <textarea class="batchta" id="batch-in" placeholder="site_id,site_name,locality,address,coordinates,priority,notes
+SITE-201,Tower Alpha,Caloocan,Rizal Ave,14.65 120.98,HIGH,Gate code 4471
 SITE-202,Hub Beta,Valenzuela,McArthur Hwy,14.70 120.97,MEDIUM"></textarea>
-        <div class="batchhint">Format: site_id, site_name, locality, address, coordinates, priority (optional — defaults to MEDIUM for new sites)</div>
+        <div class="batchhint">Format: site_id, site_name, locality, address, coordinates, priority, notes (priority and notes are both optional — priority defaults to MEDIUM for new sites)</div>
         <button class="btn primary sm" style="margin-top:14px" onclick="runBatch()" id="batch-btn">Process Batch Upload</button>
         <div class="smsg" id="batch-msg"></div>
       </div>
@@ -1293,6 +1296,7 @@ async function submitSingleSite(){
   const loc     = document.getElementById('ss-loc').value.trim();
   const addr    = document.getElementById('ss-addr').value.trim();
   const coords  = document.getElementById('ss-coords').value.trim();
+  const notes   = document.getElementById('ss-notes').value.trim();
   const prio    = document.getElementById('ss-prio').value;
   const msg     = document.getElementById('ss-msg');
   const btn     = document.getElementById('ss-btn');
@@ -1310,6 +1314,7 @@ async function submitSingleSite(){
       body:JSON.stringify({
         site_id:siteId, site_name:siteName,
         locality:loc, address:addr, coordinates:coords,
+        notes:notes,
         priority:prio,
         uploaded_by:CU?(CU.name||CU.id):'admin'
       })
@@ -1318,7 +1323,7 @@ async function submitSingleSite(){
     if(r.ok){
       msg.innerHTML=ic('check',14)+' '+d.message;msg.className='smsg ok';
       // Clear form on success
-      ['ss-id','ss-name','ss-loc','ss-addr','ss-coords'].forEach(id=>document.getElementById(id).value='');
+      ['ss-id','ss-name','ss-loc','ss-addr','ss-coords','ss-notes'].forEach(id=>document.getElementById(id).value='');
       document.getElementById('ss-prio').value='MEDIUM';
       loadAdminData();
     } else {
@@ -1338,8 +1343,8 @@ async function runBatch(){
   if(!raw){msg.innerHTML=ic('x',14)+' No data entered.';msg.className='smsg err';return;}
   const lines=raw.split('\n').filter(l=>l.trim()&&!l.toLowerCase().startsWith('site_id'));
   const sites=lines.map(l=>{
-    const[site_id,site_name,locality,address,coordinates,priority]=parseCSVLine(l);
-    return{site_id,site_name,locality,address,coordinates,priority:priority?priority.toUpperCase():undefined};
+    const[site_id,site_name,locality,address,coordinates,priority,notes]=parseCSVLine(l);
+    return{site_id,site_name,locality,address,coordinates,priority:priority?priority.toUpperCase():undefined,notes:notes||''};
   }).filter(s=>s.site_id);
   if(!sites.length){msg.innerHTML=ic('x',14)+' No valid rows found.';msg.className='smsg err';return;}
   try{
