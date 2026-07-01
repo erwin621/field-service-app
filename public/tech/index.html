@@ -501,6 +501,25 @@ button{cursor:pointer}
 .mbconf:active{transform:scale(.96)}
 
 /* ══════════════════════════════════════
+   EXIT CONFIRMATION MODAL — shown when the device Back button is
+   pressed with nothing left in-app to close (a genuine attempt to
+   leave Field Ops from a top-level screen: Open, Task, Tools, Profile).
+══════════════════════════════════════ */
+#exit-confirm-modal{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:600;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#exit-confirm-modal.open{display:flex}
+.ecard{background:var(--card);border-radius:4px;padding:32px;width:100%;max-width:380px;box-shadow:0 32px 64px rgba(15,23,42,.18),0 12px 24px rgba(15,23,42,.10);animation:modal-in .3s cubic-bezier(.34,1.2,.64,1);position:relative}
+.ecard-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:4px;border:none;background:var(--srf2);color:var(--tx2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+.ecard-close:hover{background:var(--bd);color:var(--tx)}
+.ehd{font-size:1.1rem;font-weight:800;margin-bottom:8px;letter-spacing:-.02em;color:var(--tx);padding-right:26px}
+.esub{font-size:.8rem;color:var(--tx2);margin-bottom:24px;line-height:1.6}
+.eacts{display:flex;flex-direction:column;gap:10px}
+.ebexit{padding:14px;background:linear-gradient(135deg,var(--teal),var(--teal-dk));border:none;color:#fff;border-radius:4px;font-size:.85rem;font-weight:800;transition:.18s;box-shadow:0 4px 14px rgba(20,184,166,.28);cursor:pointer;font-family:var(--ff)}
+.ebexit:hover{box-shadow:0 6px 20px rgba(20,184,166,.36)}
+.ebexit:active{transform:scale(.96)}
+.ebstay{padding:14px;background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx2);border-radius:4px;font-size:.85rem;font-weight:700;transition:.18s;cursor:pointer;font-family:var(--ff)}
+.ebstay:hover{border-color:var(--bd2);color:var(--tx)}
+
+/* ══════════════════════════════════════
    UTILITIES
 ══════════════════════════════════════ */
 .empty{text-align:center;padding:64px 20px}
@@ -870,6 +889,21 @@ button{cursor:pointer}
     <div class="macts">
       <button class="mbback" onclick="closeModal()">Go Back</button>
       <button class="mbconf" onclick="confirmCancel()">Confirm Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ EXIT CONFIRMATION MODAL (shown when the device Back button is pressed with nothing left in-app to close) ══════════════════════════════════════ -->
+<div id="exit-confirm-modal">
+  <div class="ecard">
+    <button class="ecard-close" onclick="hideExitConfirm()" aria-label="Close">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="ehd">Take a break?</div>
+    <div class="esub">You've been using Field Ops for a while. Would you like to exit the application or continue working?</div>
+    <div class="eacts">
+      <button class="ebexit" onclick="confirmExitApp()">Take a break</button>
+      <button class="ebstay" onclick="hideExitConfirm()">Stay Online</button>
     </div>
   </div>
 </div>
@@ -1348,7 +1382,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[];
-let smTicket=null,smHistoryPushed=false,cardClickGuardId=null,cardClickGuardUntil=0;
+let smTicket=null,cardClickGuardId=null,cardClickGuardUntil=0;
 let selectedUploadType='FULL_SNAPSHOT';
 function selectUploadType(t){
   selectedUploadType=t;
@@ -2165,12 +2199,11 @@ function resetSlideClaim(wrap){
    active filters, search results, selected tabs, route state, and
    open/claimed job state are all preserved automatically.
 
-   Back-button behavior: opening the modal pushes one history entry;
-   the system Back button (or gesture) fires `popstate`, which closes
-   the modal in place without affecting the underlying screen. Tapping
-   the in-modal Back button closes the modal the same way, by calling
-   history.back() so both paths stay in sync with the browser's
-   history stack.
+   Back-button behavior for this modal is handled centrally by the
+   Android back-button guard further down (see "BACK BUTTON GUARD").
+   This keeps a single source of truth for what the device Back button
+   does across every overlay in the app, instead of each overlay
+   managing its own history entries.
 ══════════════════════════════════════════════════════════════════════ */
 function cardTap(id){
   // Ignore the synthetic click that can follow a slide-to-claim drag
@@ -2188,26 +2221,11 @@ function openSiteModal(id){
   const card=document.querySelector('#site-modal .sm-card');
   if(card){ card.classList.remove('fade-up'); void card.offsetWidth; card.classList.add('fade-up'); }
   document.getElementById('site-modal').classList.add('open');
-  if(!smHistoryPushed){
-    history.pushState({siteDetailsModal:true},'');
-    smHistoryPushed=true;
-  }
 }
 
-function closeSiteModal(fromPopstate){
-  const modal=document.getElementById('site-modal');
-  if(!modal.classList.contains('open')) return;
-  modal.classList.remove('open');
-  if(smHistoryPushed){
-    smHistoryPushed=false;
-    if(!fromPopstate) history.back();
-  }
+function closeSiteModal(){
+  document.getElementById('site-modal').classList.remove('open');
 }
-
-window.addEventListener('popstate',function(){
-  const modal=document.getElementById('site-modal');
-  if(modal && modal.classList.contains('open')) closeSiteModal(true);
-});
 
 function renderSiteModalContent(t){
   document.getElementById('sm-tag-row').innerHTML=`${ic('tag',13)} ${t.site_id||'—'}`;
@@ -2254,7 +2272,8 @@ function renderSiteModalReserveZone(t){
 async function copySiteInfo(){
   if(!smTicket) return;
   const t=smTicket;
-  const text=`${t.site_id||'—'}\n${t.site_name||'—'}`;
+  const notesVal=(t.site_notes||'').trim()||'No notes available.';
+  const text=`Site ID: ${t.site_id||'—'}\nSite Name: ${t.site_name||'—'}\nLocality: ${t.locality||'—'}\nNotes: ${notesVal}`;
   try{
     if(navigator.clipboard && navigator.clipboard.writeText){
       await navigator.clipboard.writeText(text);
@@ -2300,6 +2319,103 @@ async function reserveSiteFromModal(id,locality,wrap){
     toast('Cannot reach server.','err');
     resetSlideClaim(wrap);
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ANDROID BACK BUTTON — EXIT CONFIRMATION GUARD
+   ────────────────────────────────────────────────────────────────────
+   A single history entry is kept "armed" at all times as a trap: every
+   time the device/browser Back button pops it, popstate fires here
+   instead of the app actually navigating away or exiting. We inspect
+   what's currently on screen —
+
+     1. If any in-app overlay/modal/subpage is open (Site Details,
+        cancel-reason dialog, Tools sub-pages, camera, doc scanner,
+        locality filter, etc.) we close only the topmost one and
+        re-arm the trap. Nothing else changes; this is indistinguishable
+        from a normal "navigate back" and existing screen state (scroll
+        position, filters, selected tabs, route/claim state) is left
+        completely untouched since we never re-render the page beneath.
+
+     2. If nothing is open — i.e. the user is already on a top-level
+        screen (Open, Task, Tools, Profile) and this Back press would
+        otherwise close the app — we show the Exit Confirmation modal
+        instead, and re-arm the trap so a rapid second press while the
+        dialog is showing is simply ignored rather than stacking another
+        dialog or slipping through to a real exit.
+
+   "Take a break" briefly disarms the trap and performs the browser's
+   normal exit behavior (closing the tab/PWA); "Stay Online" and the
+   × button just hide the dialog — no history action needed, so no
+   app state is disturbed either way.
+══════════════════════════════════════════════════════════════════════ */
+let exitModalOpen=false,_backGuardSkipNext=false;
+
+function _armBackGuard(){
+  history.pushState({fieldOpsGuard:true},'');
+}
+_armBackGuard(); // arm once at boot so the very first Back press is always interceptable
+
+function _isOverlayVisible(id){
+  const el=document.getElementById(id);
+  return !!el && el.style.display==='flex';
+}
+
+// Checked top-to-bottom; the FIRST match found open is closed and we stop there
+// (closing one layer per Back press, same as normal drill-down navigation).
+const BACK_GUARD_LAYERS=[
+  ()=>document.getElementById('modal-cancel')?.classList.contains('open') && closeModal,
+  ()=>_isOverlayVisible('docscan-enhance-overlay') && docScanEnhanceBack,
+  ()=>_isOverlayVisible('docscan-adjust-overlay')  && docScanAdjustBack,
+  ()=>_isOverlayVisible('cam-preview-overlay')     && camPreviewBack,
+  ()=>_isOverlayVisible('docscan-overlay')         && docScanClose,
+  ()=>_isOverlayVisible('camera-overlay')          && camClose,
+  ()=>_isOverlayVisible('cam-settings-overlay')    && closeCamSettings,
+  ()=>_isOverlayVisible('income-overlay')          && closeIncomeOverlay,
+  ()=>_isOverlayVisible('navigator-overlay')       && closeNavigatorOverlay,
+  ()=>_isOverlayVisible('route-overlay')           && closeRouteOverlay,
+  ()=>document.getElementById('site-modal')?.classList.contains('open') && closeSiteModal,
+  ()=>document.getElementById('locality-drawer')?.style.display==='block' && (()=>{document.getElementById('locality-drawer').style.display='none';}),
+];
+
+window.addEventListener('popstate',function(){
+  if(_backGuardSkipNext){_backGuardSkipNext=false;return;} // intentional exit in progress — let it proceed untouched
+
+  _armBackGuard(); // re-arm immediately so every subsequent Back press stays interceptable
+
+  for(const check of BACK_GUARD_LAYERS){
+    const closeFn=check();
+    if(closeFn){ closeFn(); return; }
+  }
+
+  // Nothing left to close — already on a top-level screen.
+  if(!exitModalOpen) showExitConfirm();
+  // else: a rapid repeated press while the dialog is showing — ignored per spec, trap already re-armed above.
+});
+
+function showExitConfirm(){
+  if(exitModalOpen) return; // never stack a second dialog
+  exitModalOpen=true;
+  document.getElementById('exit-confirm-modal').classList.add('open');
+}
+
+function hideExitConfirm(){
+  exitModalOpen=false;
+  document.getElementById('exit-confirm-modal').classList.remove('open');
+  // No history action needed — the trap is already armed, and nothing
+  // about the underlying screen was touched, so all state is preserved.
+}
+
+function confirmExitApp(){
+  exitModalOpen=false;
+  document.getElementById('exit-confirm-modal').classList.remove('open');
+  _backGuardSkipNext=true;
+  try{ window.close(); }catch(e){}
+  // Hand control back to the browser's own history/back behavior — this
+  // is what actually closes the tab / finishes the PWA activity when
+  // there's nothing left before our trap entry, matching normal
+  // Android back-button exit behavior instead of us faking it.
+  history.back();
 }
 
 async function submitJob(id){
