@@ -159,7 +159,13 @@ button{cursor:pointer}
   height:100vh;height:100dvh;
   width:100%;max-width:480px;margin:0 auto;background:var(--bg);
   position:relative;overflow-x:hidden;overflow-y:hidden;
+  transition:transform .32s cubic-bezier(.34,.9,.4,1);
+  will-change:transform;
 }
+/* Android-style "push" parallax: the Open List shifts left underneath
+   Site Details as it slides in from the right, and returns in sync when
+   Site Details closes. Kept perfectly in sync via matching duration/easing. */
+.app-shell.shell-pushed{transform:translateX(-28%)}
 
 .app-header{
   position:sticky;top:0;z-index:60;
@@ -386,6 +392,9 @@ button{cursor:pointer}
 .jc-title svg{flex-shrink:0;color:var(--tx3)}
 .jc-acts{display:flex;gap:10px;margin-top:16px;align-items:stretch}
 .jc-acts .btn.nav{flex:0 0 100px;padding:0 10px}
+.jc-notes{display:flex;align-items:flex-start;gap:7px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd);font-size:.74rem;color:var(--tx2);line-height:1.5}
+.jc-notes svg{flex-shrink:0;margin-top:1px;color:var(--tx3)}
+.jc-notes span{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 
 .slide-claim{position:relative;flex:1;height:50px;border-radius:4px;background:var(--green-lt);border:1.5px solid var(--green-bd);overflow:hidden;display:flex;align-items:center;user-select:none}
 .slide-claim-label{position:absolute;left:52px;right:8px;text-align:center;color:var(--green-dk);font-weight:800;font-size:.8rem;letter-spacing:.01em;pointer-events:none;transition:opacity .15s ease;white-space:nowrap;overflow:hidden}
@@ -868,11 +877,13 @@ button{cursor:pointer}
 .sm-copy-btn{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;border-radius:4px;border:1.5px solid var(--teal);background:transparent;color:var(--teal-dk);font-size:.7rem;font-weight:800;letter-spacing:.03em;cursor:pointer;transition:all .18s;font-family:var(--ff)}
 .sm-copy-btn:hover{background:var(--teal-lt)}
 .sm-copy-btn:active{transform:scale(.93)}
-.sm-name{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;color:var(--tx);line-height:1.3;margin-bottom:12px}
+.sm-name-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer}
+.sm-name{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;color:var(--tx);line-height:1.3;flex:1;min-width:0}
+.sm-maps-ico-btn{flex-shrink:0;width:36px;height:36px;border-radius:4px;border:none;background:transparent;color:var(--teal);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s}
+.sm-maps-ico-btn:hover{background:var(--teal-lt);color:var(--teal-dk)}
+.sm-maps-ico-btn:active{transform:scale(.9)}
 .sm-meta{display:flex;align-items:center;gap:6px;color:var(--tx2);font-size:.8rem;font-weight:500}
-.sm-notes-box{background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:16px;font-size:.84rem;line-height:1.65;color:var(--tx);white-space:pre-wrap;word-break:break-word;box-shadow:var(--s1)}
-.sm-notes-box.empty{color:var(--tx3);font-style:italic}
-.sm-acts{display:flex;flex-direction:column;gap:10px;margin-top:24px}
+.sm-footer{flex-shrink:0;padding:14px 16px calc(var(--nav-h) + var(--sab) + 14px);background:var(--bg);border-top:1px solid var(--bd)}
 .sm-reserved-state{display:flex;align-items:center;gap:8px;height:50px;padding:0 16px;border-radius:4px;background:var(--teal-lt);border:1.5px solid rgba(20,184,166,.3);color:var(--teal-dk);font-size:.8rem;font-weight:800}
 .sm-locked-state{display:flex;align-items:center;gap:8px;height:auto;min-height:50px;padding:12px 16px;border-radius:4px;background:var(--amber-lt);border:1.5px solid var(--amber-bd);color:var(--amber-dk);font-size:.76rem;font-weight:700;line-height:1.45}
 </style>
@@ -1010,27 +1021,29 @@ button{cursor:pointer}
     <div id="tp-canc" class="tpanel"><div class="section-label">Cancelled Jobs</div><div id="canc-list"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div></div>
   </div>
 
-  <div class="bottom-nav">
-    <div class="nav-inner">
-      <button class="nav-tab active" id="navtab-open" onclick="techNav('open')">
-        <span id="navico-open"></span>
-        <span class="nav-label">OPEN</span>
-      </button>
-      <button class="nav-tab" id="navtab-tasks" onclick="techNav('tasks')">
-        <span id="navico-tasks"></span>
-        <span class="nav-label">TASKS</span>
-      </button>
-      <button class="nav-tab" id="navtab-tools" onclick="techNav('tools')">
-        <span id="navico-tools"></span>
-        <span class="nav-label">TOOLS</span>
-      </button>
-      <button class="nav-tab" id="navtab-profile" onclick="techNav('profile')">
-        <span id="navico-profile"></span>
-        <span class="nav-label">PROFILE</span>
-      </button>
-    </div>
+</div>
+<!-- bottom-nav lives outside .app-shell (sibling) so that pushing the shell
+     left for the Site Details transition never drags the persistent nav bar
+     along with it — .bottom-nav stays fixed to the true viewport. -->
+<div class="bottom-nav">
+  <div class="nav-inner">
+    <button class="nav-tab active" id="navtab-open" onclick="techNav('open')">
+      <span id="navico-open"></span>
+      <span class="nav-label">OPEN</span>
+    </button>
+    <button class="nav-tab" id="navtab-tasks" onclick="techNav('tasks')">
+      <span id="navico-tasks"></span>
+      <span class="nav-label">TASKS</span>
+    </button>
+    <button class="nav-tab" id="navtab-tools" onclick="techNav('tools')">
+      <span id="navico-tools"></span>
+      <span class="nav-label">TOOLS</span>
+    </button>
+    <button class="nav-tab" id="navtab-profile" onclick="techNav('profile')">
+      <span id="navico-profile"></span>
+      <span class="nav-label">PROFILE</span>
+    </button>
   </div>
-
 </div>
 </div>
 
@@ -2019,6 +2032,8 @@ function renderOpen(tix){
     const resBadge=res
       ? `<span class="reserved-badge${isMine?' reserved-mine':''}">${ic(isMine?'routeNav':'lock',11)} ${isMine?'In Your Route':'Reserved'}</span>`
       : '';
+    const notesVal=(t.site_notes||'').trim();
+    const notesPreview=notesVal?`<div class="jc-notes">${ic('fileText',14)}<span>${notesVal}</span></div>`:'';
     return `<div class="jc ${t.priority} fade-up" id="oc-${t.id}" style="animation-delay:${Math.min(i,5)*0.04}s" onclick="cardTap('${t.id}')">
     <div class="jc-head">
       <span class="jc-dist">${distLabel}</span>
@@ -2028,13 +2043,7 @@ function renderOpen(tix){
     <div class="jc-title">${ic('build',22)} <span>${t.site_name}</span></div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.recurrence_count>1?`<span class="dvd"></span><span>${ic('refresh',13)} Reported ${t.recurrence_count}x</span>`:''}</div>
     <div class="tc-addr">${t.address}</div>
-    <div class="jc-acts">
-      <div class="slide-claim${isOthers?' locked':''}" data-id="${t.id}">
-        <span class="slide-claim-label">Slide to Claim</span>
-        <div class="slide-claim-thumb">${ic('chevR',15)}${ic('chevR',15)}</div>
-      </div>
-      <a class="btn nav" href="https://www.google.com/maps/search/?api=1&query=${t.coordinates}" target="_blank" onclick="event.stopPropagation()">${ic('nav',14)} Navigate</a>
-    </div>
+    ${notesPreview}
     ${isOthers?`<div class="slide-claim-locked-label">${ic('lock',12)} Reserved by ${res.reserved_by_name||'another technician'} — wait for release</div>`:''}
     ${isMine&&!isOthers?`<div style="font-size:.7rem;color:var(--teal-dk);margin-top:6px;display:flex;align-items:center;gap:5px">${ic('routeNav',12)} This site is part of your active route</div>`:''}
     </div></div>`;
@@ -2128,7 +2137,7 @@ function resetSlideClaim(wrap){
   wrap.classList.remove('claimed','disabled');
   const thumb=wrap.querySelector('.slide-claim-thumb'),label=wrap.querySelector('.slide-claim-label');
   if(thumb){thumb.style.transition='transform .25s cubic-bezier(.34,1.4,.64,1)';thumb.style.transform='translateX(0)';}
-  if(label){label.textContent='Slide to Claim';label.style.opacity=1;}
+  if(label){label.textContent=wrap.dataset.action==='reserve'?'Slide to Reserve':'Slide to Claim';label.style.opacity=1;}
 }
 /* ── Slide-to-claim drag handling (event delegation; cards re-render on every loadOpen) ──
    Also powers the Site Details Modal's "Slide to Reserve" control: any wrapper with
@@ -2221,10 +2230,12 @@ function openSiteModal(id){
   const card=document.querySelector('#site-modal .sm-card');
   if(card){ card.classList.remove('fade-up'); void card.offsetWidth; card.classList.add('fade-up'); }
   document.getElementById('site-modal').classList.add('open');
+  document.querySelector('.app-shell')?.classList.add('shell-pushed');
 }
 
 function closeSiteModal(){
   document.getElementById('site-modal').classList.remove('open');
+  document.querySelector('.app-shell')?.classList.remove('shell-pushed');
 }
 
 function renderSiteModalContent(t){
@@ -2234,21 +2245,12 @@ function renderSiteModalContent(t){
   document.getElementById('sm-copy-btn').innerHTML=`${ic('clipboard',13)} Copy`;
   document.querySelector('#site-modal .sm-card-strip').className='sm-card-strip '+(t.priority||'MEDIUM');
 
-  const notesEl=document.getElementById('sm-notes');
-  const notesVal=(t.site_notes||'').trim();
-  if(notesVal){
-    notesEl.textContent=notesVal;
-    notesEl.classList.remove('empty');
-  } else {
-    notesEl.textContent='No notes available.';
-    notesEl.classList.add('empty');
-  }
-
-  const mapsLink=document.getElementById('sm-maps-link');
-  mapsLink.href=`https://www.google.com/maps/search/?api=1&query=${t.coordinates||''}`;
-  mapsLink.innerHTML=`${ic('nav',14)} Open in Maps`;
-
   renderSiteModalReserveZone(t);
+}
+
+function openSiteMapsFromModal(){
+  if(!smTicket) return;
+  window.open(`https://www.google.com/maps/search/?api=1&query=${smTicket.coordinates||''}`,'_blank','noopener');
 }
 
 function renderSiteModalReserveZone(t){
@@ -6112,7 +6114,7 @@ function camUpdateAttachmentStrip(jobId) {
     </button>
     <div class="sm-hdr-title">Site Details</div>
   </div>
-  <div class="app-scroll" id="sm-body" style="padding-top:18px">
+  <div class="app-scroll" id="sm-body" style="padding-top:18px;padding-bottom:16px">
     <div class="sm-card fade-up">
       <div class="sm-card-strip MEDIUM"></div>
       <div class="sm-card-body">
@@ -6120,17 +6122,17 @@ function camUpdateAttachmentStrip(jobId) {
           <span class="sm-tag" id="sm-tag-row"></span>
           <button class="sm-copy-btn" onclick="copySiteInfo()" id="sm-copy-btn"></button>
         </div>
-        <div class="sm-name" id="sm-site-name"></div>
+        <div class="sm-name-row" onclick="openSiteMapsFromModal()">
+          <div class="sm-name" id="sm-site-name"></div>
+          <button class="sm-maps-ico-btn" onclick="event.stopPropagation();openSiteMapsFromModal()" aria-label="Open in Google Maps">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/><line x1="12" y1="2" x2="12" y2="7"/></svg>
+          </button>
+        </div>
         <div class="sm-meta" id="sm-meta-row"></div>
       </div>
     </div>
-    <div class="section-label">Notes</div>
-    <div class="sm-notes-box" id="sm-notes"></div>
-    <div class="sm-acts">
-      <a class="btn nav xl" id="sm-maps-link" href="#" target="_blank" rel="noopener" style="width:100%"></a>
-      <div id="sm-reserve-zone"></div>
-    </div>
   </div>
+  <div class="sm-footer" id="sm-reserve-zone"></div>
 </div>
 
 <!-- ══════════════════════════════════════ OFF-DUTY ROUTE MODAL ══════════════════════════════════════ -->
