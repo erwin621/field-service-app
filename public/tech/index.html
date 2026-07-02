@@ -2272,8 +2272,7 @@ function renderSiteModalReserveZone(t){
 async function copySiteInfo(){
   if(!smTicket) return;
   const t=smTicket;
-  const notesVal=(t.site_notes||'').trim()||'No notes available.';
-  const text=`Site ID: ${t.site_id||'—'}\nSite Name: ${t.site_name||'—'}\nLocality: ${t.locality||'—'}\nNotes: ${notesVal}`;
+  const text=`${t.site_id||'—'}\n${t.site_name||'—'}`;
   try{
     if(navigator.clipboard && navigator.clipboard.writeText){
       await navigator.clipboard.writeText(text);
