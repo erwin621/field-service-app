@@ -380,19 +380,21 @@ button{cursor:pointer}
 ══════════════════════════════════════ */
 .jc{background:var(--card);border:1px solid rgba(229,231,235,.8);border-radius:4px;margin-bottom:14px;box-shadow:var(--s2);overflow:hidden;transition:transform .2s cubic-bezier(.34,1.4,.64,1),box-shadow .2s ease}
 .jc:hover{transform:translateY(-2px);box-shadow:var(--s3)}
-.jc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 18px;color:#fff}
-.jc.LOW .jc-head{background:linear-gradient(120deg,var(--teal),var(--teal-dk))}
-.jc.MEDIUM .jc-head{background:linear-gradient(120deg,#FBBF24,var(--amber-dk))}
-.jc.HIGH .jc-head{background:linear-gradient(120deg,#F87171,var(--red-dk))}
-.jc.CRITICAL .jc-head{background:linear-gradient(120deg,#9B1C1C,#4C0808)}
+.jc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 18px;color:#fff;background:linear-gradient(120deg,var(--teal),var(--teal-dk))}
 .jc-dist{font-size:.95rem;font-weight:800;letter-spacing:-.01em}
 .jc-pbdg{background:rgba(0,0,0,.2);padding:5px 12px;border-radius:2px;font-size:.64rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;flex-shrink:0}
 .jc-body{padding:20px 18px}
-.jc-title{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:800;color:var(--tx);letter-spacing:-.01em;line-height:1.3;margin-bottom:10px}
-.jc-title svg{flex-shrink:0;color:var(--tx3)}
+.jc-title{font-size:1.1rem;font-weight:800;color:var(--tx);letter-spacing:-.01em;line-height:1.3;margin-bottom:12px}
+.jc-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:var(--tx2);font-size:.85rem;font-weight:700;line-height:1.4;margin-bottom:7px}
+.jc-meta span{display:flex;align-items:center;gap:4px}
+.jc-meta .dvd{width:3px;height:3px;border-radius:50%;background:var(--bd2);flex-shrink:0}
+.jc-addr{font-size:.82rem;font-weight:600;color:var(--tx2);line-height:1.55;margin-bottom:9px}
+.jc-report{display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:700;color:var(--teal-dk);letter-spacing:.01em}
+.jc-report svg{flex-shrink:0;opacity:.9}
+.jc-route-status{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:.8rem;font-weight:700;color:var(--teal-dk)}
 .jc-acts{display:flex;gap:10px;margin-top:16px;align-items:stretch}
 .jc-acts .btn.nav{flex:0 0 100px;padding:0 10px}
-.jc-notes{display:flex;align-items:flex-start;gap:7px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd);font-size:.74rem;color:var(--tx2);line-height:1.5}
+.jc-notes{display:flex;align-items:flex-start;gap:7px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--bd);font-size:.8rem;font-weight:600;color:var(--tx2);line-height:1.55}
 .jc-notes svg{flex-shrink:0;margin-top:1px;color:var(--tx3)}
 .jc-notes span{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 
@@ -690,7 +692,6 @@ button{cursor:pointer}
 .route-empty-btn{display:inline-flex;align-items:center;gap:7px;padding:12px 20px;background:linear-gradient(135deg,var(--teal),var(--teal-dk));border:none;border-radius:4px;color:#fff;font-size:.84rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:var(--ff);box-shadow:0 3px 12px rgba(20,184,166,.28)}
 .route-empty-btn:hover{background:linear-gradient(135deg,var(--teal-dk),#0A7A70)}
 .reserved-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:3px;background:var(--amber-lt);border:1px solid var(--amber-bd);color:var(--amber-dk);font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0}
-.reserved-mine{background:var(--teal-lt);border-color:rgba(20,184,166,.35);color:var(--teal-dk)}
 .slide-claim.locked{opacity:.65;pointer-events:none}
 .slide-claim-locked-label{display:none;font-size:.7rem;font-weight:700;color:var(--amber-dk);text-align:center;padding:7px 12px;background:var(--amber-lt);border:1px solid var(--amber-bd);border-radius:3px;margin-top:4px;line-height:1.4}
 /* ══════════════════════════════════════
@@ -1028,7 +1029,7 @@ button{cursor:pointer}
   <div class="open-bar" id="tp-open" style="display:flex">
     <span class="open-bar-count" id="open-bar-count">— AVAILABLE JOBS</span>
     <div class="open-bar-controls">
-      <button class="open-bar-pill" id="sort-mode-pill">
+      <button class="open-bar-pill" id="sort-mode-pill" style="display:none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         NEAREST FIRST
       </button>
@@ -2081,23 +2082,28 @@ function renderOpen(tix){
     const res=t.reservation;
     const isMine=res&&CU&&res.reserved_by===CU.id;
     const isOthers=res&&CU&&res.reserved_by!==CU.id;
-    const resBadge=res
-      ? `<span class="reserved-badge${isMine?' reserved-mine':''}">${ic(isMine?'routeNav':'lock',11)} ${isMine?'In Your Route':'Reserved'}</span>`
+    // "In Your Route" is intentionally omitted from the header badge — it's
+    // shown once, below, as the route-status line (see isMine block) to
+    // avoid showing the same status twice on one card.
+    const resBadge=(res&&isOthers)
+      ? `<span class="reserved-badge">${ic('lock',11)} Reserved</span>`
       : '';
     const notesVal=(t.site_notes||'').trim();
     const notesPreview=notesVal?`<div class="jc-notes">${ic('fileText',14)}<span>${notesVal}</span></div>`:'';
+    const reportCount=t.recurrence_count>1?t.recurrence_count:1;
     return `<div class="jc ${t.priority} fade-up" id="oc-${t.id}" style="animation-delay:${Math.min(i,5)*0.04}s" onclick="cardTap('${t.id}')">
     <div class="jc-head">
       <span class="jc-dist">${distLabel}</span>
       <div style="display:flex;align-items:center;gap:6px">${resBadge}<span class="jc-pbdg">${t.priority}</span></div>
     </div>
     <div class="jc-body">
-    <div class="jc-title">${ic('build',22)} <span>${t.site_name}</span></div>
-    <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.recurrence_count>1?`<span class="dvd"></span><span>${ic('refresh',13)} Reported ${t.recurrence_count}x</span>`:''}</div>
-    <div class="tc-addr">${t.address}</div>
+    <div class="jc-title">${t.site_name}</div>
+    <div class="jc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span></div>
+    <div class="jc-addr">${t.address}</div>
+    <div class="jc-report">${ic('refresh',13)} Reported ${reportCount}x</div>
     ${notesPreview}
     ${isOthers?`<div class="slide-claim-locked-label">${ic('lock',12)} Reserved by ${res.reserved_by_name||'another technician'} — wait for release</div>`:''}
-    ${isMine&&!isOthers?`<div style="font-size:.7rem;color:var(--teal-dk);margin-top:6px;display:flex;align-items:center;gap:5px">${ic('routeNav',12)} This site is part of your active route</div>`:''}
+    ${isMine&&!isOthers?`<div class="jc-route-status">${ic('routeNav',12)} This site is part of your active route</div>`:''}
     </div></div>`;
   }).join('');
 }
