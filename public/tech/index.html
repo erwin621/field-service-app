@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#14B8A6">
+<meta name="theme-color" content="#1CA0C2">
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
@@ -907,8 +907,11 @@ button{cursor:pointer}
 }
 .sm-map-card:active{opacity:.94}
 .sm-map-card .maplibregl-map{border-radius:0}
-.sm-map-skel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(100deg,#e8f2f0 30%,#f5fbfa 45%,#e8f2f0 60%);background-size:200% 100%;animation:mapShimmer 1.6s ease-in-out infinite;z-index:2}
+.sm-map-skel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(100deg,#e8f2f0 30%,#f5fbfa 45%,#e8f2f0 60%);background-size:200% 100%;animation:mapShimmer 1.6s ease-in-out infinite;z-index:2}
 @keyframes mapShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.maplibregl-popup-content{border-radius:4px;padding:12px 14px;box-shadow:var(--s3);font-family:var(--ff)}
+.maplibregl-popup-close-button{font-size:15px;color:var(--tx3);padding:2px 7px;top:2px;right:2px}
+.maplibregl-popup-tip{border-top-color:#fff;border-bottom-color:#fff}
 .sm-map-err{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--srf2);color:var(--tx3);text-align:center;padding:20px;z-index:2}
 .sm-map-err-sub{font-size:.72rem;color:var(--tx3);max-width:220px;line-height:1.45}
 .sm-map-expand{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:4px;background:rgba(255,255,255,.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:var(--s1);display:flex;align-items:center;justify-content:center;color:var(--tx2);z-index:3;pointer-events:auto;transition:background .15s}
@@ -2391,7 +2394,12 @@ async function reserveSiteFromModal(id,locality,wrap){
    shareable — routeService (and its ORS response cache), GeoEngine,
    navigationService, and the MapLibre GL loader — is reused as-is.
 ══════════════════════════════════════════════════════════════════════ */
-const SiteMapState={reqId:0,destCoords:null,techCoords:null,distanceKm:null,durationMin:null};
+const SiteMapState={reqId:0,destCoords:null,techCoords:null,distanceKm:null,durationMin:null,routeFailed:false};
+
+/** Bounds-fit padding presets so markers/route are never hidden behind
+ *  this screen's own floating chrome (info pills, top card, recenter FAB). */
+const SM_MINI_PADDING={top:40,bottom:80,left:28,right:28};
+const SM_FULL_PADDING={top:150,bottom:80,left:40,right:40};
 
 function siteMapFactory(){
   return {
@@ -2414,37 +2422,66 @@ function siteMapFactory(){
         }catch(e){console.error('[SiteMap] init error:',e);resolve(null);}
       });
     },
-    setDest(coords){
+    /** Destination pin. Uses a plain outer wrapper (which MapLibre positions
+     *  via its own `transform`) around an inner element that carries OUR
+     *  transform/animation. A custom marker element that puts a `transform`
+     *  animation directly on the same node MapLibre repositions will have
+     *  the animation's fill-mode permanently win control of `transform`,
+     *  leaving the marker stuck unpositioned (invisible in practice). The
+     *  wrapper keeps the two uses of `transform` on separate elements. */
+    setDest(coords,popupInfo){
       if(!this._map||!coords) return;
       if(this._dest) this._dest.remove();
-      const el=document.createElement('div');
-      el.style.cssText='width:30px;height:30px;border-radius:50% 50% 50% 0;background:#14B8A6;border:2.5px solid #0D9488;box-shadow:0 3px 10px rgba(0,0,0,.3);transform:rotate(-45deg);animation:markerPop .35s cubic-bezier(.34,1.4,.64,1) both';
-      this._dest=new maplibregl.Marker({element:el,anchor:'bottom-left'}).setLngLat([coords.lng,coords.lat]).addTo(this._map);
+      const wrap=document.createElement('div');
+      const pin=document.createElement('div');
+      pin.style.cssText='width:30px;height:30px;border-radius:50% 50% 50% 0;background:#14B8A6;border:2.5px solid #0D9488;box-shadow:0 3px 10px rgba(0,0,0,.35);transform:rotate(-45deg);animation:markerPop .35s cubic-bezier(.34,1.4,.64,1) both';
+      wrap.appendChild(pin);
+      const marker=new maplibregl.Marker({element:wrap,anchor:'bottom-left'}).setLngLat([coords.lng,coords.lat]);
+      if(popupInfo){
+        const popup=new maplibregl.Popup({offset:18,maxWidth:'230px',closeButton:true}).setHTML(
+          `<div style="font-family:var(--ff);font-size:.8rem;font-weight:800;color:var(--tx);margin-bottom:3px">${popupInfo.name||'Site'}</div>`+
+          `<div style="font-family:var(--ff);font-size:.72rem;color:var(--tx2);line-height:1.4">${popupInfo.address||'—'}</div>`+
+          (popupInfo.coordsLabel?`<div style="font-family:var(--fm);font-size:.62rem;color:var(--tx3);margin-top:5px">${popupInfo.coordsLabel}</div>`:'')
+        );
+        marker.setPopup(popup);
+      }
+      marker.addTo(this._map);
+      this._dest=marker;
     },
     setTech(coords){
       if(!this._map) return;
       if(this._tech){this._tech.remove();this._tech=null;}
       if(!coords) return;
-      const el=document.createElement('div');
-      el.style.cssText='width:16px;height:16px;border-radius:50%;background:#3B82F6;border:3px solid #fff;box-shadow:0 2px 8px rgba(37,99,235,.5),0 0 0 6px rgba(59,130,246,.18)';
-      this._tech=new maplibregl.Marker({element:el}).setLngLat([coords.lng,coords.lat]).addTo(this._map);
+      const wrap=document.createElement('div');
+      const dot=document.createElement('div');
+      dot.style.cssText='width:16px;height:16px;border-radius:50%;background:#3B82F6;border:3px solid #fff;box-shadow:0 2px 8px rgba(37,99,235,.5),0 0 0 6px rgba(59,130,246,.18)';
+      wrap.appendChild(dot);
+      this._tech=new maplibregl.Marker({element:wrap}).setLngLat([coords.lng,coords.lat]).addTo(this._map);
     },
-    fit(destCoords,techCoords){
+    fit(destCoords,techCoords,padding){
       if(!this._map||!destCoords) return;
+      const pad=padding||{top:50,bottom:50,left:50,right:50};
       const pts=[[destCoords.lng,destCoords.lat]];
       if(techCoords) pts.push([techCoords.lng,techCoords.lat]);
       if(pts.length===1){this._map.jumpTo({center:pts[0],zoom:14});return;}
       const bounds=pts.reduce((b,p)=>b.extend(p),new maplibregl.LngLatBounds(pts[0],pts[0]));
-      this._map.fitBounds(bounds,{padding:50,maxZoom:15,duration:0});
+      this._map.fitBounds(bounds,{padding:pad,maxZoom:15,duration:0});
     },
+    /** Draws the route once the style is actually ready to accept a new
+     *  source/layer — calling addSource/addLayer before then throws, and a
+     *  bare try/catch around that would silently drop the whole route. */
     drawRoute(geojson){
       if(!this._map||!geojson) return;
-      this.clearRoute();
-      try{
-        this._map.addSource(this._sourceId,{type:'geojson',data:geojson});
-        this._map.addLayer({id:this._routeLayerId+'-bg',type:'line',source:this._sourceId,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#ffffff','line-width':7}});
-        this._map.addLayer({id:this._routeLayerId,type:'line',source:this._sourceId,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#14B8A6','line-width':4.5}});
-      }catch(e){}
+      const paint=()=>{
+        this.clearRoute();
+        try{
+          this._map.addSource(this._sourceId,{type:'geojson',data:geojson});
+          this._map.addLayer({id:this._routeLayerId+'-bg',type:'line',source:this._sourceId,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#ffffff','line-width':8.5,'line-opacity':.9}});
+          this._map.addLayer({id:this._routeLayerId,type:'line',source:this._sourceId,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#14B8A6','line-width':5.5,'line-opacity':.88}});
+        }catch(e){ console.error('[SiteMap] drawRoute error:',e); }
+      };
+      if(this._map.isStyleLoaded()) paint();
+      else this._map.once('idle',paint);
     },
     clearRoute(){
       if(!this._map) return;
@@ -2476,6 +2513,26 @@ function ensureMapLibreLoaded(){
   });
 }
 
+/** Loads the ORS routing key from /api/config the first time ANY routed
+ *  map is used. showNavigatorOverlay() already does this exact fetch, but
+ *  only when the technician opens Tools → Navigator — so opening Site
+ *  Details first (the far more common path) previously left ORS_API_KEY
+ *  empty and every route request fell back to a straight-line estimate
+ *  with no polyline drawn. Reads/writes the SAME shared ORS_API_KEY used
+ *  by routeService, so whichever screen loads it first "wins" and the
+ *  other just skips re-fetching — this doesn't touch or duplicate route
+ *  optimization itself, just the one-time key load it happened to gate. */
+async function ensureORSKey(){
+  if(ORS_API_KEY) return;
+  try{
+    const r=await fetch('/api/config');
+    if(r.ok){
+      const cfg=await r.json();
+      ORS_API_KEY=cfg.orsApiKey||'';
+    }
+  }catch(e){}
+}
+
 function fmtSiteDist(km){
   if(km==null||!isFinite(km)) return '—';
   return km<1 ? Math.round(km*1000)+' m' : km.toFixed(1)+' km';
@@ -2485,15 +2542,24 @@ function fmtSiteDur(min){
   min=Math.round(min);
   return min>=60 ? Math.floor(min/60)+'h '+(min%60)+'m' : min+' min';
 }
+function siteDestPopupInfo(t,dest){
+  return {
+    name:t.site_name||'Untitled Site',
+    address:[t.address,t.locality].filter(Boolean).join(', ')||'—',
+    coordsLabel:dest.lat.toFixed(5)+', '+dest.lng.toFixed(5)
+  };
+}
 
 /** Renders the inline mini map for the ticket currently shown in Site
- *  Details: skeleton → destination pin → technician pin (if location is
- *  on) → route + distance/ETA pills. Guards against races if the user
- *  opens a different site (or closes the modal) before this resolves. */
+ *  Details. Stays on the skeleton until destination marker + technician
+ *  marker + route + distance/ETA are ALL resolved, then reveals everything
+ *  together — no partial/incomplete map is ever shown. Guards against
+ *  races if the user opens a different site (or closes the modal) before
+ *  this resolves. */
 async function initSiteMiniMap(t){
   const reqId=++SiteMapState.reqId;
   SiteMapState.destCoords=null;SiteMapState.techCoords=null;
-  SiteMapState.distanceKm=null;SiteMapState.durationMin=null;
+  SiteMapState.distanceKm=null;SiteMapState.durationMin=null;SiteMapState.routeFailed=false;
 
   const skel=document.getElementById('sm-map-skel');
   const err=document.getElementById('sm-map-err');
@@ -2510,9 +2576,9 @@ async function initSiteMiniMap(t){
   }
   SiteMapState.destCoords=dest;
 
-  const ok=await ensureMapLibreLoaded();
+  const [mapLibreOk]=await Promise.all([ensureMapLibreLoaded(),ensureORSKey()]);
   if(reqId!==SiteMapState.reqId) return;
-  if(!ok){
+  if(!mapLibreOk){
     if(skel) skel.style.display='none';
     if(err){err.style.display='flex';err.innerHTML=`${ic('alert',22)}<div style="font-size:.78rem;font-weight:700;color:var(--tx2)">Couldn't load map</div><div class="sm-map-err-sub">Check your connection and reopen this site.</div>`;}
     return;
@@ -2520,37 +2586,40 @@ async function initSiteMiniMap(t){
 
   await siteMiniMap.init('sm-map');
   if(reqId!==SiteMapState.reqId) return;
-  siteMiniMap.setDest(dest);
+
+  siteMiniMap.setDest(dest,siteDestPopupInfo(t,dest));
   siteMiniMap.onTap(()=>openSiteMapFull());
 
   const tech=GeoEngine.coords;
   SiteMapState.techCoords=tech;
-  if(tech) siteMiniMap.setTech(tech);
-  siteMiniMap.fit(dest,tech);
-  if(skel) skel.style.display='none';
 
   if(!tech){
-    if(info) info.innerHTML=`<div class="sm-map-pill" style="cursor:pointer" onclick="siteMapRetryLocation()">${ic('alert',13)}<div><div class="sm-map-pill-val" style="color:var(--teal-dk)">Enable location</div><div class="sm-map-pill-lbl">for distance &amp; ETA</div></div></div>`;
+    siteMiniMap.fit(dest,null,SM_MINI_PADDING);
+    if(skel) skel.style.display='none';
+    if(info) info.innerHTML=`<div class="sm-map-pill" style="cursor:pointer" onclick="siteMapRetryLocation()">${ic('alert',13)}<div><div class="sm-map-pill-val" style="color:var(--teal-dk)">Location unavailable</div><div class="sm-map-pill-lbl">Tap to enable</div></div></div>`;
     return;
   }
+
+  siteMiniMap.setTech(tech);
+  siteMiniMap.fit(dest,tech,SM_MINI_PADDING);
 
   const route=await routeService.getRoute([[tech.lng,tech.lat],[dest.lng,dest.lat]]);
   if(reqId!==SiteMapState.reqId) return;
 
-  let distKm,durMin;
-  if(route&&!route.fallback){
-    distKm=route.distanceM/1000;
-    durMin=route.durationS*MOTO_SPEED_FACTOR/60;
+  if(route&&!route.fallback&&route.geojson){
     siteMiniMap.drawRoute(route.geojson);
+    SiteMapState.distanceKm=route.distanceM/1000;
+    SiteMapState.durationMin=route.durationS*MOTO_SPEED_FACTOR/60;
+    if(skel) skel.style.display='none';
+    if(info) info.innerHTML=`
+      <div class="sm-map-pill">${ic('routeNav',13)}<div><div class="sm-map-pill-val">${fmtSiteDist(SiteMapState.distanceKm)}</div><div class="sm-map-pill-lbl">Distance</div></div></div>
+      <div class="sm-map-pill">${ic('clock',13)}<div><div class="sm-map-pill-val">${fmtSiteDur(SiteMapState.durationMin)}</div><div class="sm-map-pill-lbl">ETA</div></div></div>`;
   } else {
-    distKm=GeoEngine.distanceKm(tech,dest);
-    durMin=distKm!=null?distKm/25*60:null; // same haversine fallback speed used in renderRouteActive
+    SiteMapState.routeFailed=true;
+    siteMiniMap.clearRoute();
+    if(skel) skel.style.display='none';
+    if(info) info.innerHTML=`<div class="sm-map-pill">${ic('alert',13)}<div><div class="sm-map-pill-val" style="color:var(--tx2);white-space:normal">Unable to calculate route</div><div class="sm-map-pill-lbl">Both locations shown</div></div></div>`;
   }
-  SiteMapState.distanceKm=distKm;SiteMapState.durationMin=durMin;
-
-  if(info) info.innerHTML=`
-    <div class="sm-map-pill">${ic('routeNav',13)}<div><div class="sm-map-pill-val">${fmtSiteDist(distKm)}</div><div class="sm-map-pill-lbl">Distance</div></div></div>
-    <div class="sm-map-pill">${ic('clock',13)}<div><div class="sm-map-pill-val">${fmtSiteDur(durMin)}</div><div class="sm-map-pill-lbl">ETA</div></div></div>`;
 }
 
 function teardownSiteMiniMap(){
@@ -2580,7 +2649,7 @@ function renderSiteMapFullShell(t){
     </div>
     <div class="smf-map-wrap">
       <div id="site-map-full" style="width:100%;height:100%"></div>
-      <div class="sm-map-skel" id="smf-map-skel"><div class="nav-loading-spinner"></div></div>
+      <div class="sm-map-skel" id="smf-map-skel"><div class="nav-loading-spinner"></div><div class="nav-loading-text">Loading route…</div></div>
       <div class="sm-map-err" id="smf-map-err" style="display:none"></div>
       <div class="smf-top-card">
         <div style="display:flex;align-items:flex-start;gap:10px">
@@ -2611,10 +2680,11 @@ async function openSiteMapFull(){
 
   const skel=document.getElementById('smf-map-skel');
   const err=document.getElementById('smf-map-err');
+  const etaEl=document.getElementById('smf-top-eta');
 
-  const ok=await ensureMapLibreLoaded();
+  const [mapLibreOk]=await Promise.all([ensureMapLibreLoaded(),ensureORSKey()]);
   if(overlay.style.display!=='flex') return; // closed while loading
-  if(!ok){
+  if(!mapLibreOk){
     if(skel) skel.style.display='none';
     if(err){err.style.display='flex';err.innerHTML=`${ic('alert',24)}<div style="font-size:.85rem;font-weight:700;color:var(--tx2)">Couldn't load the map</div><div class="sm-map-err-sub">Check your connection, or use Google Maps below.</div>`;}
     return;
@@ -2622,34 +2692,37 @@ async function openSiteMapFull(){
 
   await siteFullMap.init('site-map-full');
   if(overlay.style.display!=='flex') return;
-  siteFullMap.setDest(SiteMapState.destCoords);
+
+  siteFullMap.setDest(SiteMapState.destCoords,siteDestPopupInfo(t,SiteMapState.destCoords));
 
   const tech=GeoEngine.coords;
   SiteMapState.techCoords=tech;
-  if(tech) siteFullMap.setTech(tech);
-  siteFullMap.fit(SiteMapState.destCoords,tech);
-  if(skel) skel.style.display='none';
 
-  const etaEl=document.getElementById('smf-top-eta');
   if(!tech){
-    if(etaEl){etaEl.innerHTML=`${ic('alert',13)} Tap to enable location for distance &amp; ETA`;etaEl.style.cursor='pointer';etaEl.onclick=siteMapRecenter;}
+    siteFullMap.fit(SiteMapState.destCoords,null,SM_FULL_PADDING);
+    if(skel) skel.style.display='none';
+    if(etaEl){etaEl.innerHTML=`${ic('alert',13)} Location unavailable — tap to enable`;etaEl.style.cursor='pointer';etaEl.onclick=siteMapRecenter;}
     return;
   }
+
+  siteFullMap.setTech(tech);
+  siteFullMap.fit(SiteMapState.destCoords,tech,SM_FULL_PADDING);
 
   const route=await routeService.getRoute([[tech.lng,tech.lat],[SiteMapState.destCoords.lng,SiteMapState.destCoords.lat]]);
   if(overlay.style.display!=='flex') return;
 
-  let distKm,durMin;
-  if(route&&!route.fallback){
-    distKm=route.distanceM/1000;
-    durMin=route.durationS*MOTO_SPEED_FACTOR/60;
+  if(route&&!route.fallback&&route.geojson){
     siteFullMap.drawRoute(route.geojson);
+    SiteMapState.distanceKm=route.distanceM/1000;
+    SiteMapState.durationMin=route.durationS*MOTO_SPEED_FACTOR/60;
+    if(skel) skel.style.display='none';
+    if(etaEl){etaEl.style.cursor='';etaEl.onclick=null;etaEl.innerHTML=`${ic('routeNav',13)} ${fmtSiteDist(SiteMapState.distanceKm)}&nbsp;·&nbsp;${ic('clock',13)} ${fmtSiteDur(SiteMapState.durationMin)} away`;}
   } else {
-    distKm=GeoEngine.distanceKm(tech,SiteMapState.destCoords);
-    durMin=distKm!=null?distKm/25*60:null;
+    SiteMapState.routeFailed=true;
+    siteFullMap.clearRoute();
+    if(skel) skel.style.display='none';
+    if(etaEl){etaEl.style.cursor='';etaEl.onclick=null;etaEl.innerHTML=`${ic('alert',13)} Unable to calculate route — both locations shown`;}
   }
-  SiteMapState.distanceKm=distKm;SiteMapState.durationMin=durMin;
-  if(etaEl){etaEl.style.cursor='';etaEl.onclick=null;etaEl.innerHTML=`${ic('routeNav',13)} ${fmtSiteDist(distKm)}&nbsp;·&nbsp;${ic('clock',13)} ${fmtSiteDur(durMin)} away`;}
 }
 
 function closeSiteMapFull(){
@@ -2660,20 +2733,34 @@ function closeSiteMapFull(){
 
 async function siteMapRecenter(){
   const btn=document.getElementById('smf-recenter-btn');
+  const etaEl=document.getElementById('smf-top-eta');
   if(btn) btn.style.opacity='.55';
   await GeoEngine.locate();
   SiteMapState.techCoords=GeoEngine.coords;
-  if(GeoEngine.coords) siteFullMap.setTech(GeoEngine.coords);
-  siteFullMap.fit(SiteMapState.destCoords,GeoEngine.coords);
-  if(btn) btn.style.opacity='1';
   if(GeoEngine.coords){
-    const route=await routeService.getRoute([[GeoEngine.coords.lng,GeoEngine.coords.lat],[SiteMapState.destCoords.lng,SiteMapState.destCoords.lat]]);
-    const etaEl=document.getElementById('smf-top-eta');
-    if(route&&!route.fallback){
-      siteFullMap.drawRoute(route.geojson);
-      SiteMapState.distanceKm=route.distanceM/1000;SiteMapState.durationMin=route.durationS*MOTO_SPEED_FACTOR/60;
-      if(etaEl){etaEl.style.cursor='';etaEl.onclick=null;etaEl.innerHTML=`${ic('routeNav',13)} ${fmtSiteDist(SiteMapState.distanceKm)}&nbsp;·&nbsp;${ic('clock',13)} ${fmtSiteDur(SiteMapState.durationMin)} away`;}
-    }
+    siteFullMap.setTech(GeoEngine.coords);
+    siteFullMap.fit(SiteMapState.destCoords,GeoEngine.coords,SM_FULL_PADDING);
+  } else {
+    siteFullMap.fit(SiteMapState.destCoords,null,SM_FULL_PADDING);
+  }
+  if(btn) btn.style.opacity='1';
+
+  if(!GeoEngine.coords){
+    if(etaEl){etaEl.innerHTML=`${ic('alert',13)} Tap to enable location for distance &amp; ETA`;etaEl.style.cursor='pointer';etaEl.onclick=siteMapRecenter;}
+    return;
+  }
+
+  if(etaEl){etaEl.style.cursor='';etaEl.onclick=null;etaEl.innerHTML=`${ic('routeNav',13)} Calculating route…`;}
+  await ensureORSKey();
+  const route=await routeService.getRoute([[GeoEngine.coords.lng,GeoEngine.coords.lat],[SiteMapState.destCoords.lng,SiteMapState.destCoords.lat]]);
+  if(route&&!route.fallback&&route.geojson){
+    siteFullMap.drawRoute(route.geojson);
+    SiteMapState.distanceKm=route.distanceM/1000;SiteMapState.durationMin=route.durationS*MOTO_SPEED_FACTOR/60;
+    if(etaEl) etaEl.innerHTML=`${ic('routeNav',13)} ${fmtSiteDist(SiteMapState.distanceKm)}&nbsp;·&nbsp;${ic('clock',13)} ${fmtSiteDur(SiteMapState.durationMin)} away`;
+  } else {
+    SiteMapState.routeFailed=true;
+    siteFullMap.clearRoute();
+    if(etaEl) etaEl.innerHTML=`${ic('alert',13)} Unable to calculate route — both locations shown`;
   }
 }
 
@@ -6506,7 +6593,7 @@ function camUpdateAttachmentStrip(jobId) {
     </div>
     <div class="sm-map-card fade-up" id="sm-map-card" role="button" aria-label="Open full-screen map">
       <div id="sm-map" style="position:absolute;inset:0"></div>
-      <div class="sm-map-skel" id="sm-map-skel" onclick="openSiteMapFull()"><div class="nav-loading-spinner"></div></div>
+      <div class="sm-map-skel" id="sm-map-skel" onclick="openSiteMapFull()"><div class="nav-loading-spinner"></div><div class="nav-loading-text">Loading route…</div></div>
       <div class="sm-map-err" id="sm-map-err" style="display:none"></div>
       <span class="sm-map-attr-tag">© OSM · CARTO</span>
       <div class="sm-map-expand" id="sm-map-expand" onclick="openSiteMapFull()"></div>
