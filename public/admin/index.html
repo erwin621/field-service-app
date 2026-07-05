@@ -325,6 +325,59 @@ button{cursor:pointer}
 .tc-acts{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 
 /* ══════════════════════════════════════
+   ADMIN TICKET CARD (.ac) — ported from the tech portal's
+   redesigned Open-tab job card: a colored header bar instead of a
+   left strip, bold title, teal "reported Nx" accent line, dashed-
+   divider notes preview. Kept as its own class family so the
+   technician-facing .tc cards above are completely untouched.
+   Header color still tracks ticket status (OPEN=teal, matching the
+   tech Open card 1:1) and the priority badge keeps its existing
+   red/amber/green color-coding + pulse — no triage signal is lost.
+══════════════════════════════════════ */
+.ac{background:var(--card);border:1px solid rgba(229,231,235,.8);border-radius:var(--r2);margin-bottom:14px;box-shadow:var(--s2);overflow:hidden;transition:transform .2s cubic-bezier(.34,1.4,.64,1),box-shadow .2s ease}
+.ac:hover{transform:translateY(-2px);box-shadow:var(--s3)}
+.ac.CANC{opacity:.9}
+
+.ac-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 14px;color:#fff;flex-wrap:wrap}
+.ac.OPEN .ac-head{background:linear-gradient(120deg,var(--teal),var(--teal-dk))}
+.ac.ONGO .ac-head{background:linear-gradient(120deg,var(--amber),var(--amber-dk))}
+.ac.DONE .ac-head{background:linear-gradient(120deg,var(--green),var(--green-dk))}
+.ac.CANC .ac-head{background:linear-gradient(120deg,var(--tx3),var(--tx2))}
+.ac.RECOVERED .ac-head{background:linear-gradient(120deg,var(--violet),var(--violet-dk))}
+.ac-id{font-family:var(--fm);font-size:.68rem;font-weight:700;letter-spacing:.01em;color:#fff;opacity:.97}
+.ac-head-r{display:flex;align-items:center;gap:6px;flex-shrink:0}
+
+/* small pencil/edit icon button — lives in the colored header so editing
+   an OPEN ticket never grows the card's height. Translucent-white
+   treatment reads cleanly on every header gradient above. */
+.ac-edit-btn{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;padding:0;
+  background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.4);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .18s cubic-bezier(.34,1.4,.64,1);cursor:pointer;
+}
+.ac-edit-btn:hover{background:rgba(255,255,255,.32)}
+.ac-edit-btn:active{transform:scale(.88)}
+.ac-edit-btn:disabled{opacity:.5;cursor:not-allowed;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25)}
+.ac-edit-btn:disabled:hover{background:rgba(255,255,255,.08)}
+
+.ac-body{padding:18px}
+.ac-title{font-size:1rem;font-weight:800;color:var(--tx);letter-spacing:-.01em;line-height:1.3;margin-bottom:10px}
+.ac-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:var(--tx2);font-size:.78rem;font-weight:600;margin-bottom:6px}
+.ac-meta span{display:flex;align-items:center;gap:4px}
+.ac-meta .dvd{width:3px;height:3px;border-radius:50%;background:var(--bd2);flex-shrink:0}
+.ac-addr{font-size:.74rem;color:var(--tx3);line-height:1.5}
+.ac-report{display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:700;color:var(--teal-dk);margin-top:9px}
+.ac-report svg{flex-shrink:0;opacity:.9}
+.ac-notes{display:flex;align-items:flex-start;gap:7px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--bd);font-size:.78rem;font-weight:500;color:var(--tx2);line-height:1.5}
+.ac-notes svg{flex-shrink:0;margin-top:1px;color:var(--tx3)}
+.ac-notes span{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ac-callout{margin-top:12px;padding:10px 13px;border-radius:10px;font-size:.75rem;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
+.ac-callout.canc{background:var(--violet-lt);border:1px solid var(--violet-bd);color:var(--violet-dk)}
+.ac-callout.proof{background:var(--green-lt);border:1px solid var(--green-bd);color:var(--green-dk);align-items:center}
+.ac-acts{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+
+/* ══════════════════════════════════════
    BUTTONS
 ══════════════════════════════════════ */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 18px;height:50px;border:1.5px solid transparent;border-radius:18px;font-size:.82rem;font-weight:700;letter-spacing:.01em;transition:all .18s cubic-bezier(.34,1.4,.64,1);cursor:pointer;flex:1;white-space:nowrap;font-family:var(--ff)}
@@ -776,6 +829,10 @@ const IC={
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
+// Escapes free-text ticket fields (site name, notes, cancellation reason, etc.)
+// before they're interpolated into template strings destined for innerHTML —
+// prevents admin-entered text from being parsed as markup.
+const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('ico-logo').innerHTML=ic('logo',28);
@@ -1223,17 +1280,19 @@ async function loadRecovered(){
 function renderRecoveredList(tix){
   const c=document.getElementById('adm-recovered');
   if(!tix.length){c.innerHTML=emptyState(ic('check',22),'No recovered sites yet','Sites that drop out of a Full Snapshot upload will appear here.');return;}
-  c.innerHTML=tix.map(t=>{
+  c.innerHTML=tix.map((t,i)=>{
     const wasClaimed=t.status==='ON_GOING'&&t.recovered_while_claimed;
-    return `<div class="tc RECOVERED"><div class="tc-strip"></div><div class="tc-body">
-    <div class="tc-r1"><span class="tc-id c-vio">${t.ticket_id||('Site '+t.site_id)}</span>
-      <div class="tc-badges"><span class="bdg RECOVERED">${wasClaimed?'Recovered (was claimed)':'Recovered'}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
+    return `<div class="ac RECOVERED fade-up" data-tid="${t.id}" style="animation-delay:${Math.min(i,5)*0.04}s">
+    <div class="ac-head"><span class="ac-id">${esc(t.ticket_id||('Site '+t.site_id))}</span>
+      <div class="ac-head-r"><div class="tc-badges"><span class="bdg RECOVERED">${wasClaimed?'Recovered (was claimed)':'Recovered'}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div></div>
     </div>
-    <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
-    <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${wasClaimed&&t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${t.assigned_to}</span>`:''}</div>
-    <div class="tc-addr">${t.address}</div>
-    <div class="tc-callout canc">${ic('alert',14)}<span>${t.recovered_at?'Recovered '+fmtDate(t.recovered_at):'Recovered'}${wasClaimed?' — technician sees a warning in My Jobs':''}</span></div>
-  </div></div>`;
+    <div class="ac-body">
+      <div class="ac-title">${esc(t.site_name)}</div>
+      <div class="ac-meta"><span>${ic('pin',13)} ${esc(t.locality)}</span><span class="dvd"></span><span>${ic('tag',13)} ${esc(t.site_id)}</span>${wasClaimed&&t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${esc(t.assigned_to)}</span>`:''}</div>
+      <div class="ac-addr">${esc(t.address)}</div>
+      <div class="ac-callout canc">${ic('alert',14)}<span>${t.recovered_at?'Recovered '+fmtDate(t.recovered_at):'Recovered'}${wasClaimed?' — technician sees a warning in My Jobs':''}</span></div>
+    </div>
+  </div>`;
   }).join('');
 }
 
@@ -1343,10 +1402,12 @@ setInterval(()=>{
   if(document.getElementById('ap-fs')?.classList.contains('on') && CR==='admin') loadFieldStatus();
 },8000);
 
-function admCard(t){
+function admCard(t,i=0){
   const sm={OPEN:'Open',ON_GOING:'On Going',COMPLETED:'Completed',CANCELLED:'Cancelled',RECOVERED:'Recovered'};
-  const idCls=t.status==='COMPLETED'?'c-grn':(t.status==='CANCELLED'||t.status==='RECOVERED')?'c-vio':'c-blue';
-  const stripCls=t.status==='CANCELLED'?'CANC':t.status==='COMPLETED'?'DONE':t.status==='ON_GOING'?'ONGO':t.status==='RECOVERED'?'RECOVERED':t.priority;
+  // Header color now tracks ticket status only (OPEN is always teal, matching
+  // the tech portal's Open-tab job card 1:1). Priority keeps its own
+  // red/amber/green badge below so the urgency signal isn't lost.
+  const headCls=t.status==='CANCELLED'?'CANC':t.status==='COMPLETED'?'DONE':t.status==='ON_GOING'?'ONGO':t.status==='RECOVERED'?'RECOVERED':'OPEN';
   const canCancel=['OPEN','ON_GOING'].includes(t.status),canReopen=t.status==='CANCELLED';
   const canEdit=t.status==='OPEN';
   // Ticket numbers are never shown for OPEN (unclaimed) tasks — they don't exist yet.
@@ -1355,21 +1416,27 @@ function admCard(t){
   // button stays visible but disabled — wrapped in a span so hovering still
   // surfaces the tooltip (disabled buttons drop title tooltips in some browsers).
   const editBtn = canEdit
-    ? `<button class="tc-edit-btn" onclick="openEditModal('${t.id}')" title="Edit site details" aria-label="Edit site details">${ic('edit',13)}</button>`
-    : `<span title="This ticket can no longer be edited."><button class="tc-edit-btn" disabled aria-label="Edit disabled">${ic('edit',13)}</button></span>`;
-  return `<div class="tc ${stripCls}" data-tid="${t.id}"><div class="tc-strip"></div><div class="tc-body">
-    <div class="tc-r1"><span class="tc-id ${idCls}">${idLabel}</span>
-      <div class="tc-r1-right"><div class="tc-badges"><span class="bdg ${t.status}">${sm[t.status]||t.status}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>${editBtn}</div>
+    ? `<button class="ac-edit-btn" onclick="openEditModal('${t.id}')" title="Edit site details" aria-label="Edit site details">${ic('edit',13)}</button>`
+    : `<span title="This ticket can no longer be edited."><button class="ac-edit-btn" disabled aria-label="Edit disabled">${ic('edit',13)}</button></span>`;
+  const notesVal=(t.site_notes||'').trim();
+  const notesBlock = notesVal ? `<div class="ac-notes">${ic('note',14)}<span>${esc(notesVal)}</span></div>` : '';
+  return `<div class="ac ${headCls} fade-up" data-tid="${t.id}" style="animation-delay:${Math.min(i,5)*0.04}s">
+    <div class="ac-head"><span class="ac-id">${esc(idLabel)}</span>
+      <div class="ac-head-r"><div class="tc-badges"><span class="bdg ${t.status}">${sm[t.status]||t.status}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>${editBtn}</div>
     </div>
-    <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
-    <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${t.assigned_to}</span>`:''}${t.recurrence_count>1?`<span class="dvd"></span><span>${ic('refresh',13)} Reported ${t.recurrence_count}x</span>`:''}</div>
-    <div class="tc-addr">${t.address}</div>
-    ${t.status==='ON_GOING'&&t.recovered_while_claimed?`<div class="tc-callout canc">${ic('alert',14)}<span>⚠ Site already recovered based on latest monitoring batch.</span></div>`:''}
-    ${t.cancellation_reason?`<div class="tc-callout canc">${ic('ban',14)}<span><strong>Cancelled by ${t.cancelled_by||'user'}:</strong> ${t.cancellation_reason}</span></div>`:''}
-    ${t.proof_url&&t.proof_url.length?`<div class="tc-callout proof">${ic('img',14)} ${t.proof_url.length} proof file${t.proof_url.length>1?'s':''} on record</div>`:''}
-    ${canCancel||canReopen?`<div class="tc-acts">${canCancel?`<button class="btn adm-cancel sm" onclick="openModal('${t.id}','admin','${t.ticket_id||t.site_id}')">${ic('ban',13)} Cancel</button>`:''
-    }${canReopen?`<button class="btn reopen sm" onclick="reopenTicket('${t.id}')">${ic('refresh',13)} Re-open</button>`:''}</div>`:''}
-  </div></div>`;
+    <div class="ac-body">
+      <div class="ac-title">${esc(t.site_name)}</div>
+      <div class="ac-meta"><span>${ic('pin',13)} ${esc(t.locality)}</span><span class="dvd"></span><span>${ic('tag',13)} ${esc(t.site_id)}</span>${t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${esc(t.assigned_to)}</span>`:''}</div>
+      <div class="ac-addr">${esc(t.address)}</div>
+      ${t.recurrence_count>1?`<div class="ac-report">${ic('refresh',13)} Reported ${t.recurrence_count}x</div>`:''}
+      ${notesBlock}
+      ${t.status==='ON_GOING'&&t.recovered_while_claimed?`<div class="ac-callout canc">${ic('alert',14)}<span>⚠ Site already recovered based on latest monitoring batch.</span></div>`:''}
+      ${t.cancellation_reason?`<div class="ac-callout canc">${ic('ban',14)}<span><strong>Cancelled by ${esc(t.cancelled_by||'user')}:</strong> ${esc(t.cancellation_reason)}</span></div>`:''}
+      ${t.proof_url&&t.proof_url.length?`<div class="ac-callout proof">${ic('img',14)} ${t.proof_url.length} proof file${t.proof_url.length>1?'s':''} on record</div>`:''}
+      ${canCancel||canReopen?`<div class="ac-acts">${canCancel?`<button class="btn adm-cancel sm" onclick="openModal('${t.id}','admin','${esc(t.ticket_id||t.site_id)}')">${ic('ban',13)} Cancel</button>`:''
+      }${canReopen?`<button class="btn reopen sm" onclick="reopenTicket('${t.id}')">${ic('refresh',13)} Re-open</button>`:''}</div>`:''}
+    </div>
+  </div>`;
 }
 
 async function simulate(){
@@ -1713,7 +1780,7 @@ function onEditFieldInput(){
 // Recent Activity + the All Tickets tab both use admCard()) — never touches
 // scroll position, the active tab, or the active filter.
 function refreshTicketCard(id,t){
-  document.querySelectorAll(`.tc[data-tid="${id}"]`).forEach(el=>{el.outerHTML=admCard(t);});
+  document.querySelectorAll(`.ac[data-tid="${id}"]`).forEach(el=>{el.outerHTML=admCard(t);});
 }
 
 async function saveEditModal(){
