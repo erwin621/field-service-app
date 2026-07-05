@@ -272,6 +272,20 @@ button{cursor:pointer}
 .tc-id.c-grn{color:var(--green-dk)}
 .tc-id.c-vio{color:var(--violet-dk)}
 .tc-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.tc-r1-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
+
+/* small pencil/edit icon button — sits in the card header row so editing
+   an OPEN ticket never grows the card's height */
+.tc-edit-btn{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;padding:0;
+  background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx2);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .18s cubic-bezier(.34,1.4,.64,1);cursor:pointer;
+}
+.tc-edit-btn:hover{background:var(--primary-lt);border-color:var(--primary-bd);color:var(--primary)}
+.tc-edit-btn:active{transform:scale(.88)}
+.tc-edit-btn:disabled{opacity:.4;cursor:not-allowed;background:var(--srf2);border-color:var(--bd);color:var(--tx3)}
+.tc-edit-btn:disabled:hover{background:var(--srf2);border-color:var(--bd);color:var(--tx3)}
 
 .bdg{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 .bdg.dot::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
@@ -414,6 +428,51 @@ button{cursor:pointer}
 .mbconf{flex:1;padding:13px;background:linear-gradient(135deg,#F87171,#DC2626);border:none;color:#fff;border-radius:16px;font-size:.85rem;font-weight:800;transition:.18s;box-shadow:0 4px 14px rgba(220,38,38,.28);cursor:pointer}
 .mbconf:hover{box-shadow:0 6px 20px rgba(220,38,38,.36)}
 .mbconf:active{transform:scale(.96)}
+.mbsave{flex:1;padding:13px;background:linear-gradient(135deg,#14B8A6,#0D9488);border:none;color:#fff;border-radius:16px;font-size:.85rem;font-weight:800;transition:.18s;box-shadow:0 4px 14px rgba(20,184,166,.3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:var(--ff)}
+.mbsave:hover:not(:disabled){box-shadow:0 6px 20px rgba(20,184,166,.38)}
+.mbsave:active:not(:disabled){transform:scale(.96)}
+.mbsave:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+
+/* ══════════════════════════════════════
+   EDIT SITE DETAILS MODAL (fullscreen, mobile-first)
+══════════════════════════════════════ */
+.edit-modal-ov{
+  position:fixed;inset:0;z-index:600;
+  background:rgba(15,23,42,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .28s ease,visibility .28s ease;
+}
+.edit-modal-ov.open{opacity:1;visibility:visible;pointer-events:auto}
+.edit-modal{
+  background:var(--card);width:100%;height:100dvh;max-height:100dvh;
+  display:flex;flex-direction:column;overflow:hidden;
+  border-radius:0;box-shadow:0 -12px 40px rgba(15,23,42,.18);
+  transform:translateY(28px);
+  transition:transform .32s cubic-bezier(.34,1.15,.64,1);
+}
+.edit-modal-ov.open .edit-modal{transform:translateY(0)}
+@media(min-width:640px){
+  .edit-modal-ov{align-items:center;padding:24px}
+  .edit-modal{width:100%;max-width:460px;height:auto;max-height:88vh;border-radius:28px;box-shadow:0 32px 64px rgba(15,23,42,.18),0 12px 24px rgba(15,23,42,.10)}
+}
+.edit-modal-hd{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0;
+  padding:calc(18px + var(--sat)) 20px 16px;border-bottom:1px solid var(--bd);
+}
+@media(min-width:640px){.edit-modal-hd{padding:22px 24px 16px}}
+.edit-modal-ttl{font-size:1.05rem;font-weight:800;letter-spacing:-.02em;color:var(--tx)}
+.edit-modal-sub{font-family:var(--fm);font-size:.74rem;color:var(--primary);margin-top:4px}
+.edit-modal-x{width:34px;height:34px;border-radius:50%;flex-shrink:0;background:var(--srf2);border:none;color:var(--tx2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .18s}
+.edit-modal-x:hover{background:var(--red-lt);color:var(--red)}
+.edit-modal-x:active{transform:scale(.9)}
+.edit-modal-bd{flex:1;overflow-y:auto;padding:20px 20px 8px;-webkit-overflow-scrolling:touch}
+@media(min-width:640px){.edit-modal-bd{padding:22px 24px 8px}}
+.edit-modal-ft{
+  display:flex;gap:10px;flex-shrink:0;
+  padding:16px 20px calc(16px + var(--sab));border-top:1px solid var(--bd);background:var(--card);
+}
+@media(min-width:640px){.edit-modal-ft{padding:18px 24px}}
 
 /* ══════════════════════════════════════
    UTILITIES
@@ -491,6 +550,45 @@ button{cursor:pointer}
     <div class="macts">
       <button class="mbback" onclick="closeModal()">Go Back</button>
       <button class="mbconf" onclick="confirmCancel()">Confirm Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-edit" class="edit-modal-ov">
+  <div class="edit-modal">
+    <div class="edit-modal-hd">
+      <div>
+        <div class="edit-modal-ttl">Edit Site Details</div>
+        <div class="edit-modal-sub" id="em-sub"></div>
+      </div>
+      <button class="edit-modal-x" id="em-x" onclick="closeEditModal()" aria-label="Close"></button>
+    </div>
+    <div class="edit-modal-bd">
+      <div class="fg">
+        <label class="flbl">Site Name <span style="color:var(--red)">*</span></label>
+        <input class="finp" id="em-site-name" maxlength="100" placeholder="e.g. Alpha Tower" oninput="onEditFieldInput()">
+      </div>
+      <div class="fg">
+        <label class="flbl">Locality</label>
+        <input class="finp" id="em-locality" maxlength="100" placeholder="e.g. Meycauayan" oninput="onEditFieldInput()">
+      </div>
+      <div class="fg">
+        <label class="flbl">Address</label>
+        <input class="finp" id="em-address" maxlength="255" placeholder="e.g. Malhacan Road" oninput="onEditFieldInput()">
+      </div>
+      <div class="fg">
+        <label class="flbl">Coordinates</label>
+        <input class="finp" id="em-coordinates" maxlength="100" placeholder="e.g. 14.735, 120.961" oninput="onEditFieldInput()">
+      </div>
+      <div class="fg" style="margin-bottom:6px">
+        <label class="flbl">Notes</label>
+        <textarea class="noteta" id="em-notes" maxlength="1000" style="min-height:96px" placeholder="Internal site notes (optional)..." oninput="onEditFieldInput()"></textarea>
+      </div>
+      <div class="auth-err" id="em-err"><span id="em-err-txt"></span></div>
+    </div>
+    <div class="edit-modal-ft">
+      <button class="mbback" onclick="closeEditModal()">Cancel</button>
+      <button class="mbsave" id="em-save-btn" disabled onclick="saveEditModal()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -674,6 +772,7 @@ const IC={
   unlock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`,
   routeNav:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17V7a2 2 0 0 1 2-2h4"/><path d="M18 7v10a2 2 0 0 1-2 2h-4"/><polyline points="14 3 18 7 14 11"/><polyline points="10 13 6 17 2 13"/></svg>`,
   plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`,
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
@@ -698,6 +797,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('sim-btn').prepend(icEl('refresh',15));
   document.getElementById('m-hd').prepend(icEl('ban',20));
   document.getElementById('adm-err').prepend(icEl('x',13));
+  document.getElementById('em-x').innerHTML=ic('x',16);
+  document.getElementById('em-err-txt').before(icEl('alert',13));
+  document.getElementById('em-save-btn').prepend(icEl('check',14));
 });
 
 let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[];
@@ -1246,11 +1348,18 @@ function admCard(t){
   const idCls=t.status==='COMPLETED'?'c-grn':(t.status==='CANCELLED'||t.status==='RECOVERED')?'c-vio':'c-blue';
   const stripCls=t.status==='CANCELLED'?'CANC':t.status==='COMPLETED'?'DONE':t.status==='ON_GOING'?'ONGO':t.status==='RECOVERED'?'RECOVERED':t.priority;
   const canCancel=['OPEN','ON_GOING'].includes(t.status),canReopen=t.status==='CANCELLED';
+  const canEdit=t.status==='OPEN';
   // Ticket numbers are never shown for OPEN (unclaimed) tasks — they don't exist yet.
   const idLabel = t.status==='OPEN' ? ('Site '+t.site_id) : (t.ticket_id || '— no ticket —');
-  return `<div class="tc ${stripCls}"><div class="tc-strip"></div><div class="tc-body">
+  // Edit is only ever allowed on OPEN tickets. For every other status the
+  // button stays visible but disabled — wrapped in a span so hovering still
+  // surfaces the tooltip (disabled buttons drop title tooltips in some browsers).
+  const editBtn = canEdit
+    ? `<button class="tc-edit-btn" onclick="openEditModal('${t.id}')" title="Edit site details" aria-label="Edit site details">${ic('edit',13)}</button>`
+    : `<span title="This ticket can no longer be edited."><button class="tc-edit-btn" disabled aria-label="Edit disabled">${ic('edit',13)}</button></span>`;
+  return `<div class="tc ${stripCls}" data-tid="${t.id}"><div class="tc-strip"></div><div class="tc-body">
     <div class="tc-r1"><span class="tc-id ${idCls}">${idLabel}</span>
-      <div class="tc-badges"><span class="bdg ${t.status}">${sm[t.status]||t.status}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
+      <div class="tc-r1-right"><div class="tc-badges"><span class="bdg ${t.status}">${sm[t.status]||t.status}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>${editBtn}</div>
     </div>
     <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('tag',13)} ${t.site_id}</span>${t.assigned_to?`<span class="dvd"></span><span>${ic('user',13)} ${t.assigned_to}</span>`:''}${t.recurrence_count>1?`<span class="dvd"></span><span>${ic('refresh',13)} Reported ${t.recurrence_count}x</span>`:''}</div>
@@ -1544,6 +1653,117 @@ async function reopenTicket(id){
   try{const r=await fetch('/api/tickets/reopen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});const d=await r.json();if(r.ok){toast('Ticket re-opened.','ok');loadAdminData();}else{toast(d.error||'Could not re-open.','err');}}
   catch(e){const t=AT.find(x=>x.id===id);if(t){t.status='OPEN';t.cancellation_reason=null;t.cancelled_by=null;t.assigned_to=null;}toast('Ticket re-opened (demo).','ok');loadAdminData();}
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   EDIT SITE DETAILS — fullscreen modal, admin-only, OPEN tickets only.
+   Editable fields: site_name, locality, address, coordinates, site_notes.
+   Optimistic UI: the card + local AT cache update the instant Save is
+   pressed; a failed request rolls both back and surfaces an error toast.
+   No list is ever fully reloaded, so the current tab/filter/scroll all
+   stay exactly where the admin left them.
+══════════════════════════════════════════════════════════════════════ */
+let editTid=null, editOriginal=null;
+const EDIT_LIMITS={site_name:100,locality:100,address:255,coordinates:100,site_notes:1000};
+const EDIT_LABELS={site_name:'Site Name',locality:'Locality',address:'Address',coordinates:'Coordinates',site_notes:'Notes'};
+
+function readEditFields(){
+  return{
+    site_name:document.getElementById('em-site-name').value,
+    locality:document.getElementById('em-locality').value,
+    address:document.getElementById('em-address').value,
+    coordinates:document.getElementById('em-coordinates').value,
+    site_notes:document.getElementById('em-notes').value
+  };
+}
+function showEditErr(msg){document.getElementById('em-err-txt').textContent=msg;document.getElementById('em-err').classList.add('show');}
+function hideEditErr(){document.getElementById('em-err').classList.remove('show');}
+
+function openEditModal(id){
+  const t=AT.find(x=>x.id===id);
+  if(!t){toast('Ticket not found.','err');return;}
+  if(t.status!=='OPEN'){toast('This ticket can no longer be edited.','err');return;}
+  editTid=id;
+  editOriginal={
+    site_name:t.site_name||'',locality:t.locality||'',address:t.address||'',
+    coordinates:t.coordinates||'',site_notes:t.site_notes||''
+  };
+  document.getElementById('em-sub').textContent=t.ticket_id||('Site '+t.site_id);
+  document.getElementById('em-site-name').value=editOriginal.site_name;
+  document.getElementById('em-locality').value=editOriginal.locality;
+  document.getElementById('em-address').value=editOriginal.address;
+  document.getElementById('em-coordinates').value=editOriginal.coordinates;
+  document.getElementById('em-notes').value=editOriginal.site_notes;
+  hideEditErr();
+  document.getElementById('em-save-btn').disabled=true;
+  document.getElementById('modal-edit').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeEditModal(){
+  document.getElementById('modal-edit').classList.remove('open');
+  document.body.style.overflow='';
+  editTid=null;editOriginal=null;
+}
+function onEditFieldInput(){
+  hideEditErr();
+  const cur=readEditFields();
+  const dirty=editOriginal && Object.keys(cur).some(k=>cur[k]!==editOriginal[k]);
+  document.getElementById('em-save-btn').disabled=!dirty;
+}
+// Re-renders just this one card wherever it's currently in the DOM (Overview's
+// Recent Activity + the All Tickets tab both use admCard()) — never touches
+// scroll position, the active tab, or the active filter.
+function refreshTicketCard(id,t){
+  document.querySelectorAll(`.tc[data-tid="${id}"]`).forEach(el=>{el.outerHTML=admCard(t);});
+}
+
+async function saveEditModal(){
+  if(!editTid)return;
+  const raw=readEditFields();
+  const fields={
+    site_name:raw.site_name.trim(), locality:raw.locality.trim(), address:raw.address.trim(),
+    coordinates:raw.coordinates.trim(), site_notes:raw.site_notes.trim()
+  };
+  hideEditErr();
+  if(!fields.site_name){showEditErr('Site Name is required.');return;}
+  for(const key of Object.keys(EDIT_LIMITS)){
+    if(fields[key].length>EDIT_LIMITS[key]){showEditErr(`${EDIT_LABELS[key]} must be ${EDIT_LIMITS[key]} characters or fewer.`);return;}
+  }
+
+  const id=editTid;
+  const t=AT.find(x=>x.id===id);
+  if(!t){toast('Ticket not found.','err');closeEditModal();return;}
+  if(t.status!=='OPEN'){toast('This ticket can no longer be edited.','err');closeEditModal();return;}
+
+  const before={site_name:t.site_name,locality:t.locality,address:t.address,coordinates:t.coordinates,site_notes:t.site_notes,updated_at:t.updated_at};
+
+  // Optimistic update — apply immediately, close the modal, then persist.
+  Object.assign(t,fields);
+  t.updated_at=new Date().toISOString();
+  refreshTicketCard(id,t);
+  closeEditModal();
+
+  try{
+    const r=await fetch(`/api/admin/tickets/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(fields)});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){
+      if(d.ticket)Object.assign(t,d.ticket);
+      refreshTicketCard(id,t);
+      toast('Site details updated.','ok');
+    }else{
+      Object.assign(t,before);
+      refreshTicketCard(id,t);
+      toast(d.error||'Could not save changes.','err');
+    }
+  }catch(e){
+    Object.assign(t,before);
+    refreshTicketCard(id,t);
+    toast('Cannot reach server.','err');
+  }
+}
+document.getElementById('modal-edit').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape' && document.getElementById('modal-edit').classList.contains('open'))closeEditModal();
+});
 
 /* ── TOOLS overlay (new section, presentational) ── */
 function renderToolsOverlay(){

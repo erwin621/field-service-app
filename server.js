@@ -1067,6 +1067,101 @@ app.post('/api/tickets/reopen', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  PUT /api/admin/tickets/:id  — "Edit Site Details" (admin only)
+//  body: { site_name, locality, address, coordinates, site_notes }
+//
+//  WHITELIST: only the five fields above are ever read from the request
+//  body — everything else (status, priority, assigned_to, ticket_id,
+//  recurrence_count, proof_url, technician notes, timestamps, etc.) is
+//  silently ignored, even if present. The client is never trusted; every
+//  field is re-validated here regardless of what the frontend already
+//  checked.
+//
+//  Only allowed while the ticket is still OPEN. ON_GOING, COMPLETED,
+//  CANCELLED and RECOVERED tickets are rejected with 409, using the exact
+//  message the Admin Portal shows on the disabled Edit button, so the
+//  API and UI never disagree.
+// ═══════════════════════════════════════════════════════════════════════════
+const EDIT_LOCKED_MSG = 'This ticket can no longer be edited.';
+const TICKET_EDIT_LIMITS = { site_name: 100, locality: 100, address: 255, coordinates: 100, site_notes: 1000 };
+const TICKET_EDIT_LABELS = { site_name: 'Site Name', locality: 'Locality', address: 'Address', coordinates: 'Coordinates', site_notes: 'Notes' };
+
+// Whitelist + sanitize: only these 5 keys are ever produced, regardless of
+// what else is in `body`. Missing/null values normalize to '' (trimmed).
+function sanitizeTicketEdit(body) {
+    const raw  = body || {};
+    const norm = v => (v === null || v === undefined ? '' : String(v)).trim();
+    return {
+        site_name:   norm(raw.site_name),
+        locality:    norm(raw.locality),
+        address:     norm(raw.address),
+        coordinates: norm(raw.coordinates),
+        site_notes:  norm(raw.site_notes)
+    };
+}
+
+// Returns a human-readable error string, or null if valid.
+function validateTicketEdit(fields) {
+    if (!fields.site_name) return 'Site Name is required.';
+    for (const key of Object.keys(TICKET_EDIT_LIMITS)) {
+        if (fields[key].length > TICKET_EDIT_LIMITS[key]) {
+            return `${TICKET_EDIT_LABELS[key]} must be ${TICKET_EDIT_LIMITS[key]} characters or fewer.`;
+        }
+    }
+    return null;
+}
+
+app.put('/api/admin/tickets/:id', async (req, res) => {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'Missing ticket id' });
+
+    // Whitelist first — unknown/protected properties in req.body never even
+    // reach a variable, let alone the database.
+    const fields = sanitizeTicketEdit(req.body);
+    const validationError = validateTicketEdit(fields);
+    if (validationError) return res.status(400).json({ error: validationError });
+
+    try {
+        if (supabase) {
+            const { data: existing, error: findErr } = await supabase
+                .from('tickets').select('id, status').eq('id', id).maybeSingle();
+            if (findErr) throw findErr;
+            if (!existing) return res.status(404).json({ error: 'Ticket not found' });
+            if (existing.status !== 'OPEN') return res.status(409).json({ error: EDIT_LOCKED_MSG });
+
+            // Re-guard status on the write itself (not just the read above) so a
+            // claim/cancel racing in between can never be silently overwritten.
+            const { data: updated, error: updErr } = await supabase
+                .from('tickets')
+                .update({ ...fields, updated_at: nowIso() })
+                .eq('id', id)
+                .eq('status', 'OPEN')
+                .select('*')
+                .maybeSingle();
+            if (updErr) throw updErr;
+            if (!updated) return res.status(409).json({ error: EDIT_LOCKED_MSG });
+
+            return res.json({ message: 'Site details updated.', ticket: updated });
+        }
+
+        // ── Local JSON fallback (identical rules) ──────────────────────────
+        const db = readDB();
+        const t  = db.tickets.find(x => x.id === id);
+        if (!t) return res.status(404).json({ error: 'Ticket not found' });
+        if (t.status !== 'OPEN') return res.status(409).json({ error: EDIT_LOCKED_MSG });
+
+        Object.assign(t, fields);
+        t.updated_at = nowIso();
+        writeDB(db);
+
+        res.json({ message: 'Site details updated.', ticket: t });
+    } catch (err) {
+        console.error('[PUT /admin/tickets/:id]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  POST /api/admin/batch-upload
 //  body: { sites: [...], upload_type: 'FULL_SNAPSHOT' | 'INCREMENTAL_ESCALATION',
 //          batch_name?, uploaded_by? }
