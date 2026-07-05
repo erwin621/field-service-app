@@ -935,6 +935,87 @@ button{cursor:pointer}
 .smf-recenter:hover{background:var(--teal-lt);color:var(--teal-dk)}
 .smf-recenter:active{transform:scale(.92)}
 .smf-actions{flex-shrink:0;position:relative;z-index:5;background:var(--card);border-top:1px solid var(--bd);padding:12px 16px calc(var(--sab) + 12px);display:flex;gap:8px}
+
+/* ══════════════════════════════════════
+   GUIDED TROUBLESHOOTING & HELP CENTER
+══════════════════════════════════════ */
+.tc-callout.warn{background:var(--amber-lt);border:1px solid var(--amber-bd);color:var(--amber-dk)}
+
+/* -- Need Help? button on the ongoing job card -- */
+.tc-help-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px 14px;border-radius:4px;border:1px solid var(--teal-bd);background:var(--teal-lt);color:var(--teal-dk);font-size:.82rem;font-weight:800;margin-bottom:14px;cursor:pointer;transition:all .15s}
+.tc-help-btn:active{transform:scale(.98)}
+.tc-help-btn.done{background:var(--green-lt);border-color:var(--green-bd);color:var(--green-dk)}
+
+/* -- Shared: search bar + expandable phase/check cards (Help Center + Wizard reference) -- */
+.hc-search{display:flex;align-items:center;gap:10px;background:var(--srf2);border:1px solid var(--bd);border-radius:4px;padding:10px 14px;margin:14px 16px}
+.hc-search input{flex:1;border:none;background:transparent;outline:none;font-family:var(--ff);font-size:.86rem;color:var(--tx);min-width:0}
+.hc-search input::placeholder{color:var(--tx3)}
+.hc-phase-card{background:var(--card);border:1px solid var(--bd);border-radius:4px;margin:0 16px 10px;overflow:hidden;box-shadow:var(--s1)}
+.hc-phase-head{display:flex;align-items:center;gap:12px;padding:15px 16px;cursor:pointer}
+.hc-phase-num{flex-shrink:0;width:30px;height:30px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800}
+.hc-phase-title{flex:1;min-width:0;font-size:.86rem;font-weight:800;color:var(--tx)}
+.hc-phase-intro{font-size:.74rem;color:var(--tx2);margin-top:2px;line-height:1.4}
+.hc-phase-chev{flex-shrink:0;color:var(--tx3);transition:transform .2s}
+.hc-phase-card.open>.hc-phase-head .hc-phase-chev{transform:rotate(180deg)}
+.hc-phase-body{display:none;border-top:1px solid var(--bd)}
+.hc-phase-card.open .hc-phase-body{display:block}
+.hc-check-item{border-bottom:1px solid var(--bd)}
+.hc-check-item:last-child{border-bottom:none}
+.hc-check-head{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer}
+.hc-check-title{flex:1;min-width:0;font-size:.8rem;font-weight:700;color:var(--tx)}
+.hc-check-body{display:none;padding:0 16px 16px 16px}
+.hc-check-item.open .hc-check-body{display:block}
+.hc-check-item.open .hc-check-head .hc-phase-chev{transform:rotate(180deg)}
+.hc-detail-row{display:flex;gap:9px;margin-top:10px}
+.hc-detail-row:first-child{margin-top:0}
+.hc-detail-icon{flex-shrink:0;width:26px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.hc-detail-icon.obj{background:var(--primary-lt);color:var(--primary)}
+.hc-detail-icon.ins{background:var(--srf2);color:var(--tx2)}
+.hc-detail-icon.exp{background:var(--green-lt);color:var(--green-dk)}
+.hc-detail-text{flex:1;font-size:.78rem;color:var(--tx2);line-height:1.5}
+.hc-detail-label{font-size:.68rem;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}
+.hc-empty{text-align:center;padding:40px 24px;color:var(--tx3);font-size:.82rem}
+
+/* -- Guided Troubleshooting Wizard (full-screen) -- */
+#ts-overlay{position:fixed;inset:0;z-index:136;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column}
+.ts-progress-track{height:5px;background:var(--srf2);flex-shrink:0}
+.ts-progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--teal));transition:width .3s cubic-bezier(.4,0,.2,1)}
+.ts-phase-pill{display:inline-flex;align-items:center;gap:6px;background:var(--primary-lt);color:var(--primary);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:5px 10px;border-radius:4px}
+.ts-phase-title{font-size:.76rem;color:var(--tx2);margin-top:6px}
+.ts-check-title{font-size:1.15rem;font-weight:800;color:var(--tx);margin-top:10px;line-height:1.3}
+.ts-card{background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:14px;margin-top:12px;box-shadow:var(--s1)}
+.ts-card-label{display:flex;align-items:center;gap:7px;font-size:.68rem;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.ts-card-body{font-size:.85rem;color:var(--tx);line-height:1.55}
+.ts-result-row{display:flex;gap:10px;margin-top:18px}
+.ts-result-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 8px;border-radius:4px;border:1.5px solid var(--bd);background:var(--card);cursor:pointer;transition:all .15s;font-family:var(--ff);color:var(--tx2)}
+.ts-result-btn span{font-size:.78rem;font-weight:800;color:var(--tx2)}
+.ts-result-btn.pass.active{border-color:var(--green-bd);background:var(--green-lt)}
+.ts-result-btn.pass.active,.ts-result-btn.pass.active span{color:var(--green-dk)}
+.ts-result-btn.fail.active{border-color:var(--red-bd);background:var(--red-lt)}
+.ts-result-btn.fail.active,.ts-result-btn.fail.active span{color:var(--red-dk)}
+.ts-evidence{margin-top:14px}
+.ts-evidence.required .ts-notes-box{border-color:var(--red-bd);background:var(--red-lt)}
+.ts-req-badge{color:var(--red-dk);font-size:.68rem;font-weight:800;margin-left:5px}
+.ts-attach-row{display:flex;gap:10px}
+.ts-attach-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:4px;border:1px dashed var(--bd2);background:var(--srf2);color:var(--tx2);font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--ff)}
+.ts-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ts-thumb{position:relative;width:60px;height:60px;border-radius:4px;overflow:hidden;border:1px solid var(--bd);background:var(--srf2)}
+.ts-thumb img,.ts-thumb video{width:100%;height:100%;object-fit:cover}
+.ts-thumb .up{position:absolute;inset:0;background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center}
+.ts-notes-box{margin-top:10px;border:1px solid var(--bd);border-radius:4px;background:var(--srf2);transition:all .15s}
+.ts-notes-box textarea{width:100%;border:none;background:transparent;resize:none;font-family:var(--ff);font-size:.82rem;color:var(--tx);padding:10px;outline:none;min-height:64px;box-sizing:border-box}
+.ts-notes-box textarea::placeholder{color:var(--tx3)}
+.ts-nav-row{display:flex;gap:10px;padding:14px 16px calc(var(--sab) + 14px);border-top:1px solid var(--bd);background:var(--card);flex-shrink:0}
+.ts-nav-btn{flex:1;padding:13px;border-radius:4px;font-size:.86rem;font-weight:800;text-align:center;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx2);font-family:var(--ff)}
+.ts-nav-btn.primary{background:linear-gradient(135deg,var(--primary),var(--teal));color:#fff;border:none}
+.ts-nav-btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+
+/* -- AI Summary review screen -- */
+.ts-sum-section{margin:0 16px 14px}
+.ts-sum-label{display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:800;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+.ts-sum-box{width:100%;border:1px solid var(--bd);border-radius:4px;background:var(--card);padding:11px 12px;font-family:var(--ff);font-size:.82rem;color:var(--tx);line-height:1.5;resize:vertical;outline:none;min-height:44px;box-sizing:border-box}
+.ts-sum-box:focus{border-color:var(--primary-bd);background:var(--primary-lt)}
+.ts-sum-status{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:.78rem;padding:6px 12px;border-radius:4px}
 </style>
 </style>
 </head>
@@ -1428,6 +1509,11 @@ const IC={
   // ── Site Details map icons ──
   crosshair:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>`,
   expand:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M21 16v3a2 2 0 0 1-2 2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/></svg>`,
+  // ── Guided Troubleshooting & Help Center icons ──
+  helpCircle:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  chevD:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`,
+  target:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  flag:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
@@ -1784,6 +1870,10 @@ function logout(){
   document.getElementById('tch-err').classList.remove('show');
   document.getElementById('tools-overlay').style.display='none';
   document.getElementById('profile-overlay').style.display='none';
+  const hcOv=document.getElementById('help-overlay'); if(hcOv) hcOv.style.display='none';
+  const tsOv=document.getElementById('ts-overlay'); if(tsOv) tsOv.style.display='none';
+  camShowNav();
+  TSState.jobId=null;TSState.draftId=null;TSState.responses={};TSState.aiSummary=null;
   closeSiteModal();
   camClose();camPreviewClose();
   go('tech-auth');
@@ -1802,6 +1892,8 @@ function techNav(section){
   document.getElementById('navtab-'+section).classList.add('active');
   document.getElementById('tools-overlay').style.display='none';
   document.getElementById('profile-overlay').style.display='none';
+  const hcOv=document.getElementById('help-overlay'); if(hcOv) hcOv.style.display='none';
+  const tsOv=document.getElementById('ts-overlay'); if(tsOv&&tsOv.style.display!=='none'){tsOv.style.display='none';camShowNav();}
   closeSiteModal();
   navHide.show();
 
@@ -2117,6 +2209,7 @@ function renderMine(tix){
   const c=document.getElementById('mine-list');
   if(!tix.length){c.innerHTML=emptyState(ic('wrench',22),'No on-going jobs','Claim an open job to get started.');return;}
   c.innerHTML=tix.map(t=>`<div class="tc ONGO"><div class="tc-strip"></div><div class="tc-body">
+    <button class="tc-help-btn${t.troubleshooting_completed?' done':''}" onclick="tsOpen('${t.id}','${escJS(t.site_id)}','${escJS(t.site_name)}','${escJS(t.ticket_id||'')}','${escJS(t.coordinates||'')}')">${ic(t.troubleshooting_completed?'check':'helpCircle',16)} ${t.troubleshooting_completed?'Troubleshooting Complete — Tap to Review':'Need Help? Guided Troubleshooting'}</button>
     <div class="tc-r1"><span class="tc-id c-blue">${t.ticket_id||'Pending ticket'}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
     <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('pin',13)} ${t.coordinates}</span></div>
@@ -2133,7 +2226,8 @@ function renderMine(tix){
     <div class="uzn" style="margin-top:8px"><input type="file" id="pf-${t.id}" accept="image/*,video/*" multiple onchange="updCnt('${t.id}',this)"><div class="uzn-ico">${ic('camera',28)}</div><div class="uzn-main">Or tap to attach files from gallery</div><div class="uzn-sub" id="cnt-${t.id}">Up to 5 files · Photos &amp; Videos</div></div>
     <div id="cam-attachments-${t.id}" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
     <div class="notewrap"><textarea class="noteta" id="note-${t.id}" placeholder="Completion notes (optional)..."></textarea></div>
-    <div class="tc-acts"><button class="btn submit" id="sbtn-${t.id}" onclick="submitJob('${t.id}')">${ic('check',14)} Submit &amp; Complete</button><button class="btn cancel sm" onclick="openModal('${t.id}','tech','${t.ticket_id||t.site_id}')">${ic('ban',14)} Cancel</button></div>
+    ${t.troubleshooting_completed?`<div class="tc-callout proof">${ic('check',14)}<span>Troubleshooting completed — ready to submit.</span></div>`:`<div class="tc-callout warn">${ic('alert',14)}<span>Please complete the troubleshooting checklist before submitting your proof.</span></div>`}
+    <div class="tc-acts"><button class="btn submit" id="sbtn-${t.id}" onclick="submitJob('${t.id}')"${t.troubleshooting_completed?'':' disabled title="Complete Need Help? Guided Troubleshooting first"'}>${ic('check',14)} Submit &amp; Complete</button><button class="btn cancel sm" onclick="openModal('${t.id}','tech','${t.ticket_id||t.site_id}')">${ic('ban',14)} Cancel</button></div>
   </div></div>`).join('');
   // Re-render any camera attachment strips that survived navigation
   // (blobs live in CamModule memory; DOM was just rebuilt by innerHTML above)
@@ -2848,6 +2942,8 @@ const BACK_GUARD_LAYERS=[
   ()=>_isOverlayVisible('docscan-overlay')         && docScanClose,
   ()=>_isOverlayVisible('camera-overlay')          && camClose,
   ()=>_isOverlayVisible('cam-settings-overlay')    && closeCamSettings,
+  ()=>_isOverlayVisible('ts-overlay')              && tsHandleBack,
+  ()=>_isOverlayVisible('help-overlay')            && hcClose,
   ()=>_isOverlayVisible('income-overlay')          && closeIncomeOverlay,
   ()=>_isOverlayVisible('navigator-overlay')       && closeNavigatorOverlay,
   ()=>_isOverlayVisible('route-overlay')           && closeRouteOverlay,
@@ -2927,6 +3023,7 @@ function confirmExitApp(){
 
 async function submitJob(id){
   const inp=document.getElementById('pf-'+id),btn=document.getElementById('sbtn-'+id);
+  if(btn?.disabled){toast('Please complete the troubleshooting checklist before submitting your proof.','err');return;}
   const notes=document.getElementById('note-'+id)?.value.trim()||'';
   // Collect gallery-picked files + camera-captured blobs
   const camFiles=CamModule.getAttachments(id)||[];
@@ -2936,6 +3033,23 @@ async function submitJob(id){
   const fd=new FormData();fd.append('id',id);fd.append('technician_id',CU.id);fd.append('notes',notes);
   for(let i=0;i<galleryCount;i++)fd.append('proof',inp.files[i]);
   for(let i=0;i<camFiles.length;i++)fd.append('proof',camFiles[i].blob,camFiles[i].name);
+
+  // Guided Troubleshooting — pull the final (technician-confirmed) summary and
+  // already-uploaded evidence straight from the server, so nothing here gets
+  // re-uploaded and nothing is lost even if the checklist was finished in an
+  // earlier session. Best-effort: if this lookup fails, submission still
+  // proceeds and the server-side gate below is the real enforcement anyway.
+  try{
+    const dr=await fetch(`/api/troubleshooting/draft?job_id=${encodeURIComponent(id)}&technician_id=${encodeURIComponent(CU.id)}`);
+    if(dr.ok){
+      const {draft,media}=await dr.json();
+      if(draft?.ai_summary){
+        try{fd.append('troubleshooting_summary',tsFormatSummaryText(JSON.parse(draft.ai_summary)));}catch(e){}
+      }
+      if(media?.length)fd.append('troubleshooting_media',JSON.stringify(media.map(m=>({storage_url:m.storage_url,media_type:m.media_type}))));
+    }
+  }catch(e){/* best-effort — server still enforces completion regardless */}
+
   try{
     const r=await fetch('/api/tickets/submit',{method:'POST',body:fd});const d=await r.json();
     if(r.ok){toast('Job completed and proof sent!','ok');CamModule.clearAttachments(id);loadMine();loadDone();}
@@ -3372,8 +3486,8 @@ function renderProfileOverlay(){
         </div>
       </div>
       <div class="list-card fade-up" style="background:#fff;border-radius:4px;box-shadow:var(--s2);overflow:hidden;border:1px solid var(--bd);margin-bottom:14px">
-        ${[['Personal Info','Edit your details','user'],['Notifications','3 unread','bell'],['Preferences','App settings','settings'],['Help & Support','Contact your team','alert']].map(([t,s,i])=>`
-        <div style="display:flex;align-items:center;padding:14px 16px;gap:12px;border-bottom:1px solid var(--bd)">
+        ${[['Personal Info','Edit your details','user',null],['Notifications','3 unread','bell',null],['Preferences','App settings','settings',null],['Help & Support','Troubleshooting guides & FAQs','helpCircle','hcOpen()']].map(([t,s,i,fn])=>`
+        <div style="display:flex;align-items:center;padding:14px 16px;gap:12px;border-bottom:1px solid var(--bd);${fn?'cursor:pointer':''}"${fn?` onclick="${fn}"`:''}>
           <div style="width:36px;height:36px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ic(i,18)}</div>
           <div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--tx)">${t}</div><div style="font-size:12px;color:var(--tx3);margin-top:1px">${s}</div></div>
           ${ic('chevR',16)}
@@ -6567,6 +6681,401 @@ function camUpdateAttachmentStrip(jobId) {
     </div>`;
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   GUIDED TROUBLESHOOTING & HELP CENTER
+   ─────────────────────────────────────────────────────────────────────────
+   Adds, without touching any existing screen or workflow:
+     • Help & Support knowledge base (Profile tab → Help & Support)
+     • A full-screen guided troubleshooting wizard ("Need Help?" on every
+       on-going job card), gated before Submit & Complete is allowed
+     • A rule-based AI-assisted summary, editable before submission
+     • Server-persisted auto-save / draft-recovery (see /api/troubleshooting/*)
+   TS_PHASES is the single source of content for both the knowledge base and
+   the wizard, so nothing is duplicated between "browse" and "do" modes.
+════════════════════════════════════════════════════════════════════════════ */
+function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+const TS_PHASES=[
+  {id:1,title:'Physical & Hardware Inspection',intro:'Verify the physical integrity of the setup before attempting any technical fixes.',checks:[
+    {id:'missing_hardware',title:'Missing Hardware Components',objective:'Confirm every required piece of equipment is physically present on site.',instructions:'Inventory the site: Comm Box, Modem, POE Injector, Access Point (AP), and all necessary cables (Fiber, Ethernet, Power).',expected:'All required hardware and cabling are accounted for and present.',failAction:'Source or replace any missing component before proceeding to Phase 2.',escalateToISP:false},
+    {id:'hardware_damage',title:'Hardware Damage',objective:'Confirm no equipment shows visible physical damage that could be causing the fault.',instructions:'Inspect all existing equipment for visible damage — burnt ports, cut cables, water damage, or shattered casings.',expected:'No visible damage on any device, port, or cable.',failAction:'Replace any physically damaged component before proceeding to Phase 2.',escalateToISP:false},
+  ]},
+  {id:2,title:'Power Verification',intro:'Network devices cannot communicate without stable power. Work from the main power source outward.',checks:[
+    {id:'power_commbox',title:'No Power - Comm Box',objective:'Confirm the Comm Box is receiving stable mains power.',instructions:'Check the main power source, circuit breakers, and wall outlets. Ensure the Comm Box power strip or UPS is switched on.',expected:'Comm Box and power strip/UPS are powered on with stable output.',failAction:'Restore power at the source (breaker, outlet, or UPS) before continuing.',escalateToISP:false},
+    {id:'power_modem',title:'Modem Power Issue',objective:"Confirm the modem's power LED is solid, not blinking.",instructions:'A blinking power light usually indicates a failing adapter or internal fault. Secure the connection, or replace the adapter with one of the exact same voltage/amperage.',expected:'Modem power LED is solid (not blinking).',failAction:'Secure or replace the power adapter with an exact voltage/amperage match.',escalateToISP:false},
+    {id:'power_poe',title:'No Power - POE Injector',objective:'Confirm the POE injector is powered and active.',instructions:'Ensure the injector is securely plugged into a working outlet inside the Comm Box. Check whether its LED indicator is lit.',expected:'POE injector LED indicator is lit.',failAction:'Reseat the injector into a confirmed-working outlet; replace it if the LED still fails to light.',escalateToISP:false},
+    {id:'power_ap',title:'No Power - Access Point',objective:'Confirm the Access Point is receiving power over Ethernet.',instructions:'Verify the Ethernet cable is plugged into the "POE" port on the injector and the correct port on the AP. A faulty cable will prevent the AP from powering on.',expected:'Access Point powers on and its status LED is lit.',failAction:'Replace the Ethernet cable between the POE injector and the AP.',escalateToISP:false},
+  ]},
+  {id:3,title:'ISP Line Status',intro:'Once power is confirmed, verify the internet signal from the ISP is actually reaching the modem.',checks:[
+    {id:'los',title:'Blinking LOS',objective:'Confirm the modem is receiving light from the fiber cable ("Loss of Signal").',instructions:'Check for a bent or broken fiber patch cord. If the cable is physically fine, the fiber line itself may be cut outside the site.',expected:'LOS LED is off — the modem is receiving a fiber signal.',failAction:'Replace a visibly bent or broken patch cord. If the cable is fine, escalate to the ISP — the line is likely cut outside the site.',escalateToISP:true},
+    {id:'pon',title:'Blinking PON',objective:"Confirm the modem has authenticated onto the ISP's network.",instructions:'A blinking or unstable PON (Passive Optical Network) light means the modem detects a signal but cannot authenticate. Reboot the modem.',expected:'PON LED is solid — the modem is authenticated on the ISP network.',failAction:'Reboot the modem. If it persists, escalate to the ISP for reprovisioning.',escalateToISP:true},
+  ]},
+  {id:4,title:'Local Network',intro:'If the modem shows a solid PON light and no LOS, the internet is reaching the site — next, check local wireless distribution.',checks:[
+    {id:'ssid',title:'No SSID Broadcast',objective:'Confirm the Access Point is broadcasting its Wi-Fi network name.',instructions:"Check the LAN cable between the Modem and POE Injector. If it's secure, reboot the AP. If the SSID is still missing, the AP may need reprovisioning.",expected:'SSID is visible and broadcasting normally on nearby devices.',failAction:"Reseat the LAN cable and reboot the AP; reprovision the AP if the SSID still doesn't appear.",escalateToISP:false},
+  ]},
+  {id:5,title:'Connectivity',intro:'Once the SSID is visible, users need to be able to connect and log in.',checks:[
+    {id:'captive_portal',title:"Can't Login to Captive Portal",objective:'Confirm devices can load and authenticate through the captive portal.',instructions:'Clear the browser cache, disconnect/reconnect to the network, and confirm the captive portal server is online. Check whether the device is receiving a valid IP address.',expected:'Captive portal loads and accepts valid credentials.',failAction:'Clear cache, reconnect, and confirm the device has a valid IP; verify the captive portal server is online.',escalateToISP:false},
+    {id:'no_internet',title:'No Internet',objective:'Confirm an authenticated device can actually reach the internet.',instructions:'Ping a public IP address (e.g. 8.8.8.8). Check whether the modem\'s "Internet"/"WAN" LED is lit. Reboot the modem and AP to clear IP conflicts.',expected:'Public IP ping succeeds and the WAN/Internet LED is lit.',failAction:'Reboot the modem and AP to clear IP conflicts; recheck the WAN LED.',escalateToISP:false},
+  ]},
+  {id:6,title:'Performance & Stability',intro:'The final phase addresses a working but degraded connection.',checks:[
+    {id:'intermittent',title:'Intermittent Connection',objective:'Confirm the connection stays stable without random drops.',instructions:'Inspect for loose Ethernet/fiber cables. Check whether the modem or AP is overheating inside the Comm Box. Note whether the PON light flashes during drops.',expected:'Connection remains stable with no drops observed during testing.',failAction:'Secure loose cabling and improve Comm Box ventilation; if the PON light flashes during drops, escalate to the ISP.',escalateToISP:true},
+    {id:'slow_internet',title:'Slow Internet',objective:'Confirm the measured bandwidth matches the expected plan speed.',instructions:'Run a speed test to determine exact bandwidth. Check for unauthorized background downloads, network congestion, or too many users on one AP.',expected:'Speed test result matches the expected plan bandwidth.',failAction:'Clear congestion or unauthorized usage; if hardware is clear, escalate to the ISP for throttling/latency investigation.',escalateToISP:true},
+  ]},
+];
+const TS_FLAT=TS_PHASES.flatMap(p=>p.checks.map(c=>({...c,phaseId:p.id,phaseTitle:p.title})));
+
+/* ── Help & Support knowledge base ── */
+const hcState={query:'',openPhases:new Set(),openChecks:new Set()};
+function hcOpen(){
+  hcState.query='';hcState.openPhases=new Set();hcState.openChecks=new Set();
+  document.getElementById('help-overlay').style.display='flex';
+  hcRender();
+  navHide.attach(document.querySelector('#help-overlay .app-scroll'));
+}
+function hcClose(){document.getElementById('help-overlay').style.display='none';}
+function hcTogglePhase(id){hcState.openPhases.has(id)?hcState.openPhases.delete(id):hcState.openPhases.add(id);hcRenderBody();}
+function hcToggleCheck(id){hcState.openChecks.has(id)?hcState.openChecks.delete(id):hcState.openChecks.add(id);hcRenderBody();}
+function hcMatches(c){
+  if(!hcState.query)return true;
+  const q=hcState.query;
+  return c.title.toLowerCase().includes(q)||c.objective.toLowerCase().includes(q)||c.instructions.toLowerCase().includes(q);
+}
+function hcSearch(v){
+  hcState.query=v.trim().toLowerCase();
+  if(hcState.query){
+    TS_PHASES.forEach(p=>{
+      const matches=p.checks.filter(hcMatches);
+      if(matches.length){hcState.openPhases.add(p.id);matches.forEach(c=>hcState.openChecks.add(c.id));}
+    });
+  }
+  hcRenderBody();
+}
+function hcRender(){
+  const el=document.getElementById('help-overlay');
+  el.innerHTML=`
+    <div class="app-header">
+      <button class="icon-btn" onclick="hcClose()">${ic('arrowL',18)}</button>
+      <div class="app-brand-info"><div class="app-brand-name">Help &amp; Support</div></div>
+    </div>
+    <div class="hc-search"><span style="color:var(--tx3);display:flex">${ic('search',16)}</span><input type="text" id="hc-search-input" placeholder="Search troubleshooting topics..." oninput="hcSearch(this.value)"></div>
+    <div class="app-scroll" id="hc-body" style="padding-top:4px;padding-bottom:24px"></div>`;
+  hcRenderBody();
+}
+function hcRenderBody(){
+  const body=document.getElementById('hc-body');
+  if(!body)return;
+  const phases=TS_PHASES.map(p=>({...p,checks:p.checks.filter(hcMatches)})).filter(p=>!hcState.query||p.checks.length);
+  if(!phases.length){body.innerHTML=emptyState(ic('search',22),'No matching topics','Try a different search term.');return;}
+  body.innerHTML=phases.map(p=>`
+    <div class="hc-phase-card${hcState.openPhases.has(p.id)?' open':''}">
+      <div class="hc-phase-head" onclick="hcTogglePhase(${p.id})">
+        <div class="hc-phase-num">P${p.id}</div>
+        <div style="flex:1;min-width:0"><div class="hc-phase-title">${p.title}</div><div class="hc-phase-intro">${p.intro}</div></div>
+        <span class="hc-phase-chev">${ic('chevD',18)}</span>
+      </div>
+      <div class="hc-phase-body">
+        ${p.checks.map(c=>`
+        <div class="hc-check-item${hcState.openChecks.has(c.id)?' open':''}">
+          <div class="hc-check-head" onclick="hcToggleCheck('${c.id}')">
+            <div class="hc-check-title">${c.title}</div>
+            <span class="hc-phase-chev">${ic('chevD',16)}</span>
+          </div>
+          <div class="hc-check-body">
+            <div class="hc-detail-row"><div class="hc-detail-icon obj">${ic('target',14)}</div><div class="hc-detail-text"><div class="hc-detail-label">Objective</div>${c.objective}</div></div>
+            <div class="hc-detail-row"><div class="hc-detail-icon ins">${ic('clipboard',14)}</div><div class="hc-detail-text"><div class="hc-detail-label">Instructions</div>${c.instructions}</div></div>
+            <div class="hc-detail-row"><div class="hc-detail-icon exp">${ic('flag',14)}</div><div class="hc-detail-text"><div class="hc-detail-label">Expected Result</div>${c.expected}</div></div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('')
+    +(hcState.query?'':`<div style="margin:4px 16px 0;font-size:.72rem;color:var(--tx3);line-height:1.5;text-align:center">Working an active job? Open <b>Need Help?</b> on its job card in Task to run this checklist step-by-step.</div>`);
+}
+
+/* ── Guided Troubleshooting Wizard ── */
+const TSState={jobId:null,draftId:null,siteId:'',siteName:'',ticketId:'',coordinates:'',index:0,responses:{},aiSummary:null,completed:false,view:'step',noteTimer:null};
+const TS_SUMMARY_FIELDS=[
+  ['issue','Issue','alert'],
+  ['rootCause','Root Cause','target'],
+  ['diagnosticSteps','Diagnostic Steps Performed','clipboard'],
+  ['correctiveActions','Corrective Actions','wrench'],
+  ['evidence','Evidence Attached','camera'],
+  ['verification','Verification','check'],
+  ['recommendation','Recommendation','magic'],
+  ['finalStatus','Final Status','flag'],
+];
+
+function tsCanAdvance(checkId){
+  const r=TSState.responses[checkId];
+  if(!r||!r.result)return false;
+  if(r.result==='passed')return true;
+  const uploaded=(r.media||[]).filter(m=>!m._uploading);
+  return !!(r.notes&&r.notes.trim()&&uploaded.length>0);
+}
+
+async function tsOpen(jobId,siteId,siteName,ticketId,coordinates){
+  TSState.jobId=jobId;TSState.siteId=siteId;TSState.siteName=siteName;TSState.ticketId=ticketId;TSState.coordinates=coordinates||'';
+  TSState.responses={};TSState.aiSummary=null;TSState.completed=false;TSState.view='step';TSState.index=0;
+  document.getElementById('ts-overlay').style.display='flex';
+  camHideNav();
+  tsRenderLoading();
+  try{
+    const r=await fetch(`/api/troubleshooting/draft?job_id=${encodeURIComponent(jobId)}&technician_id=${encodeURIComponent(CU.id)}`);
+    if(!r.ok)throw 0;
+    const {draft,responses,media}=await r.json();
+    TSState.draftId=draft.id;
+    TSState.completed=!!draft.completed;
+    responses.forEach(resp=>{TSState.responses[resp.check]={result:resp.result,notes:resp.notes||'',media:[]};});
+    media.forEach(m=>{
+      const key=m.check;
+      if(key){
+        if(!TSState.responses[key])TSState.responses[key]={result:null,notes:'',media:[]};
+        TSState.responses[key].media.push(m);
+      }
+    });
+    if(draft.ai_summary){try{TSState.aiSummary=JSON.parse(draft.ai_summary);}catch(e){TSState.aiSummary=null;}}
+    TSState.index=Math.min(Math.max(draft.current_step||0,0),TS_FLAT.length-1);
+    TSState.view=(TSState.completed&&TSState.aiSummary)?'summary':'step';
+    tsRender();
+  }catch(e){
+    toast('Could not load troubleshooting checklist — check your connection.','err');
+    tsClose();
+  }
+}
+function tsClose(){
+  document.getElementById('ts-overlay').style.display='none';
+  camShowNav();
+  loadMine();
+}
+function tsHandleBack(){
+  if(TSState.view==='summary'){tsGotoStep(TS_FLAT.length-1);return;}
+  if(TSState.index>0){tsPrev();return;}
+  tsClose();
+}
+function tsRender(){TSState.view==='summary'?tsRenderSummary():tsRenderStep();}
+function tsRenderLoading(){
+  document.getElementById('ts-overlay').innerHTML=`<div class="app-header"><button class="icon-btn" onclick="tsClose()">${ic('arrowL',18)}</button><div class="app-brand-info"><div class="app-brand-name">Guided Troubleshooting</div></div></div><div class="loading" style="padding:60px 20px"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div>`;
+}
+
+function tsRenderStep(){
+  const el=document.getElementById('ts-overlay');
+  const c=TS_FLAT[TSState.index];
+  const r=TSState.responses[c.id]||{result:null,notes:'',media:[]};
+  const total=TS_FLAT.length;
+  const answered=TS_FLAT.filter(cc=>TSState.responses[cc.id]?.result).length;
+  const pct=Math.round((answered/total)*100);
+  const isFail=r.result==='failed';
+  const canNext=tsCanAdvance(c.id);
+
+  el.innerHTML=`
+    <div class="app-header">
+      <button class="icon-btn" onclick="tsHandleBack()">${ic('arrowL',18)}</button>
+      <div class="app-brand-info"><div class="app-brand-name">Guided Troubleshooting</div></div>
+      <div style="font-size:.72rem;color:var(--tx3);font-family:var(--fm);padding-right:2px">${TSState.index+1}/${total}</div>
+    </div>
+    <div class="ts-progress-track"><div class="ts-progress-fill" style="width:${pct}%"></div></div>
+    <div class="app-scroll" style="padding:16px 16px 4px">
+      ${TSState.siteName?`<div style="font-size:.72rem;color:var(--tx3);margin-bottom:8px">${escHtml(TSState.siteName)}${TSState.ticketId?' · '+escHtml(TSState.ticketId):''}</div>`:''}
+      <div class="ts-phase-pill">${ic('wrench',12)} Phase ${c.phaseId} of ${TS_PHASES.length}</div>
+      <div class="ts-phase-title">${c.phaseTitle}</div>
+      <div class="ts-check-title">${c.title}</div>
+
+      <div class="ts-card"><div class="ts-card-label">${ic('target',13)} Objective</div><div class="ts-card-body">${c.objective}</div></div>
+      <div class="ts-card"><div class="ts-card-label">${ic('clipboard',13)} Instructions</div><div class="ts-card-body">${c.instructions}</div></div>
+      <div class="ts-card"><div class="ts-card-label">${ic('flag',13)} Expected Result</div><div class="ts-card-body">${c.expected}</div></div>
+
+      <div class="ts-result-row">
+        <button class="ts-result-btn pass${r.result==='passed'?' active':''}" onclick="tsSetResult('passed')">${ic('check',22)}<span>Passed</span></button>
+        <button class="ts-result-btn fail${r.result==='failed'?' active':''}" onclick="tsSetResult('failed')">${ic('x',22)}<span>Failed</span></button>
+      </div>
+
+      <div class="ts-evidence${isFail?' required':''}">
+        <div class="ts-attach-row">
+          <button class="ts-attach-btn" onclick="document.getElementById('ts-file-input').click()">${ic('camera',16)} Attach Photo${isFail?' *':''}</button>
+        </div>
+        <input type="file" id="ts-file-input" accept="image/*,video/*" capture="environment" style="display:none" onchange="tsAttachMedia(this)">
+        ${r.media&&r.media.length?`<div class="ts-thumbs">${r.media.map(m=>`<div class="ts-thumb">${m.media_type==='video'?`<video src="${m.storage_url}" muted></video>`:`<img src="${m.storage_url}">`}${m._uploading?`<div class="up">${ic('upload',18)}</div>`:''}</div>`).join('')}</div>`:''}
+        <div class="ts-notes-box">
+          <textarea id="ts-note-input" placeholder="${isFail?'Required — describe what you found...':'📝 Add a note (optional)...'}" oninput="tsNoteInput(this.value)">${escHtml(r.notes||'')}</textarea>
+        </div>
+        ${isFail?`<div style="font-size:.7rem;color:var(--red-dk);margin-top:5px;display:flex;align-items:center;gap:5px">${ic('alert',12)} Photo and notes are required for a failed check</div>`:''}
+      </div>
+    </div>
+    <div class="ts-nav-row">
+      <button class="ts-nav-btn" onclick="tsPrev()"${TSState.index===0?' disabled':''}>Previous</button>
+      <button class="ts-nav-btn primary" id="ts-next-btn" onclick="tsNext()"${canNext?'':' disabled'}>${TSState.index===total-1?'Review Summary':'Next'}</button>
+    </div>`;
+}
+
+async function tsSetResult(result){
+  const c=TS_FLAT[TSState.index];
+  if(!TSState.responses[c.id])TSState.responses[c.id]={result:null,notes:'',media:[]};
+  TSState.responses[c.id].result=result;
+  tsRenderStep();
+  try{
+    await fetch('/api/troubleshooting/response',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,phase:c.phaseId,check:c.id,result,notes:TSState.responses[c.id].notes})});
+  }catch(e){/* best-effort — local state already reflects the change */}
+}
+
+function tsNoteInput(value){
+  const c=TS_FLAT[TSState.index];
+  if(!TSState.responses[c.id])TSState.responses[c.id]={result:null,notes:'',media:[]};
+  TSState.responses[c.id].notes=value;
+  const nextBtn=document.getElementById('ts-next-btn');
+  if(nextBtn)nextBtn.disabled=!tsCanAdvance(c.id);
+  clearTimeout(TSState.noteTimer);
+  TSState.noteTimer=setTimeout(()=>tsSaveResponse(c),600);
+}
+async function tsSaveResponse(c){
+  const r=TSState.responses[c.id];
+  if(!r||!r.result)return;
+  try{
+    await fetch('/api/troubleshooting/response',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,phase:c.phaseId,check:c.id,result:r.result,notes:r.notes})});
+  }catch(e){/* best-effort autosave */}
+}
+
+async function tsAttachMedia(inputEl){
+  const file=inputEl.files[0];
+  if(!file)return;
+  const c=TS_FLAT[TSState.index];
+  if(!TSState.responses[c.id])TSState.responses[c.id]={result:null,notes:'',media:[]};
+  const tempId='up-'+Date.now();
+  TSState.responses[c.id].media.push({id:tempId,storage_url:URL.createObjectURL(file),media_type:file.type.startsWith('video')?'video':'image',_uploading:true});
+  tsRenderStep();
+  const form=new FormData();
+  form.append('file',file);form.append('draft_id',TSState.draftId);form.append('job_id',TSState.jobId);form.append('check',c.id);
+  try{
+    const res=await fetch('/api/troubleshooting/media',{method:'POST',body:form});
+    if(!res.ok)throw 0;
+    const saved=await res.json();
+    const idx=TSState.responses[c.id].media.findIndex(m=>m.id===tempId);
+    if(idx>-1)TSState.responses[c.id].media[idx]=saved;
+  }catch(e){
+    const idx=TSState.responses[c.id].media.findIndex(m=>m.id===tempId);
+    if(idx>-1)TSState.responses[c.id].media.splice(idx,1);
+    toast('Photo upload failed — please try again.','err');
+  }
+  inputEl.value='';
+  tsRenderStep();
+}
+
+function tsPrev(){
+  if(TSState.view==='summary'){TSState.view='step';TSState.index=TS_FLAT.length-1;tsRenderStep();tsSaveProgress();return;}
+  if(TSState.index<=0)return;
+  TSState.index--;
+  tsRenderStep();
+  tsSaveProgress();
+}
+function tsNext(){
+  const c=TS_FLAT[TSState.index];
+  if(!tsCanAdvance(c.id))return;
+  if(TSState.index>=TS_FLAT.length-1){tsGotoSummary();return;}
+  TSState.index++;
+  tsRenderStep();
+  tsSaveProgress();
+}
+function tsGotoStep(i){
+  TSState.view='step';
+  TSState.index=Math.min(Math.max(i,0),TS_FLAT.length-1);
+  tsRenderStep();
+  tsSaveProgress();
+}
+async function tsSaveProgress(){
+  try{
+    await fetch('/api/troubleshooting/progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,current_phase:TS_FLAT[TSState.index].phaseId,current_step:TSState.index})});
+  }catch(e){/* best-effort */}
+}
+
+function tsGenerateSummary(){
+  const failed=TS_FLAT.filter(c=>TSState.responses[c.id]?.result==='failed');
+  const issue=failed.length?failed.map(c=>c.title).join('; '):'No issue identified — all troubleshooting checks passed.';
+  const rootCause=failed.length
+    ?failed.map(c=>`${c.title} (Phase ${c.phaseId} – ${c.phaseTitle}): ${(TSState.responses[c.id].notes||'').trim()||'See attached evidence.'}`).join('\n')
+    :'N/A — system operating normally across all phases.';
+  const diagnosticSteps=TS_FLAT.map(c=>{
+    const r=TSState.responses[c.id];
+    const mark=r?.result==='passed'?'PASSED':r?.result==='failed'?'FAILED':'SKIPPED';
+    return `Phase ${c.phaseId} — ${c.title}: ${mark}`;
+  }).join('\n');
+  const correctiveActions=failed.length?failed.map(c=>`${c.title}: ${c.failAction}`).join('\n'):'No corrective action required.';
+  const totalMedia=TS_FLAT.reduce((n,c)=>n+((TSState.responses[c.id]?.media||[]).length),0);
+  const evidence=failed.length
+    ?(totalMedia>0?`${totalMedia} file${totalMedia!==1?'s':''} attached across ${failed.length} failed check${failed.length!==1?'s':''}.`:'No evidence attached.')
+    :'No evidence required — no failed checks.';
+  const verification=failed.length
+    ?'Partial — corrective action documented above; recommend re-testing after the action is completed on site.'
+    :'Verified — full connectivity restored, no issues detected during this pass.';
+  const needsISP=failed.some(c=>c.escalateToISP);
+  const recommendation=failed.length===0
+    ?'No further action needed; site is fully operational.'
+    :needsISP?'Escalate to the ISP for line-level investigation; local hardware has been ruled out where noted above.'
+    :'Apply the corrective action(s) above and monitor the site for recurrence.';
+  const finalStatus=failed.length===0?'RESOLVED — NO ISSUES FOUND':needsISP?'ESCALATED TO ISP':'FOLLOW-UP REQUIRED — FIELD ACTION TAKEN';
+  return {issue,rootCause,diagnosticSteps,correctiveActions,evidence,verification,recommendation,finalStatus};
+}
+
+function tsGotoSummary(){
+  TSState.view='summary';
+  if(!TSState.aiSummary)TSState.aiSummary=tsGenerateSummary();
+  tsRenderSummary();
+  tsSaveProgress();
+}
+function tsAutoGrow(t){t.style.height='auto';t.style.height=(t.scrollHeight+2)+'px';}
+function tsRenderSummary(){
+  const el=document.getElementById('ts-overlay');
+  const s=TSState.aiSummary||(TSState.aiSummary=tsGenerateSummary());
+  const failedCount=TS_FLAT.filter(c=>TSState.responses[c.id]?.result==='failed').length;
+  el.innerHTML=`
+    <div class="app-header">
+      <button class="icon-btn" onclick="tsHandleBack()">${ic('arrowL',18)}</button>
+      <div class="app-brand-info"><div class="app-brand-name">Troubleshooting Summary</div></div>
+    </div>
+    <div class="app-scroll" style="padding-top:16px;padding-bottom:8px">
+      <div style="margin:0 16px 16px;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:14px;box-shadow:var(--s1)">
+        <span style="color:var(--primary);display:flex;flex-shrink:0">${ic('magic',22)}</span>
+        <div style="flex:1;min-width:0"><div style="font-size:.86rem;font-weight:800;color:var(--tx)">AI-Assisted Summary</div><div style="font-size:.74rem;color:var(--tx2);margin-top:2px">${failedCount?`${failedCount} check${failedCount!==1?'s':''} flagged — review and edit below.`:'All checks passed — review before submitting.'}</div></div>
+      </div>
+      ${TS_SUMMARY_FIELDS.map(([key,label,icon])=>`
+      <div class="ts-sum-section">
+        <div class="ts-sum-label">${ic(icon,13)} ${label}</div>
+        <textarea class="ts-sum-box" oninput="tsSummaryEdit('${key}',this.value);tsAutoGrow(this)" rows="2">${escHtml(s[key]||'')}</textarea>
+      </div>`).join('')}
+      <div style="margin:0 16px 20px;font-size:.72rem;color:var(--tx3);line-height:1.5">Edit any field above if needed — this is what gets shared with the team when you submit proof.</div>
+    </div>
+    <div class="ts-nav-row">
+      <button class="ts-nav-btn" onclick="tsPrev()">Previous</button>
+      <button class="ts-nav-btn primary" onclick="tsConfirmSummary()">${ic('check',15)} Confirm &amp; Continue</button>
+    </div>`;
+  el.querySelectorAll('.ts-sum-box').forEach(tsAutoGrow);
+}
+function tsSummaryEdit(key,value){
+  if(!TSState.aiSummary)TSState.aiSummary=tsGenerateSummary();
+  TSState.aiSummary[key]=value;
+  clearTimeout(TSState.noteTimer);
+  TSState.noteTimer=setTimeout(tsSaveSummaryDraft,700);
+}
+async function tsSaveSummaryDraft(){
+  try{
+    await fetch('/api/troubleshooting/progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,ai_summary:JSON.stringify(TSState.aiSummary)})});
+  }catch(e){/* best-effort */}
+}
+async function tsConfirmSummary(){
+  const btn=document.querySelector('#ts-overlay .ts-nav-btn.primary');
+  if(btn){btn.disabled=true;btn.innerHTML=ic('upload',15)+' Saving...';}
+  try{
+    await fetch('/api/troubleshooting/progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,ai_summary:JSON.stringify(TSState.aiSummary),completed:true,status:'completed'})});
+    TSState.completed=true;
+    toast('Troubleshooting completed.','ok');
+    tsClose();
+  }catch(e){
+    toast('Could not save — check your connection and try again.','err');
+    if(btn){btn.disabled=false;btn.innerHTML=ic('check',15)+' Confirm &amp; Continue';}
+  }
+}
+function tsFormatSummaryText(s){
+  if(!s)return '';
+  return TS_SUMMARY_FIELDS.map(([key,label])=>`${label.toUpperCase()}:\n${s[key]||'—'}`).join('\n\n');
+}
+
 </script>
 
 <!-- ══════════════════════════════════════ MY ROUTE PANEL (sub-page of Tools) ══════════════════════════════════════ -->
@@ -6611,6 +7120,14 @@ function camUpdateAttachmentStrip(jobId) {
 
 <!-- ══════════════════════════════════════ SITE MAP — full-screen map overlay, drills in from the Site Details mini map ══════════════════════════════════════ -->
 <div id="site-map-overlay" style="display:none;position:fixed;inset:0;z-index:141;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+
+<!-- ══════════════════════════════════════ HELP & SUPPORT — troubleshooting knowledge base, opened from Profile ══════════════════════════════════════ -->
+<div id="help-overlay" style="display:none;position:fixed;inset:0;z-index:125;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+
+<!-- ══════════════════════════════════════ GUIDED TROUBLESHOOTING WIZARD — full-screen, opened via "Need Help?" on an on-going job card ══════════════════════════════════════ -->
+<div id="ts-overlay" style="display:none;position:fixed;inset:0;z-index:136;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
 </div>
 
 <!-- ══════════════════════════════════════ OFF-DUTY ROUTE MODAL ══════════════════════════════════════ -->

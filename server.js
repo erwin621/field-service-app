@@ -47,6 +47,10 @@ function readDB() {
     db.task_sync_logs        = db.task_sync_logs        || [];
     db.route_reservations    = db.route_reservations    || [];
     db.technician_statuses   = db.technician_statuses   || [];
+    // Guided Troubleshooting & Help Center (see supabase_migration_troubleshooting.sql)
+    db.troubleshooting_drafts    = db.troubleshooting_drafts    || [];
+    db.troubleshooting_responses = db.troubleshooting_responses || [];
+    db.troubleshooting_media     = db.troubleshooting_media     || [];
     return db;
 }
 
@@ -153,6 +157,236 @@ function generateId() {
         const r = Math.random() * 16 | 0;
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  GUIDED TROUBLESHOOTING & HELP CENTER — data layer
+//  -----------------------------------------------------------------------
+//  ADDITIVE feature: three new tables, all namespaced troubleshooting_*.
+//  See supabase_migration_troubleshooting.sql for the matching Supabase
+//  schema (or the local database.json fallback initialised in readDB()
+//  above). Nothing in this section is read or written by any existing
+//  ticket/claim/submit/cancel/Telegram code — it is only ever called from
+//  the new /api/troubleshooting/* routes and from two clearly-marked
+//  additive hooks inside GET /api/tickets/ongoing and POST /api/tickets/submit
+//  further down this file.
+//
+//  draft.status lifecycle:   in_progress -> completed -> submitted
+//  draft.completed (boolean) mirrors status !== 'in_progress' and is the
+//  single flag the frontend (and the submit-gate below) rely on to unlock
+//  Submit Proof — this keeps the "is troubleshooting done?" check to one
+//  field instead of scattering status-string comparisons everywhere.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Get the current (non-submitted) troubleshooting draft for a job, or create one. */
+async function tsGetOrCreateDraft(jobId, technicianId) {
+    if (supabase) {
+        const { data: existing, error: findErr } = await supabase
+            .from('troubleshooting_drafts')
+            .select('*')
+            .eq('job_id', jobId)
+            .neq('status', 'submitted')
+            .order('created_at', { ascending: false })
+            .limit(1);
+        if (findErr) throw findErr;
+        if (existing && existing.length) return existing[0];
+
+        const { data: created, error: insErr } = await supabase
+            .from('troubleshooting_drafts')
+            .insert({ job_id: jobId, technician_id: technicianId, current_phase: 1, current_step: 0, completed: false, status: 'in_progress' })
+            .select()
+            .single();
+        if (insErr) throw insErr;
+        return created;
+    }
+    const db = readDB();
+    let draft = db.troubleshooting_drafts
+        .filter(d => d.job_id === jobId && d.status !== 'submitted')
+        .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))[0];
+    if (!draft) {
+        draft = {
+            id: generateId(), job_id: jobId, technician_id: technicianId,
+            current_phase: 1, current_step: 0, completed: false, ai_summary: null,
+            status: 'in_progress', created_at: nowIso(), updated_at: nowIso()
+        };
+        db.troubleshooting_drafts.push(draft);
+        writeDB(db);
+    }
+    return draft;
+}
+
+/** All check responses recorded so far for a draft. */
+async function tsGetResponses(draftId) {
+    if (supabase) {
+        const { data, error } = await supabase.from('troubleshooting_responses').select('*').eq('draft_id', draftId);
+        if (error) throw error;
+        return data || [];
+    }
+    const db = readDB();
+    return db.troubleshooting_responses.filter(r => r.draft_id === draftId);
+}
+
+/** All media captured so far for a draft, oldest first. */
+async function tsGetMedia(draftId) {
+    if (supabase) {
+        const { data, error } = await supabase.from('troubleshooting_media').select('*').eq('draft_id', draftId).order('uploaded_at', { ascending: true });
+        if (error) throw error;
+        return data || [];
+    }
+    const db = readDB();
+    return db.troubleshooting_media
+        .filter(m => m.draft_id === draftId)
+        .sort((a, b) => (a.uploaded_at || '').localeCompare(b.uploaded_at || ''));
+}
+
+/** Upsert one check's Pass/Fail result (unique on draft_id+check, so re-answering
+ *  a check updates it in place). Mutating a previously-completed draft
+ *  automatically reopens it (completed:false) so a stale AI summary can never
+ *  be carried into Submit Proof after the technician changes an earlier answer. */
+async function tsUpsertResponse(draftId, phase, check, result, notes) {
+    if (supabase) {
+        const { data, error } = await supabase
+            .from('troubleshooting_responses')
+            .upsert({ draft_id: draftId, phase, check, result, notes: notes || '' }, { onConflict: 'draft_id,check' })
+            .select()
+            .single();
+        if (error) throw error;
+        await supabase.from('troubleshooting_drafts')
+            .update({ completed: false, status: 'in_progress', updated_at: nowIso() })
+            .eq('id', draftId).neq('status', 'in_progress');
+        return data;
+    }
+    const db = readDB();
+    let row = db.troubleshooting_responses.find(r => r.draft_id === draftId && r.check === check);
+    if (row) { row.result = result; row.notes = notes || ''; }
+    else {
+        row = { id: generateId(), draft_id: draftId, phase, check, result, notes: notes || '', created_at: nowIso() };
+        db.troubleshooting_responses.push(row);
+    }
+    const draft = db.troubleshooting_drafts.find(d => d.id === draftId);
+    if (draft && draft.status !== 'in_progress') { draft.completed = false; draft.status = 'in_progress'; draft.updated_at = nowIso(); }
+    writeDB(db);
+    return row;
+}
+
+/** Store one photo/video captured during troubleshooting and record its metadata.
+ *  Uploads immediately — Supabase Storage bucket 'troubleshooting' (public, same
+ *  convention as the existing 'proofs' bucket) or local /uploads in local mode —
+ *  so nothing is lost if the app crashes or the technician logs out mid-checklist. */
+async function tsInsertMedia(draftId, jobId, file, checkId) {
+    const mediaType = file.mimetype.startsWith('video') ? 'video' : 'image';
+    if (supabase) {
+        const storagePath = `${jobId}/${draftId}/${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
+        const fileBuffer = fs.readFileSync(file.path);
+        const { error: upErr } = await supabase.storage
+            .from('troubleshooting')
+            .upload(storagePath, fileBuffer, { contentType: file.mimetype, upsert: true });
+        if (upErr) throw upErr;
+        const { data: { publicUrl } } = supabase.storage.from('troubleshooting').getPublicUrl(storagePath);
+        const { data, error } = await supabase
+            .from('troubleshooting_media')
+            .insert({ draft_id: draftId, check: checkId || null, storage_url: publicUrl, media_type: mediaType })
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+    const storageUrl = `/uploads/${file.filename}`;
+    const db = readDB();
+    const row = { id: generateId(), draft_id: draftId, check: checkId || null, storage_url: storageUrl, media_type: mediaType, uploaded_at: nowIso() };
+    db.troubleshooting_media.push(row);
+    writeDB(db);
+    return row;
+}
+
+/** Partial update of a draft's navigation position and/or AI summary/completion. */
+async function tsUpdateProgress(draftId, fields) {
+    const patch = { updated_at: nowIso() };
+    if (fields.current_phase !== undefined) patch.current_phase = fields.current_phase;
+    if (fields.current_step  !== undefined) patch.current_step  = fields.current_step;
+    if (fields.ai_summary    !== undefined) patch.ai_summary    = fields.ai_summary;
+    if (fields.completed     !== undefined) patch.completed     = fields.completed;
+    if (fields.status        !== undefined) patch.status        = fields.status;
+
+    if (supabase) {
+        const { data, error } = await supabase.from('troubleshooting_drafts').update(patch).eq('id', draftId).select().single();
+        if (error) throw error;
+        return data;
+    }
+    const db = readDB();
+    const draft = db.troubleshooting_drafts.find(d => d.id === draftId);
+    if (!draft) throw new Error('Draft not found');
+    Object.assign(draft, patch);
+    writeDB(db);
+    return draft;
+}
+
+/** Returns the single completed (but not yet submitted) draft for a job, or null.
+ *  Used by POST /api/tickets/submit to gate submission and to collect the final
+ *  summary + already-uploaded media URLs without re-uploading anything. */
+async function tsGetCompletedDraft(jobId) {
+    if (supabase) {
+        const { data, error } = await supabase
+            .from('troubleshooting_drafts')
+            .select('*')
+            .eq('job_id', jobId)
+            .eq('completed', true)
+            .order('created_at', { ascending: false })
+            .limit(1);
+        if (error) throw error;
+        return (data && data[0]) || null;
+    }
+    const db = readDB();
+    return db.troubleshooting_drafts
+        .filter(d => d.job_id === jobId && d.completed)
+        .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))[0] || null;
+}
+
+/** Best-effort: flip a job's completed draft to status='submitted' once the final
+ *  proof has gone out. Never throws into the caller — proof submission must
+ *  never fail because of troubleshooting bookkeeping. */
+async function tsMarkSubmitted(jobId) {
+    try {
+        if (supabase) {
+            await supabase.from('troubleshooting_drafts')
+                .update({ status: 'submitted', updated_at: nowIso() })
+                .eq('job_id', jobId).eq('completed', true);
+            return;
+        }
+        const db = readDB();
+        db.troubleshooting_drafts
+            .filter(d => d.job_id === jobId && d.completed)
+            .forEach(d => { d.status = 'submitted'; d.updated_at = nowIso(); });
+        writeDB(db);
+    } catch (err) {
+        console.warn('[Troubleshooting] Could not mark draft submitted for job', jobId, err.message);
+    }
+}
+
+/** Batch lookup used by GET /api/tickets/ongoing to embed troubleshooting_completed
+ *  on every job card in one round trip instead of one call per card. Fails CLOSED
+ *  (false) on any error, so a lookup problem can never silently unlock Submit Proof. */
+async function tsGetCompletionMap(jobIds) {
+    const map = {};
+    jobIds.forEach(id => { map[id] = false; });
+    if (!jobIds.length) return map;
+    try {
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('troubleshooting_drafts')
+                .select('job_id, completed')
+                .in('job_id', jobIds);
+            if (error) throw error;
+            (data || []).forEach(d => { if (d.completed) map[d.job_id] = true; });
+            return map;
+        }
+        const db = readDB();
+        db.troubleshooting_drafts.forEach(d => { if (jobIds.includes(d.job_id) && d.completed) map[d.job_id] = true; });
+        return map;
+    } catch (err) {
+        console.warn('[Troubleshooting] completion lookup failed — defaulting to required:', err.message);
+        return map; // all false — fails closed
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -657,6 +891,7 @@ app.get('/api/tickets/ongoing', async (req, res) => {
     const { technician_id } = req.query;
     if (!technician_id) return res.status(400).json({ error: 'Missing technician_id' });
     try {
+        let list;
         if (supabase) {
             const user = await getUserByTechCode(technician_id);
             const { data, error } = await supabase
@@ -665,10 +900,16 @@ app.get('/api/tickets/ongoing', async (req, res) => {
                 .eq('status', 'ON_GOING')
                 .eq('assigned_to', user.id);
             if (error) throw error;
-            return res.json(data);
+            list = data;
+        } else {
+            const { tickets } = readDB();
+            list = tickets.filter(t => t.status === 'ON_GOING' && t.assigned_to === technician_id);
         }
-        const { tickets } = readDB();
-        res.json(tickets.filter(t => t.status === 'ON_GOING' && t.assigned_to === technician_id));
+        // ADDITIVE — Guided Troubleshooting: embed completion state per job so the
+        // job card can show/hide the Submit Proof gate without an extra round trip.
+        const completionMap = await tsGetCompletionMap(list.map(t => t.id));
+        list = list.map(t => ({ ...t, troubleshooting_completed: !!completionMap[t.id] }));
+        res.json(list);
     } catch (err) {
         console.error('[GET /ongoing]', err.message);
         res.status(500).json({ error: err.message });
@@ -886,7 +1127,11 @@ app.post('/api/tickets/claim', async (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  POST /api/tickets/submit  (multipart/form-data)
-//  fields : id, technician_id, notes
+//  fields : id, technician_id, notes,
+//           troubleshooting_summary (optional, plain text — final edited AI summary),
+//           troubleshooting_media   (optional, JSON string of [{storage_url, media_type}]
+//                                    already uploaded during the guided checklist —
+//                                    never re-uploaded here)
 //  files  : proof[] (max 5, max 50 MB each)
 // ═══════════════════════════════════════════════════════════════════════════
 app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
@@ -895,6 +1140,19 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
     if (!id || !technician_id || !req.files?.length)
         return res.status(400).json({ error: 'Missing id, technician_id, or proof files' });
     try {
+        // ADDITIVE — Guided Troubleshooting gate. Submitting proof now requires a
+        // completed (technician-confirmed) troubleshooting draft for this job.
+        // This is the same message shown client-side when Submit Proof is disabled.
+        const completedDraft = await tsGetCompletedDraft(id);
+        if (!completedDraft) {
+            return res.status(409).json({ error: 'Please complete the troubleshooting checklist before submitting your proof.' });
+        }
+        let troubleshootingMedia = [];
+        if (req.body.troubleshooting_media) {
+            try { troubleshootingMedia = JSON.parse(req.body.troubleshooting_media); } catch { troubleshootingMedia = []; }
+        }
+        const troubleshootingSummary = req.body.troubleshooting_summary || '';
+
         let proofUrls    = [];
         let ticketNumber = id; // fallback label for Telegram/storage if lookup is thin
         let siteId       = '';  // hoisted — needed by sendTelegramProof outside if/else
@@ -960,8 +1218,18 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
             writeDB(db);
         }
 
-        // Send proof to Telegram (non-blocking)
+        // Send proof to Telegram (non-blocking) — unchanged from today.
         sendTelegramProof(ticketNumber, technician_id, notes, req.files, siteId, siteName).catch(() => {});
+
+        // ADDITIVE — Guided Troubleshooting: relay the AI-assisted summary and any
+        // evidence captured during troubleshooting as a supplementary Telegram
+        // message, referencing already-uploaded Storage URLs (nothing re-uploaded).
+        // Fully independent of sendTelegramProof above — a failure here can never
+        // affect the core proof submission, which has already succeeded by this point.
+        if (troubleshootingSummary || troubleshootingMedia.length) {
+            sendTelegramTroubleshootingFollowup(ticketNumber, troubleshootingSummary, troubleshootingMedia).catch(() => {});
+        }
+        tsMarkSubmitted(id).catch(() => {});
 
         res.json({ message: 'Job submitted and marked as Completed.' });
     } catch (err) {
@@ -1067,96 +1335,82 @@ app.post('/api/tickets/reopen', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  PUT /api/admin/tickets/:id  — "Edit Site Details" (admin only)
-//  body: { site_name, locality, address, coordinates, site_notes }
-//
-//  WHITELIST: only the five fields above are ever read from the request
-//  body — everything else (status, priority, assigned_to, ticket_id,
-//  recurrence_count, proof_url, technician notes, timestamps, etc.) is
-//  silently ignored, even if present. The client is never trusted; every
-//  field is re-validated here regardless of what the frontend already
-//  checked.
-//
-//  Only allowed while the ticket is still OPEN. ON_GOING, COMPLETED,
-//  CANCELLED and RECOVERED tickets are rejected with 409, using the exact
-//  message the Admin Portal shows on the disabled Edit button, so the
-//  API and UI never disagree.
+//  GUIDED TROUBLESHOOTING & HELP CENTER — routes
+//  -----------------------------------------------------------------------
+//  All four routes below are additive: they only ever touch the three new
+//  troubleshooting_* tables (via the helpers defined near the top of this
+//  file) and never read or write tickets/users/ticket_proofs directly,
+//  except for the resolved technician id needed to attribute a draft.
 // ═══════════════════════════════════════════════════════════════════════════
-const EDIT_LOCKED_MSG = 'This ticket can no longer be edited.';
-const TICKET_EDIT_LIMITS = { site_name: 100, locality: 100, address: 255, coordinates: 100, site_notes: 1000 };
-const TICKET_EDIT_LABELS = { site_name: 'Site Name', locality: 'Locality', address: 'Address', coordinates: 'Coordinates', site_notes: 'Notes' };
 
-// Whitelist + sanitize: only these 5 keys are ever produced, regardless of
-// what else is in `body`. Missing/null values normalize to '' (trimmed).
-function sanitizeTicketEdit(body) {
-    const raw  = body || {};
-    const norm = v => (v === null || v === undefined ? '' : String(v)).trim();
-    return {
-        site_name:   norm(raw.site_name),
-        locality:    norm(raw.locality),
-        address:     norm(raw.address),
-        coordinates: norm(raw.coordinates),
-        site_notes:  norm(raw.site_notes)
-    };
-}
-
-// Returns a human-readable error string, or null if valid.
-function validateTicketEdit(fields) {
-    if (!fields.site_name) return 'Site Name is required.';
-    for (const key of Object.keys(TICKET_EDIT_LIMITS)) {
-        if (fields[key].length > TICKET_EDIT_LIMITS[key]) {
-            return `${TICKET_EDIT_LABELS[key]} must be ${TICKET_EDIT_LIMITS[key]} characters or fewer.`;
-        }
-    }
-    return null;
-}
-
-app.put('/api/admin/tickets/:id', async (req, res) => {
-    const { id } = req.params;
-    if (!id) return res.status(400).json({ error: 'Missing ticket id' });
-
-    // Whitelist first — unknown/protected properties in req.body never even
-    // reach a variable, let alone the database.
-    const fields = sanitizeTicketEdit(req.body);
-    const validationError = validateTicketEdit(fields);
-    if (validationError) return res.status(400).json({ error: validationError });
-
+// ── GET /api/troubleshooting/draft?job_id=&technician_id= ───────────────────
+// Fetch-or-create the active draft for this job, plus every response and
+// media row saved so far, so the wizard can resume exactly where the
+// technician left off — including after a refresh, crash, or logout.
+app.get('/api/troubleshooting/draft', async (req, res) => {
+    const { job_id, technician_id } = req.query;
+    if (!job_id || !technician_id) return res.status(400).json({ error: 'Missing job_id or technician_id' });
     try {
-        if (supabase) {
-            const { data: existing, error: findErr } = await supabase
-                .from('tickets').select('id, status').eq('id', id).maybeSingle();
-            if (findErr) throw findErr;
-            if (!existing) return res.status(404).json({ error: 'Ticket not found' });
-            if (existing.status !== 'OPEN') return res.status(409).json({ error: EDIT_LOCKED_MSG });
-
-            // Re-guard status on the write itself (not just the read above) so a
-            // claim/cancel racing in between can never be silently overwritten.
-            const { data: updated, error: updErr } = await supabase
-                .from('tickets')
-                .update({ ...fields, updated_at: nowIso() })
-                .eq('id', id)
-                .eq('status', 'OPEN')
-                .select('*')
-                .maybeSingle();
-            if (updErr) throw updErr;
-            if (!updated) return res.status(409).json({ error: EDIT_LOCKED_MSG });
-
-            return res.json({ message: 'Site details updated.', ticket: updated });
-        }
-
-        // ── Local JSON fallback (identical rules) ──────────────────────────
-        const db = readDB();
-        const t  = db.tickets.find(x => x.id === id);
-        if (!t) return res.status(404).json({ error: 'Ticket not found' });
-        if (t.status !== 'OPEN') return res.status(409).json({ error: EDIT_LOCKED_MSG });
-
-        Object.assign(t, fields);
-        t.updated_at = nowIso();
-        writeDB(db);
-
-        res.json({ message: 'Site details updated.', ticket: t });
+        const user      = await getUserByTechCode(technician_id);
+        const draft     = await tsGetOrCreateDraft(job_id, user.id);
+        const responses = await tsGetResponses(draft.id);
+        const media     = await tsGetMedia(draft.id);
+        res.json({ draft, responses, media });
     } catch (err) {
-        console.error('[PUT /admin/tickets/:id]', err.message);
+        console.error('[GET /troubleshooting/draft]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/troubleshooting/response ───────────────────────────────────────
+// body: { draft_id, phase, check, result: 'passed'|'failed', notes? }
+// Upserts one check's result (unique per draft_id+check). Auto-saved by the
+// client immediately after every Passed/Failed tap and after every note edit.
+app.post('/api/troubleshooting/response', async (req, res) => {
+    const { draft_id, phase, check, result, notes } = req.body;
+    if (!draft_id || !phase || !check) return res.status(400).json({ error: 'Missing draft_id, phase, or check' });
+    if (result !== 'passed' && result !== 'failed') return res.status(400).json({ error: "result must be 'passed' or 'failed'" });
+    try {
+        const row = await tsUpsertResponse(draft_id, phase, check, result, notes);
+        res.json(row);
+    } catch (err) {
+        console.error('[POST /troubleshooting/response]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/troubleshooting/media  (multipart/form-data) ───────────────────
+// fields: draft_id, job_id, check?   file: file
+// Uploads a single photo/video the instant it's captured, so evidence is
+// never lost even if the app crashes or the technician logs out before
+// finishing the checklist. Reused verbatim (by URL) at final submission —
+// never re-uploaded.
+app.post('/api/troubleshooting/media', upload.single('file'), async (req, res) => {
+    const { draft_id, job_id, check } = req.body;
+    if (!draft_id || !job_id || !req.file) return res.status(400).json({ error: 'Missing draft_id, job_id, or file' });
+    try {
+        const row = await tsInsertMedia(draft_id, job_id, req.file, check);
+        res.json(row);
+    } catch (err) {
+        console.error('[POST /troubleshooting/media]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/troubleshooting/progress ───────────────────────────────────────
+// body: { draft_id, current_phase?, current_step?, ai_summary?, completed?, status? }
+// Partial update — used both for lightweight nav auto-save (current_phase/
+// current_step after every Next/Previous) and for saving/finalising the
+// (technician-editable) AI summary. Setting completed:true here is what
+// unlocks Submit Proof for this job.
+app.post('/api/troubleshooting/progress', async (req, res) => {
+    const { draft_id } = req.body;
+    if (!draft_id) return res.status(400).json({ error: 'Missing draft_id' });
+    try {
+        const draft = await tsUpdateProgress(draft_id, req.body);
+        res.json(draft);
+    } catch (err) {
+        console.error('[POST /troubleshooting/progress]', err.message);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1439,6 +1693,66 @@ async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteNam
             ? JSON.stringify(err.response.data, null, 2)
             : err.message;
         console.error(`[Telegram] ✘ Upload failed for ticket ${ticketId}:\n`, detail);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Telegram: Guided Troubleshooting follow-up (ADDITIVE)
+//  -----------------------------------------------------------------------
+//  Sends the AI-assisted troubleshooting summary as its own message, then
+//  (if any) the troubleshooting evidence as a second message — referencing
+//  each file's existing Supabase Storage / local URL directly, so nothing
+//  already uploaded during the checklist is re-uploaded here. Runs after,
+//  and fully independently of, sendTelegramProof() above: any failure in
+//  this function is caught internally and can never affect the core proof
+//  submission, which has already completed by the time this is called.
+// ═══════════════════════════════════════════════════════════════════════════
+async function sendTelegramTroubleshootingFollowup(ticketId, summaryText, media) {
+    if (!BOT_TOKEN || !CHAT_ID) return;
+    if (!summaryText && (!media || !media.length)) return;
+    const API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
+    try {
+        if (summaryText) {
+            await axios.post(`${API}/sendMessage`, {
+                chat_id:    CHAT_ID,
+                parse_mode: 'HTML',
+                text: `🛠 <b>Guided Troubleshooting Summary</b>\n` +
+                      `Ticket: <code>${escapeHtml(ticketId)}</code>\n\n` +
+                      escapeHtml(summaryText),
+            });
+            console.log(`[Telegram] ✔ Sent troubleshooting summary for ticket ${ticketId}`);
+        }
+    } catch (err) {
+        const detail = err.response?.data ? JSON.stringify(err.response.data, null, 2) : err.message;
+        console.error(`[Telegram] ✘ Troubleshooting summary failed for ticket ${ticketId}:\n`, detail);
+    }
+
+    if (!media || !media.length) return;
+    try {
+        // Only http(s) URLs are safe to hand to Telegram's fetch-by-URL behaviour.
+        const safeMedia = media.filter(m => m && /^https?:\/\//i.test(m.storage_url)).slice(0, 10);
+        if (!safeMedia.length) return;
+
+        if (safeMedia.length === 1) {
+            const isVideo = safeMedia[0].media_type === 'video';
+            await axios.post(`${API}/${isVideo ? 'sendVideo' : 'sendPhoto'}`, {
+                chat_id: CHAT_ID,
+                [isVideo ? 'video' : 'photo']: safeMedia[0].storage_url,
+                caption: `Troubleshooting evidence — Ticket ${escapeHtml(ticketId)}`,
+            });
+        } else {
+            const group = safeMedia.map((m, i) => ({
+                type:  m.media_type === 'video' ? 'video' : 'photo',
+                media: m.storage_url, // existing Storage URL — Telegram fetches it directly
+                ...(i === 0 ? { caption: `Troubleshooting evidence — Ticket ${escapeHtml(ticketId)}` } : {}),
+            }));
+            await axios.post(`${API}/sendMediaGroup`, { chat_id: CHAT_ID, media: group });
+        }
+        console.log(`[Telegram] ✔ Sent ${safeMedia.length} troubleshooting evidence file(s) for ticket ${ticketId}`);
+    } catch (err) {
+        const detail = err.response?.data ? JSON.stringify(err.response.data, null, 2) : err.message;
+        console.error(`[Telegram] ✘ Troubleshooting evidence failed for ticket ${ticketId}:\n`, detail);
     }
 }
 
@@ -1838,5 +2152,7 @@ app.get('/api/sync/poll', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`\n🚀  FieldOps running → http://localhost:${PORT}`);
     console.log(`    Mode : ${supabase ? 'Supabase (cloud database)' : 'Local JSON  (database.json)'}`);
-    console.log(`    Telegram : ${BOT_TOKEN ? 'enabled' : 'disabled (no BOT_TOKEN)'}\n`);
+    console.log(`    Telegram : ${BOT_TOKEN ? 'enabled' : 'disabled (no BOT_TOKEN)'}`);
+    if (supabase) console.log(`    Guided Troubleshooting : storage bucket 'troubleshooting' must exist (public) — see supabase_migration_troubleshooting.sql\n`);
+    else console.log('');
 });
