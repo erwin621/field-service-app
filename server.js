@@ -8,6 +8,7 @@ const fs        = require('fs');
 const axios     = require('axios');
 const FormData  = require('form-data');
 const bcrypt    = require('bcryptjs');
+const ExcelJS   = require('exceljs'); // Ticket Export (.xlsx) — run `npm install exceljs`
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -1593,6 +1594,343 @@ app.post('/api/admin/single-site', async (req, res) => {
         res.json({ message: `✓ Site ${siteId} — ${site_name} added as a new OPEN ticket.` });
     } catch (err) {
         console.error('[POST /single-site]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  TICKET EXPORT (CSV / XLSX) — admin reporting, monitoring & KPI analysis
+//  -----------------------------------------------------------------------
+//  ADDITIVE feature: read-only. Never writes to `tickets` or any other
+//  table — it only queries, formats, and streams a file back to the admin.
+//
+//  Filtering:
+//   - Date Range filters on the ticket's `created_at` (Opened date), pushed
+//     down into the Supabase query (.gte/.lte) so large datasets are never
+//     pulled into memory just to be filtered in JS. Local-JSON mode filters
+//     in-process since that fallback is inherently small-scale.
+//   - Status filter mirrors the exact same buckets the Admin Dashboard
+//     already uses (see admFil() / updateStats() in index.html) — including
+//     RECOVERED, which (like the Overview stat card) also picks up
+//     ON_GOING tickets flagged recovered_while_claimed.
+//
+//  Timeline note baked into buildExportRow(): in this data model, claiming
+//  an OPEN ticket is the single action that both assigns a technician AND
+//  flips status to ON_GOING (see POST /api/tickets/claim above) — there is
+//  no separate "reserved" timestamp stored on the ticket row itself. So
+//  "Assigned Date & Time", "Claimed / Reserved Date & Time" and "On Going
+//  Date & Time" all read from the same `claimed_at` value by design, not
+//  by mistake.
+// ═══════════════════════════════════════════════════════════════════════════
+const EXPORT_STATUSES = ['ALL', 'OPEN', 'ON_GOING', 'COMPLETED', 'CANCELLED', 'RECOVERED'];
+const EXPORT_STATUS_LABELS = {
+    ALL: 'All Tickets', OPEN: 'Open', ON_GOING: 'On Going',
+    COMPLETED: 'Completed', CANCELLED: 'Cancelled', RECOVERED: 'Recovered'
+};
+// Used to build the FieldOps_Tickets_<Status>_<range>.<ext> filename.
+const EXPORT_STATUS_FILE_LABELS = {
+    ALL: 'All', OPEN: 'Open', ON_GOING: 'OnGoing',
+    COMPLETED: 'Completed', CANCELLED: 'Cancelled', RECOVERED: 'Recovered'
+};
+const EXPORT_HEADERS = [
+    'Ticket ID', 'Site ID', 'Site Name', 'Locality', 'Ticket Status', 'Ticket Category', 'Ticket Priority',
+    'Assigned Technician', 'Assigned Date & Time',
+    'Created / Opened Date & Time', 'Claimed / Reserved Date & Time', 'On Going Date & Time',
+    'Completed Date & Time', 'Cancelled Date & Time', 'Recovered Date & Time', 'Last Updated Date & Time',
+    'Resolution Time (hrs)', 'Assignment Time (hrs)', 'Completion Duration (hrs)'
+];
+// 1-indexed column numbers of the three duration columns, for XLSX number formatting.
+const EXPORT_HOUR_COLUMNS = [17, 18, 19];
+
+/** Formats an ISO timestamp as "YYYY-MM-DD HH:mm:ss" in Philippine Time
+ *  (Asia/Manila, UTC+8) — one consistent format for every date/time column
+ *  in the export, matching the 'en-PH' locale already used elsewhere
+ *  (see fmtDate() in index.html) while staying sortable as plain text. */
+function fmtExportDateTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).formatToParts(d);
+    const p = {};
+    parts.forEach(x => { p[x.type] = x.value; });
+    if (p.hour === '24') p.hour = '00'; // some ICU builds emit "24" for midnight
+    return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
+/** Hours between two ISO timestamps, rounded to 2 decimals — or '' if either
+ *  side hasn't happened yet (ticket never reached that status). */
+function durationHours(startIso, endIso) {
+    if (!startIso || !endIso) return '';
+    const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+    if (!isFinite(ms) || ms < 0) return '';
+    return Math.round((ms / 3600000) * 100) / 100;
+}
+
+/** Guards against CSV/Excel formula injection (a cell starting with
+ *  = + - @ can execute as a formula in some spreadsheet apps) for any
+ *  free-text field that ultimately came from admin/technician input
+ *  (site names, notes, technician names, etc). Numbers/dates never pass
+ *  through this — only strings. */
+function guardFormulaInjection(v) {
+    return (typeof v === 'string' && /^[=+\-@]/.test(v)) ? `'${v}` : v;
+}
+
+function buildDateRangeLabel(startDate, endDate) {
+    if (startDate && endDate) return `${startDate} to ${endDate}`;
+    if (startDate) return `From ${startDate}`;
+    if (endDate) return `Through ${endDate}`;
+    return 'All time';
+}
+
+function buildExportFilename({ status, startDate, endDate, format }) {
+    const statusPart = EXPORT_STATUS_FILE_LABELS[status] || 'All';
+    const datePart = (startDate && endDate) ? `${startDate}_to_${endDate}`
+        : startDate ? `From_${startDate}`
+        : endDate   ? `Through_${endDate}`
+        : 'AllTime';
+    const ext = format === 'xlsx' ? 'xlsx' : 'csv';
+    return `FieldOps_Tickets_${statusPart}_${datePart}.${ext}`;
+}
+
+/** Resolves ticket.assigned_to (a users.id UUID in Supabase mode, or the
+ *  tech_code itself in local-JSON mode — see getUserByTechCode() above)
+ *  to a human display_name. Keyed by both id and tech_code so either mode
+ *  resolves correctly with a single map. */
+async function buildTechnicianMap() {
+    const map = {};
+    if (supabase) {
+        const { data, error } = await supabase.from('users').select('id, tech_code, display_name');
+        if (error) throw error;
+        (data || []).forEach(u => {
+            if (u.id) map[u.id] = u.display_name;
+            if (u.tech_code) map[u.tech_code] = u.display_name;
+        });
+    } else {
+        const { users } = readDB();
+        users.forEach(u => {
+            if (u.tech_code) map[u.tech_code] = u.display_name;
+            if (u.id) map[u.id] = u.display_name;
+        });
+    }
+    return map;
+}
+
+/** Fetches only the tickets matching the export filters. Status/date
+ *  filters are pushed into the Supabase query itself (not fetched-then-
+ *  filtered) so exporting a narrow slice of a large table stays cheap. */
+async function fetchTicketsForExport({ status, startIso, endIso }) {
+    if (supabase) {
+        let q = supabase.from('tickets').select('*').order('created_at', { ascending: true });
+        if (startIso) q = q.gte('created_at', startIso);
+        if (endIso)   q = q.lte('created_at', endIso);
+        if (status === 'RECOVERED') {
+            q = q.or('status.eq.RECOVERED,recovered_while_claimed.eq.true');
+        } else if (status !== 'ALL') {
+            q = q.eq('status', status);
+        }
+        const { data, error } = await q;
+        if (error) throw error;
+        return data || [];
+    }
+    const { tickets } = readDB();
+    return tickets
+        .filter(t => {
+            if (startIso && (!t.created_at || t.created_at < startIso)) return false;
+            if (endIso   && (!t.created_at || t.created_at > endIso))   return false;
+            if (status === 'RECOVERED') return t.status === 'RECOVERED' || t.recovered_while_claimed;
+            if (status !== 'ALL') return t.status === status;
+            return true;
+        })
+        .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+}
+
+function computeExportTotals(tickets) {
+    return {
+        total:     tickets.length,
+        open:      tickets.filter(t => t.status === 'OPEN').length,
+        ongoing:   tickets.filter(t => t.status === 'ON_GOING').length,
+        completed: tickets.filter(t => t.status === 'COMPLETED').length,
+        cancelled: tickets.filter(t => t.status === 'CANCELLED').length,
+        // Mirrors the Overview "Recovered" stat card: RECOVERED status OR any
+        // still-ON_GOING ticket flagged recovered_while_claimed. May overlap
+        // with `ongoing` above by design — same as the dashboard.
+        recovered: tickets.filter(t => t.status === 'RECOVERED' || t.recovered_while_claimed).length
+    };
+}
+
+function buildExportRow(t, techMap) {
+    const assignedTechnician = t.assigned_to ? guardFormulaInjection(techMap[t.assigned_to] || t.assigned_to) : '';
+    return [
+        guardFormulaInjection(t.ticket_id || ''),
+        guardFormulaInjection(t.site_id || ''),
+        guardFormulaInjection(t.site_name || ''),
+        guardFormulaInjection(t.locality || ''),
+        t.status || '',
+        '', // Ticket Category — not currently tracked in the data model; left blank
+        t.priority || '',
+        assignedTechnician,
+        fmtExportDateTime(t.claimed_at),      // Assigned Date & Time
+        fmtExportDateTime(t.created_at),      // Created / Opened
+        fmtExportDateTime(t.claimed_at),      // Claimed / Reserved
+        fmtExportDateTime(t.claimed_at),      // On Going (same moment as claim — see header note)
+        fmtExportDateTime(t.completed_at),
+        fmtExportDateTime(t.cancelled_at),
+        fmtExportDateTime(t.recovered_at),
+        fmtExportDateTime(t.updated_at),
+        durationHours(t.created_at, t.completed_at), // Resolution Time
+        durationHours(t.created_at, t.claimed_at),   // Assignment Time
+        durationHours(t.claimed_at, t.completed_at)  // Completion Duration
+    ];
+}
+
+// ── CSV builder ──────────────────────────────────────────────────────────
+function csvEscape(val) {
+    if (val === null || val === undefined) return '';
+    let s = String(val);
+    if (/^[=+\-@]/.test(s)) s = `'${s}`;
+    if (/[",\n\r]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+    return s;
+}
+function csvLine(cells) { return cells.map(csvEscape).join(','); }
+
+function buildTicketsCsv({ summary, totals, rows }) {
+    const lines = [];
+    lines.push(csvLine(['FieldOps — Ticket Export']));
+    lines.push('');
+    lines.push(csvLine(['Export Generated On', summary.generatedOn]));
+    lines.push(csvLine(['Exported By', summary.exportedBy]));
+    lines.push(csvLine(['Date Range', summary.dateRangeLabel]));
+    lines.push(csvLine(['Status Filter', summary.statusLabel]));
+    lines.push('');
+    lines.push(csvLine(['Ticket Totals']));
+    lines.push(csvLine(['Total Exported Tickets', totals.total]));
+    lines.push(csvLine(['Total Open', totals.open]));
+    lines.push(csvLine(['Total On Going', totals.ongoing]));
+    lines.push(csvLine(['Total Completed', totals.completed]));
+    lines.push(csvLine(['Total Cancelled', totals.cancelled]));
+    lines.push(csvLine(['Total Recovered', totals.recovered]));
+    lines.push('');
+    lines.push(csvLine(EXPORT_HEADERS));
+    rows.forEach(r => lines.push(csvLine(r)));
+    return lines.join('\r\n');
+}
+
+// ── XLSX builder (exceljs) ───────────────────────────────────────────────
+async function buildTicketsXlsx({ summary, totals, rows }) {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'FieldOps Admin Portal';
+    wb.created = new Date();
+    const ws = wb.addWorksheet('Tickets');
+    const COLS = EXPORT_HEADERS.length;
+
+    function addLabelValue(label, value) {
+        const r = ws.addRow([label, guardFormulaInjection(value)]);
+        r.getCell(1).font = { bold: true, color: { argb: 'FF64748B' } };
+    }
+
+    const titleRow = ws.addRow(['FieldOps — Ticket Export']);
+    titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF0D9488' } };
+    ws.mergeCells(titleRow.number, 1, titleRow.number, COLS);
+    ws.addRow([]);
+    addLabelValue('Export Generated On', summary.generatedOn);
+    addLabelValue('Exported By', summary.exportedBy);
+    addLabelValue('Date Range', summary.dateRangeLabel);
+    addLabelValue('Status Filter', summary.statusLabel);
+    ws.addRow([]);
+    const totalsHdrRow = ws.addRow(['Ticket Totals']);
+    totalsHdrRow.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF0F172A' } };
+    addLabelValue('Total Exported Tickets', totals.total);
+    addLabelValue('Total Open', totals.open);
+    addLabelValue('Total On Going', totals.ongoing);
+    addLabelValue('Total Completed', totals.completed);
+    addLabelValue('Total Cancelled', totals.cancelled);
+    addLabelValue('Total Recovered', totals.recovered);
+    ws.addRow([]);
+
+    const headerRow = ws.addRow(EXPORT_HEADERS);
+    headerRow.eachCell(cell => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D9488' } };
+        cell.alignment = { vertical: 'middle' };
+    });
+    ws.views = [{ state: 'frozen', ySplit: headerRow.number }];
+    ws.autoFilter = { from: { row: headerRow.number, column: 1 }, to: { row: headerRow.number, column: COLS } };
+
+    rows.forEach(r => {
+        const dataRow = ws.addRow(r);
+        EXPORT_HOUR_COLUMNS.forEach(ci => {
+            const cell = dataRow.getCell(ci);
+            if (typeof cell.value === 'number') cell.numFmt = '0.00';
+        });
+    });
+
+    ws.columns.forEach((col, i) => {
+        const headerLen = (EXPORT_HEADERS[i] || '').length;
+        col.width = Math.max(14, Math.min(32, headerLen + 4));
+    });
+    ws.getColumn(3).width = 28; // Site Name
+    ws.getColumn(4).width = 20; // Locality
+
+    return wb.xlsx.writeBuffer();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  GET /api/admin/tickets/export
+//  query: start_date, end_date  (YYYY-MM-DD, both optional — omit for open-ended)
+//         status                (ALL|OPEN|ON_GOING|COMPLETED|CANCELLED|RECOVERED, default ALL)
+//         format                (csv|xlsx, default csv)
+//         exported_by           (display name of the admin triggering the export)
+// ═══════════════════════════════════════════════════════════════════════════
+app.get('/api/admin/tickets/export', async (req, res) => {
+    try {
+        const status = EXPORT_STATUSES.includes(String(req.query.status || '').toUpperCase())
+            ? String(req.query.status).toUpperCase() : 'ALL';
+        const format = String(req.query.format || 'csv').toLowerCase() === 'xlsx' ? 'xlsx' : 'csv';
+        const startDate  = String(req.query.start_date  || '').trim() || null;
+        const endDate    = String(req.query.end_date    || '').trim() || null;
+        const exportedBy = String(req.query.exported_by || '').trim() || 'Admin';
+
+        if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate))
+            return res.status(400).json({ error: 'start_date must be in YYYY-MM-DD format' });
+        if (endDate && !/^\d{4}-\d{2}-\d{2}$/.test(endDate))
+            return res.status(400).json({ error: 'end_date must be in YYYY-MM-DD format' });
+
+        const startIso = startDate ? `${startDate}T00:00:00.000Z` : null;
+        const endIso   = endDate   ? `${endDate}T23:59:59.999Z`   : null;
+        if (startIso && endIso && startIso > endIso)
+            return res.status(400).json({ error: 'start_date must be on or before end_date' });
+
+        const [tickets, techMap] = await Promise.all([
+            fetchTicketsForExport({ status, startIso, endIso }),
+            buildTechnicianMap()
+        ]);
+
+        const rows   = tickets.map(t => buildExportRow(t, techMap));
+        const totals = computeExportTotals(tickets);
+        const summary = {
+            generatedOn:    fmtExportDateTime(new Date().toISOString()),
+            exportedBy:     guardFormulaInjection(exportedBy),
+            dateRangeLabel: buildDateRangeLabel(startDate, endDate),
+            statusLabel:    EXPORT_STATUS_LABELS[status]
+        };
+        const filename = buildExportFilename({ status, startDate, endDate, format });
+
+        if (format === 'xlsx') {
+            const buffer = await buildTicketsXlsx({ summary, totals, rows });
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            return res.send(buffer);
+        }
+        const csv = buildTicketsCsv({ summary, totals, rows });
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        return res.send('\uFEFF' + csv); // BOM so Excel opens UTF-8 CSV correctly
+    } catch (err) {
+        console.error('[GET /admin/tickets/export]', err.message);
         res.status(500).json({ error: err.message });
     }
 });

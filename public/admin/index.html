@@ -115,6 +115,10 @@ button{cursor:pointer}
 .btn-lo{width:38px;height:38px;border-radius:50%;background:var(--srf2);border:none;color:var(--tx2);transition:all .18s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .btn-lo:hover{background:var(--red-lt);color:var(--red)}
 .btn-lo:active{transform:scale(.92)}
+.btn-export{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:14px;background:var(--card);border:1.5px solid var(--bd);color:var(--tx2);font-size:.76rem;font-weight:700;transition:all .18s;white-space:nowrap;font-family:var(--ff);cursor:pointer;flex-shrink:0}
+.btn-export:hover{border-color:var(--teal);color:var(--teal-dk);background:var(--teal-lt)}
+.btn-export:active{transform:scale(.95)}
+@media(max-width:440px){.btn-export span{display:none}.btn-export{padding:0;width:38px;justify-content:center;border-radius:50%}}
 
 .dbtabs{
   background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
@@ -485,6 +489,11 @@ button{cursor:pointer}
 .mbsave:hover:not(:disabled){box-shadow:0 6px 20px rgba(20,184,166,.38)}
 .mbsave:active:not(:disabled){transform:scale(.96)}
 .mbsave:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.mbexport{flex:1;padding:13px;background:linear-gradient(135deg,#3B82F6,#1D4ED8);border:none;color:#fff;border-radius:16px;font-size:.85rem;font-weight:800;transition:.18s;box-shadow:0 4px 14px rgba(37,99,235,.3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:var(--ff)}
+.mbexport:hover:not(:disabled){box-shadow:0 6px 20px rgba(37,99,235,.38)}
+.mbexport:active:not(:disabled){transform:scale(.96)}
+.mbexport:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
+.exp-count{font-size:.74rem;color:var(--tx2);background:var(--srf2);border:1px solid var(--bd);border-radius:14px;padding:10px 14px;margin-top:2px;font-family:var(--fm)}
 
 /* ══════════════════════════════════════
    EDIT SITE DETAILS MODAL (fullscreen, mobile-first)
@@ -646,6 +655,57 @@ button{cursor:pointer}
   </div>
 </div>
 
+<div id="modal-export" class="edit-modal-ov">
+  <div class="edit-modal">
+    <div class="edit-modal-hd">
+      <div>
+        <div class="edit-modal-ttl">Export Tickets</div>
+        <div class="edit-modal-sub">CSV or Excel — filtered by date range &amp; status</div>
+      </div>
+      <button class="edit-modal-x" id="exp-x" onclick="closeExportModal()" aria-label="Close"></button>
+    </div>
+    <div class="edit-modal-bd">
+      <div class="fg">
+        <label class="flbl">Date Range</label>
+        <div style="display:flex;gap:10px">
+          <input type="date" class="finp" id="exp-start" oninput="onExportFieldChange()">
+          <input type="date" class="finp" id="exp-end" oninput="onExportFieldChange()">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="flbl">Ticket Status</label>
+        <select class="fsel" id="exp-status" onchange="onExportFieldChange()">
+          <option value="ALL">All Tickets</option>
+          <option value="OPEN">Open</option>
+          <option value="ON_GOING">On Going</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="CANCELLED">Cancelled</option>
+          <option value="RECOVERED">Recovered</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:14px">
+        <label class="flbl">Export Format</label>
+        <div class="uptype-grp" id="exp-fmt-grp">
+          <div class="uptype-opt on" data-fmt="csv" onclick="selectExportFormat('csv')">
+            <div class="uptype-ttl">CSV (.csv)</div>
+            <div class="uptype-sub">Plain text — opens in any spreadsheet app.</div>
+          </div>
+          <div class="uptype-opt" data-fmt="xlsx" onclick="selectExportFormat('xlsx')">
+            <div class="uptype-ttl">Excel (.xlsx)</div>
+            <div class="uptype-sub">Formatted workbook with summary &amp; totals.</div>
+          </div>
+        </div>
+      </div>
+      <div class="exp-count" id="exp-count"></div>
+      <div class="auth-err" id="exp-err" style="margin-top:14px;margin-bottom:0"><span id="exp-err-txt"></span></div>
+    </div>
+    <div class="edit-modal-ft">
+      <button class="mbback" onclick="closeExportModal()">Cancel</button>
+      <button class="mbexport" id="exp-btn" onclick="runExport()">Export</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════ ADMIN AUTH ══════════════════════════════════════ -->
 <div id="scr-admin-auth" class="scr on">
   <div class="awrap">
@@ -691,7 +751,7 @@ button{cursor:pointer}
 <div id="scr-admin-db" class="scr">
   <nav class="dbnav">
     <div class="dbbrand"><div class="dbico adm" id="ico-adm-n"></div><div><div class="dbname">Field<em>Ops</em></div><div class="dbtype">Admin Portal</div></div></div>
-    <div class="dbusr"><div><div class="dbuname" id="adm-dn">Administrator</div><div class="dburole" style="color:var(--amber-dk)">Admin Access</div></div><button class="btn-lo" id="adm-lo" onclick="logout()"></button></div>
+    <div class="dbusr"><button class="btn-export" id="adm-export-btn" onclick="openExportModal()" title="Export Tickets"></button><div><div class="dbuname" id="adm-dn">Administrator</div><div class="dburole" style="color:var(--amber-dk)">Admin Access</div></div><button class="btn-lo" id="adm-lo" onclick="logout()"></button></div>
   </nav>
   <div class="dbtabs" id="at">
     <button class="tbtn on" id="at-ov" onclick="admTab('ov',this)">Overview</button>
@@ -798,6 +858,7 @@ const IC={
   grid:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
   tag:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`,
   upload:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>`,
+  download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
   check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
   ban:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`,
   pin:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
@@ -837,6 +898,7 @@ const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('ico-logo').innerHTML=ic('logo',28);
   document.getElementById('ico-adm-n').innerHTML=ic('shield',18);
+  document.getElementById('adm-export-btn').innerHTML=ic('download',15)+'<span>Export</span>';
   document.getElementById('sico-tot').innerHTML=ic('tag',21);
   document.getElementById('sico-opn').innerHTML=ic('clock',21);
   document.getElementById('sico-gng').innerHTML=ic('wrench',21);
@@ -857,6 +919,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('em-x').innerHTML=ic('x',16);
   document.getElementById('em-err-txt').before(icEl('alert',13));
   document.getElementById('em-save-btn').prepend(icEl('check',14));
+  document.getElementById('exp-btn').prepend(icEl('download',14));
 });
 
 let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[];
@@ -1830,6 +1893,101 @@ async function saveEditModal(){
 document.getElementById('modal-edit').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape' && document.getElementById('modal-edit').classList.contains('open'))closeEditModal();
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   EXPORT TICKETS — CSV / Excel, filtered by date range & status.
+   The modal's ticket count is a client-side preview computed from the
+   already-loaded AT[] cache — purely informational. The server independently
+   re-applies the exact same date-range + status rules (including the
+   RECOVERED bucket's overlap with ON_GOING+recovered_while_claimed) when it
+   builds the actual file, so the preview can never desync the real export.
+══════════════════════════════════════════════════════════════════════ */
+let exportFormat='csv';
+
+function selectExportFormat(f){
+  exportFormat=f;
+  document.querySelectorAll('#exp-fmt-grp .uptype-opt').forEach(el=>el.classList.toggle('on', el.dataset.fmt===f));
+}
+function showExportErr(msg){document.getElementById('exp-err-txt').textContent=msg;document.getElementById('exp-err').classList.add('show');}
+function hideExportErr(){document.getElementById('exp-err').classList.remove('show');}
+
+function matchesExportFilters(t,startIso,endIso,status){
+  if(startIso && (!t.created_at || t.created_at<startIso))return false;
+  if(endIso && (!t.created_at || t.created_at>endIso))return false;
+  if(status==='RECOVERED')return t.status==='RECOVERED'||t.recovered_while_claimed;
+  if(status!=='ALL')return t.status===status;
+  return true;
+}
+function updateExportCount(){
+  const start=document.getElementById('exp-start').value;
+  const end=document.getElementById('exp-end').value;
+  const status=document.getElementById('exp-status').value;
+  const startIso=start?`${start}T00:00:00.000Z`:null;
+  const endIso=end?`${end}T23:59:59.999Z`:null;
+  const n=(AT||[]).filter(t=>matchesExportFilters(t,startIso,endIso,status)).length;
+  document.getElementById('exp-count').textContent=`${n} ticket${n===1?'':'s'} match${n===1?'es':''} these filters.`;
+}
+function onExportFieldChange(){hideExportErr();updateExportCount();}
+
+function openExportModal(){
+  const end=new Date(), start=new Date(); start.setDate(start.getDate()-30);
+  document.getElementById('exp-start').value=start.toISOString().slice(0,10);
+  document.getElementById('exp-end').value=end.toISOString().slice(0,10);
+  document.getElementById('exp-status').value='ALL';
+  selectExportFormat('csv');
+  hideExportErr();
+  updateExportCount();
+  document.getElementById('modal-export').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeExportModal(){
+  document.getElementById('modal-export').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+async function runExport(){
+  const start=document.getElementById('exp-start').value;
+  const end=document.getElementById('exp-end').value;
+  const status=document.getElementById('exp-status').value;
+  hideExportErr();
+  if(!start||!end){showExportErr('Please select both a start and end date.');return;}
+  if(start>end){showExportErr('Start date must be on or before the end date.');return;}
+
+  const btn=document.getElementById('exp-btn');
+  const origHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='Exporting…';
+  try{
+    const params=new URLSearchParams({
+      start_date:start, end_date:end, status, format:exportFormat,
+      exported_by:(CU&&(CU.name||CU.id))||'Admin'
+    });
+    const r=await fetch(`/api/admin/tickets/export?${params.toString()}`);
+    if(!r.ok){
+      const d=await r.json().catch(()=>({}));
+      throw new Error(d.error||'Export failed.');
+    }
+    const blob=await r.blob();
+    // Pull the filename from Content-Disposition so the download matches the
+    // server's canonical FieldOps_Tickets_<Status>_<range>.<ext> pattern.
+    const cd=r.headers.get('Content-Disposition')||'';
+    const m=/filename="?([^"]+)"?/.exec(cd);
+    const filename=m?m[1]:`FieldOps_Tickets.${exportFormat}`;
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();
+    a.remove();URL.revokeObjectURL(url);
+    toast('Export ready — check your downloads.','ok');
+    closeExportModal();
+  }catch(e){
+    showExportErr(e.message||'Could not generate export. Please try again.');
+  }finally{
+    btn.disabled=false;btn.innerHTML=origHtml;
+  }
+}
+document.getElementById('modal-export').addEventListener('click',function(e){if(e.target===this)closeExportModal();});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape' && document.getElementById('modal-export').classList.contains('open'))closeExportModal();
 });
 
 /* ── TOOLS overlay (new section, presentational) ── */
