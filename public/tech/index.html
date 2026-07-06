@@ -1009,6 +1009,10 @@ button{cursor:pointer}
 .ts-nav-btn{flex:1;padding:13px;border-radius:4px;font-size:.86rem;font-weight:800;text-align:center;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx2);font-family:var(--ff)}
 .ts-nav-btn.primary{background:linear-gradient(135deg,var(--primary),var(--teal));color:#fff;border:none}
 .ts-nav-btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+.ts-stop-card{margin-top:14px;background:var(--amber-lt);border:1px solid var(--amber-bd);border-radius:4px;padding:14px}
+.ts-stop-card .ts-card-label{color:var(--amber-dk);margin-bottom:6px}
+.ts-stop-card .ts-card-body{color:var(--amber-dk)}
+.ts-override-btn{display:flex;align-items:center;gap:4px;margin-top:10px;background:none;border:none;padding:0;color:var(--amber-dk);font-size:.76rem;font-weight:800;text-decoration:underline;cursor:pointer;font-family:var(--ff)}
 
 /* -- AI Summary review screen -- */
 .ts-sum-section{margin:0 16px 14px}
@@ -6811,6 +6815,22 @@ function tsCanAdvance(checkId){
   const uploaded=(r.media||[]).filter(m=>!m._uploading);
   return !!(r.notes&&r.notes.trim()&&uploaded.length>0);
 }
+// Index of the furthest check actually reached so far (has a recorded result).
+// Under the dependency-based flow this is where a halted diagnostic stopped —
+// NOT necessarily the last item in TS_FLAT — so Back/Previous from the summary
+// must return here rather than to TS_FLAT.length-1.
+function tsLastReachedIndex(){
+  let last=0;
+  TS_FLAT.forEach((c,i)=>{if(TSState.responses[c.id]?.result)last=i;});
+  return last;
+}
+// True once the technician has reached the summary by stopping at an unresolved
+// prerequisite (as opposed to reaching it by finishing — or overriding through
+// — every check). Used to label skipped checks and word the summary correctly.
+function tsStoppedEarly(){
+  const last=tsLastReachedIndex();
+  return TSState.responses[TS_FLAT[last].id]?.result==='failed' && last<TS_FLAT.length-1;
+}
 
 async function tsOpen(jobId,siteId,siteName,ticketId,coordinates){
   TSState.jobId=jobId;TSState.siteId=siteId;TSState.siteName=siteName;TSState.ticketId=ticketId;TSState.coordinates=coordinates||'';
@@ -6847,7 +6867,7 @@ function tsClose(){
   loadMine();
 }
 function tsHandleBack(){
-  if(TSState.view==='summary'){tsGotoStep(TS_FLAT.length-1);return;}
+  if(TSState.view==='summary'){tsGotoStep(tsLastReachedIndex());return;}
   if(TSState.index>0){tsPrev();return;}
   tsClose();
 }
@@ -6865,6 +6885,8 @@ function tsRenderStep(){
   const pct=Math.round((answered/total)*100);
   const isFail=r.result==='failed';
   const canNext=tsCanAdvance(c.id);
+  const isLast=TSState.index>=total-1;
+  const willHalt=isFail&&canNext&&!isLast;
 
   el.innerHTML=`
     <div class="app-header">
@@ -6899,10 +6921,17 @@ function tsRenderStep(){
         </div>
         ${isFail?`<div style="font-size:.7rem;color:var(--red-dk);margin-top:5px;display:flex;align-items:center;gap:5px">${ic('alert',12)} Photo and notes are required for a failed check</div>`:''}
       </div>
+
+      ${willHalt?`
+      <div class="ts-stop-card">
+        <div class="ts-card-label">${ic('alert',13)} Diagnostic Stopped</div>
+        <div class="ts-card-body">This check is a prerequisite for the phases that follow it — continuing past an unresolved prerequisite can produce misleading results downstream. The checklist will end here and take you to your summary.</div>
+        <button class="ts-override-btn" onclick="tsOverrideContinue()">${ic('chevR',12)} Override — Continue Anyway</button>
+      </div>`:''}
     </div>
     <div class="ts-nav-row">
       <button class="ts-nav-btn" onclick="tsPrev()"${TSState.index===0?' disabled':''}>Previous</button>
-      <button class="ts-nav-btn primary" id="ts-next-btn" onclick="tsNext()"${canNext?'':' disabled'}>${TSState.index===total-1?'Review Summary':'Next'}</button>
+      <button class="ts-nav-btn primary" id="ts-next-btn" onclick="tsNext()"${canNext?'':' disabled'}>${willHalt?'End &amp; Review Summary':(isLast?'Review Summary':'Next')}</button>
     </div>`;
 }
 
@@ -6920,10 +6949,32 @@ function tsNoteInput(value){
   const c=TS_FLAT[TSState.index];
   if(!TSState.responses[c.id])TSState.responses[c.id]={result:null,notes:'',media:[]};
   TSState.responses[c.id].notes=value;
-  const nextBtn=document.getElementById('ts-next-btn');
-  if(nextBtn)nextBtn.disabled=!tsCanAdvance(c.id);
+  tsRefreshNextButton();
   clearTimeout(TSState.noteTimer);
   TSState.noteTimer=setTimeout(()=>tsSaveResponse(c),600);
+}
+// Keeps the Next/End-and-Review button (enabled state + label) and the
+// Diagnostic Stopped callout in sync as evidence becomes complete, WITHOUT
+// re-rendering the whole screen — a full tsRenderStep() would recreate the
+// notes textarea and drop focus/cursor position mid-keystroke.
+function tsRefreshNextButton(){
+  const c=TS_FLAT[TSState.index];
+  const r=TSState.responses[c.id]||{};
+  const isLast=TSState.index>=TS_FLAT.length-1;
+  const canNext=tsCanAdvance(c.id);
+  const willHalt=r.result==='failed'&&canNext&&!isLast;
+  const btn=document.getElementById('ts-next-btn');
+  if(btn){
+    btn.disabled=!canNext;
+    btn.innerHTML=willHalt?'End &amp; Review Summary':(isLast?'Review Summary':'Next');
+  }
+  const evidenceEl=document.querySelector('.ts-evidence');
+  const stopCard=document.querySelector('.ts-stop-card');
+  if(willHalt&&!stopCard&&evidenceEl){
+    evidenceEl.insertAdjacentHTML('afterend',`<div class="ts-stop-card"><div class="ts-card-label">${ic('alert',13)} Diagnostic Stopped</div><div class="ts-card-body">This check is a prerequisite for the phases that follow it — continuing past an unresolved prerequisite can produce misleading results downstream. The checklist will end here and take you to your summary.</div><button class="ts-override-btn" onclick="tsOverrideContinue()">${ic('chevR',12)} Override — Continue Anyway</button></div>`);
+  }else if(!willHalt&&stopCard){
+    stopCard.remove();
+  }
 }
 async function tsSaveResponse(c){
   const r=TSState.responses[c.id];
@@ -6959,16 +7010,35 @@ async function tsAttachMedia(inputEl){
 }
 
 function tsPrev(){
-  if(TSState.view==='summary'){TSState.view='step';TSState.index=TS_FLAT.length-1;tsRenderStep();tsSaveProgress();return;}
+  if(TSState.view==='summary'){TSState.view='step';TSState.index=tsLastReachedIndex();tsRenderStep();tsSaveProgress();return;}
   if(TSState.index<=0)return;
   TSState.index--;
   tsRenderStep();
   tsSaveProgress();
 }
+// Default path: a Failed check halts the guided workflow here (its prerequisite
+// is unresolved, so any downstream check would be diagnostically invalid) and
+// jumps straight to the summary — mirroring real-world troubleshooting, where
+// there's no point reading modem LEDs when the Comm Box itself has no power.
+// A Passed check (or the very last check regardless of result) advances as before.
 function tsNext(){
   const c=TS_FLAT[TSState.index];
   if(!tsCanAdvance(c.id))return;
-  if(TSState.index>=TS_FLAT.length-1){tsGotoSummary();return;}
+  const isLast=TSState.index>=TS_FLAT.length-1;
+  const justFailed=TSState.responses[c.id]?.result==='failed';
+  if(isLast){tsGotoSummary();return;}
+  if(justFailed){tsGotoSummary();return;}
+  TSState.index++;
+  tsRenderStep();
+  tsSaveProgress();
+}
+// Advanced / supervisor escape hatch — explicitly bypass the stop for THIS
+// failed check and resume normal linear navigation. Not the default path:
+// the technician must tap this deliberately every time a new prerequisite
+// fails: overriding once does not silently disable future stops.
+function tsOverrideContinue(){
+  const isLast=TSState.index>=TS_FLAT.length-1;
+  if(isLast){tsGotoSummary();return;}
   TSState.index++;
   tsRenderStep();
   tsSaveProgress();
@@ -6987,14 +7057,18 @@ async function tsSaveProgress(){
 
 function tsGenerateSummary(){
   const failed=TS_FLAT.filter(c=>TSState.responses[c.id]?.result==='failed');
+  const lastIdx=tsLastReachedIndex();
+  const stoppedEarly=tsStoppedEarly();
   const issue=failed.length?failed.map(c=>c.title).join('; '):'No issue identified — all troubleshooting checks passed.';
   const rootCause=failed.length
     ?failed.map(c=>`${c.title} (Phase ${c.phaseId} – ${c.phaseTitle}): ${(TSState.responses[c.id].notes||'').trim()||'See attached evidence.'}`).join('\n')
     :'N/A — system operating normally across all phases.';
-  const diagnosticSteps=TS_FLAT.map(c=>{
+  const diagnosticSteps=TS_FLAT.map((c,i)=>{
     const r=TSState.responses[c.id];
-    const mark=r?.result==='passed'?'PASSED':r?.result==='failed'?'FAILED':'SKIPPED';
-    return `Phase ${c.phaseId} — ${c.title}: ${mark}`;
+    if(r?.result==='passed')return `Phase ${c.phaseId} — ${c.title}: PASSED`;
+    if(r?.result==='failed')return `Phase ${c.phaseId} — ${c.title}: FAILED`;
+    if(stoppedEarly&&i>lastIdx)return `Phase ${c.phaseId} — ${c.title}: NOT PERFORMED — diagnostic halted at an earlier prerequisite`;
+    return `Phase ${c.phaseId} — ${c.title}: NOT PERFORMED`;
   }).join('\n');
   const correctiveActions=failed.length?failed.map(c=>`${c.title}: ${c.failAction}`).join('\n'):'No corrective action required.';
   const totalMedia=TS_FLAT.reduce((n,c)=>n+((TSState.responses[c.id]?.media||[]).length),0);
@@ -7002,14 +7076,19 @@ function tsGenerateSummary(){
     ?(totalMedia>0?`${totalMedia} file${totalMedia!==1?'s':''} attached across ${failed.length} failed check${failed.length!==1?'s':''}.`:'No evidence attached.')
     :'No evidence required — no failed checks.';
   const verification=failed.length
-    ?'Partial — corrective action documented above; recommend re-testing after the action is completed on site.'
+    ?(stoppedEarly
+        ?'Not verified — the guided workflow stopped at this unresolved prerequisite, so downstream phases were not tested. Re-run the checklist after the fix to verify the rest of the chain.'
+        :'Partial — corrective action documented above; recommend re-testing after the action is completed on site.')
     :'Verified — full connectivity restored, no issues detected during this pass.';
   const needsISP=failed.some(c=>c.escalateToISP);
   const recommendation=failed.length===0
     ?'No further action needed; site is fully operational.'
     :needsISP?'Escalate to the ISP for line-level investigation; local hardware has been ruled out where noted above.'
-    :'Apply the corrective action(s) above and monitor the site for recurrence.';
-  const finalStatus=failed.length===0?'RESOLVED — NO ISSUES FOUND':needsISP?'ESCALATED TO ISP':'FOLLOW-UP REQUIRED — FIELD ACTION TAKEN';
+    :(stoppedEarly?'Apply the corrective action(s) above, then re-run the guided checklist to confirm the remaining phases.':'Apply the corrective action(s) above and monitor the site for recurrence.');
+  const finalStatus=failed.length===0
+    ?'RESOLVED — NO ISSUES FOUND'
+    :needsISP?'ESCALATED TO ISP'
+    :(stoppedEarly?'STOPPED AT PREREQUISITE — DOWNSTREAM PHASES UNTESTED':'FOLLOW-UP REQUIRED — FIELD ACTION TAKEN');
   return {issue,rootCause,diagnosticSteps,correctiveActions,evidence,verification,recommendation,finalStatus};
 }
 
@@ -7024,6 +7103,11 @@ function tsRenderSummary(){
   const el=document.getElementById('ts-overlay');
   const s=TSState.aiSummary||(TSState.aiSummary=tsGenerateSummary());
   const failedCount=TS_FLAT.filter(c=>TSState.responses[c.id]?.result==='failed').length;
+  const stoppedEarly=tsStoppedEarly();
+  const lastIdx=tsLastReachedIndex();
+  const bannerSub=stoppedEarly
+    ?`Stopped after Phase ${TS_FLAT[lastIdx].phaseId} — ${lastIdx+1} of ${TS_FLAT.length} checks performed.`
+    :(failedCount?`${failedCount} check${failedCount!==1?'s':''} flagged — review and edit below.`:'All checks passed — review before submitting.');
   el.innerHTML=`
     <div class="app-header">
       <button class="icon-btn" onclick="tsHandleBack()">${ic('arrowL',18)}</button>
@@ -7032,7 +7116,7 @@ function tsRenderSummary(){
     <div class="app-scroll" style="padding-top:16px;padding-bottom:8px">
       <div style="margin:0 16px 16px;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:14px;box-shadow:var(--s1)">
         <span style="color:var(--primary);display:flex;flex-shrink:0">${ic('magic',22)}</span>
-        <div style="flex:1;min-width:0"><div style="font-size:.86rem;font-weight:800;color:var(--tx)">AI-Assisted Summary</div><div style="font-size:.74rem;color:var(--tx2);margin-top:2px">${failedCount?`${failedCount} check${failedCount!==1?'s':''} flagged — review and edit below.`:'All checks passed — review before submitting.'}</div></div>
+        <div style="flex:1;min-width:0"><div style="font-size:.86rem;font-weight:800;color:var(--tx)">AI-Assisted Summary</div><div style="font-size:.74rem;color:var(--tx2);margin-top:2px">${bannerSub}</div></div>
       </div>
       ${TS_SUMMARY_FIELDS.map(([key,label,icon])=>`
       <div class="ts-sum-section">
