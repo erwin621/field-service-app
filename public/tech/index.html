@@ -1535,9 +1535,54 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('navico-profile').innerHTML=ic('user',21);
   document.getElementById('sm-map-expand').innerHTML=ic('expand',15);
   loadTechDropdown();
+
+  // Restore a session that survived in localStorage but not in memory —
+  // this is the path taken after Android reclaims the backgrounded tab,
+  // a manual refresh, or relaunching the app. Previously nothing checked
+  // here, so all of those cases fell through to the sign-in screen.
+  const saved=loadSession();
+  if(saved){
+    CU=saved.user;CR=saved.role;
+    if(CR==='admin'){
+      document.getElementById('adm-dn').textContent=CU.name;
+      go('admin-db');loadAdminData();
+    } else {
+      document.getElementById('tch-dn').textContent=CU.name;
+      document.getElementById('avatar-btn').textContent=(CU.name||'T').trim().charAt(0).toUpperCase();
+      go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
+    }
+  }
 });
 
 let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[];
+
+/* ── Session persistence ──────────────────────────────────────────────
+   CU/CR previously lived only in JS memory, so any full page reload —
+   Android reclaiming this tab's process while backgrounded (e.g. while
+   the camera app is open for a proof photo), a manual refresh, or the
+   browser being relaunched — reset them to null and silently dropped
+   the user back to the sign-in screen, even though nothing about their
+   account had changed. Persisting the same {user,role} pair already
+   held in CU/CR, and restoring it on boot, fixes that without changing
+   the trust model: the backend never issued a token to begin with, so
+   this just lets the client survive a reload it previously couldn't. */
+const FO_SESSION_KEY='fo_session';
+function saveSession(){
+  try{localStorage.setItem(FO_SESSION_KEY,JSON.stringify({user:CU,role:CR}));}catch(e){}
+}
+function clearSession(){
+  try{localStorage.removeItem(FO_SESSION_KEY);}catch(e){}
+}
+function loadSession(){
+  try{
+    const raw=localStorage.getItem(FO_SESSION_KEY);
+    if(!raw)return null;
+    const parsed=JSON.parse(raw);
+    if(!parsed||!parsed.user||!parsed.role)return null;
+    return parsed;
+  }catch(e){return null;}
+}
+
 let smTicket=null,cardClickGuardId=null,cardClickGuardUntil=0;
 let selectedUploadType='FULL_SNAPSHOT';
 function selectUploadType(t){
@@ -1743,6 +1788,7 @@ async function loginAdmin(){
     if(!r.ok){e.innerHTML=ic('x',13)+' '+(d.error||'Sign in failed.');e.classList.add('show');return;}
     e.classList.remove('show');
     CU={id:d.id,name:d.display_name,role:'admin'};CR='admin';
+    saveSession();
     document.getElementById('adm-dn').textContent=d.display_name;
     showAdmLogin();
     go('admin-db');loadAdminData();
@@ -1761,6 +1807,7 @@ async function loginTech(){
     if(!r.ok){e.innerHTML=ic('x',13)+' '+(d.error||'Sign in failed.');e.classList.add('show');return;}
     e.classList.remove('show');
     CU={id:d.tech_code,name:d.display_name,role:'tech'};CR='tech';
+    saveSession();
     document.getElementById('tch-dn').textContent=d.display_name;
     document.getElementById('avatar-btn').textContent=(d.display_name||'T').trim().charAt(0).toUpperCase();
     showTchLogin();
@@ -1809,7 +1856,8 @@ async function registerTech(){
       const lr=await fetch('/api/auth/tech/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tech_code:d.tech_code,pin:pi})});
       const ld=await lr.json();
       if(lr.ok){
-        CU={id:ld.tech_code,name:ld.display_name};CR='tech';
+        CU={id:ld.tech_code,name:ld.display_name,role:'tech'};CR='tech';
+        saveSession();
         document.getElementById('tch-dn').textContent=ld.display_name;
         document.getElementById('avatar-btn').textContent=(ld.display_name||'T').trim().charAt(0).toUpperCase();
         go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
@@ -1866,6 +1914,7 @@ const navHide=(()=>{
 
 function logout(){
   CU=null;CR=null;
+  clearSession();
   GeoEngine.stopWatch();
   ['tch-pin','tch-dn-in','tch-pi-in','tch-cp-in']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
