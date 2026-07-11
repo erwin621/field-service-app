@@ -1155,6 +1155,8 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
         const troubleshootingSummary = req.body.troubleshooting_summary || '';
 
         let proofUrls    = [];
+        let proofIds     = []; // ticket_proofs.id for each uploaded file — lets the Telegram
+                                // send below stamp telegram_confirmed_at once delivery succeeds
         let ticketNumber = id; // fallback label for Telegram/storage if lookup is thin
         let siteId       = '';  // hoisted — needed by sendTelegramProof outside if/else
         let siteName     = '';
@@ -1186,13 +1188,17 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
                 proofUrls.push(publicUrl);
 
                 // Record proof metadata — ticket_proofs.ticket_id references tickets.id
-                await supabase.from('ticket_proofs').insert({
+                // .select('id') captures the new row so sendTelegramProof can later stamp
+                // telegram_confirmed_at on exactly these rows (Media Retention gate).
+                const { data: proofRow, error: proofInsErr } = await supabase.from('ticket_proofs').insert({
                     ticket_id:   id,
                     file_url:    publicUrl,
                     file_type:   file.mimetype.startsWith('video') ? 'video' : 'image',
                     file_name:   file.originalname,
                     uploaded_by: user.id
-                });
+                }).select('id').single();
+                if (proofInsErr) console.error('ticket_proofs insert error:', proofInsErr.message);
+                else proofIds.push(proofRow.id);
             }
 
             const { error } = await supabase.from('tickets').update({
@@ -1219,16 +1225,20 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
             writeDB(db);
         }
 
-        // Send proof to Telegram (non-blocking) — unchanged from today.
-        sendTelegramProof(ticketNumber, technician_id, notes, req.files, siteId, siteName).catch(() => {});
+        // Send proof to Telegram (non-blocking) — unchanged from today. proofIds is
+        // passed through so a successful send can stamp telegram_confirmed_at
+        // (Media Retention gate) on exactly the rows that were just uploaded.
+        sendTelegramProof(ticketNumber, technician_id, notes, req.files, siteId, siteName, proofIds).catch(() => {});
 
         // ADDITIVE — Guided Troubleshooting: relay the AI-assisted summary and any
         // evidence captured during troubleshooting as a supplementary Telegram
         // message, referencing already-uploaded Storage URLs (nothing re-uploaded).
         // Fully independent of sendTelegramProof above — a failure here can never
         // affect the core proof submission, which has already succeeded by this point.
+        // completedDraft.id is passed through so a successful evidence send can stamp
+        // telegram_confirmed_at on the matching troubleshooting_media rows.
         if (troubleshootingSummary || troubleshootingMedia.length) {
-            sendTelegramTroubleshootingFollowup(ticketNumber, troubleshootingSummary, troubleshootingMedia).catch(() => {});
+            sendTelegramTroubleshootingFollowup(ticketNumber, troubleshootingSummary, troubleshootingMedia, completedDraft.id).catch(() => {});
         }
         tsMarkSubmitted(id).catch(() => {});
 
@@ -1945,7 +1955,7 @@ app.get('/api/admin/tickets/export', async (req, res) => {
 //     videos are not silently truncated
 //  4. Full error detail is logged (err.response.data) instead of swallowed
 //
-async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteName) {
+async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteName, proofIds = []) {
     if (!BOT_TOKEN || !CHAT_ID) {
         console.log('[Telegram] Skipped — BOT_TOKEN or CHAT_ID not set in .env');
         return;
@@ -2025,6 +2035,23 @@ async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteNam
             });
             console.log(`[Telegram] ✔ Sent ${batch.length} files for ticket ${ticketId}`);
         }
+
+        // ── Media Retention (ADDITIVE) ───────────────────────────────────────
+        // Reaching this point means the send above completed without throwing.
+        // Stamp telegram_confirmed_at on exactly the proof rows from this
+        // submission — this is the only gate the nightly Storage purge checks
+        // before deleting a file. A failure here only affects retention
+        // bookkeeping; it can never undo the Telegram send or proof submission,
+        // both of which have already succeeded by this point.
+        if (supabase && proofIds.length) {
+            const { error: confirmErr } = await supabase
+                .from('ticket_proofs')
+                .update({ telegram_confirmed_at: new Date().toISOString() })
+                .in('id', proofIds);
+            if (confirmErr) {
+                console.error(`[Media Retention] Could not stamp telegram_confirmed_at for ticket ${ticketId}:`, confirmErr.message);
+            }
+        }
     } catch (err) {
         // Log the full Telegram error response so it is easy to diagnose
         const detail = err.response?.data
@@ -2045,7 +2072,7 @@ async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteNam
 //  this function is caught internally and can never affect the core proof
 //  submission, which has already completed by the time this is called.
 // ═══════════════════════════════════════════════════════════════════════════
-async function sendTelegramTroubleshootingFollowup(ticketId, summaryText, media) {
+async function sendTelegramTroubleshootingFollowup(ticketId, summaryText, media, draftId) {
     if (!BOT_TOKEN || !CHAT_ID) return;
     if (!summaryText && (!media || !media.length)) return;
     const API = `https://api.telegram.org/bot${BOT_TOKEN}`;
@@ -2088,6 +2115,24 @@ async function sendTelegramTroubleshootingFollowup(ticketId, summaryText, media)
             await axios.post(`${API}/sendMediaGroup`, { chat_id: CHAT_ID, media: group });
         }
         console.log(`[Telegram] ✔ Sent ${safeMedia.length} troubleshooting evidence file(s) for ticket ${ticketId}`);
+
+        // ── Media Retention (ADDITIVE) ───────────────────────────────────────
+        // Stamp telegram_confirmed_at only on the rows that were actually sent
+        // above (safeMedia may be a subset of `media` — non-http(s) URLs or
+        // anything past the 10-item Telegram limit is excluded). Matched by
+        // draft_id + storage_url since this array arrives from the client as
+        // plain {storage_url, media_type} pairs, without row ids attached.
+        if (supabase && draftId && safeMedia.length) {
+            const urls = safeMedia.map(m => m.storage_url);
+            const { error: confirmErr } = await supabase
+                .from('troubleshooting_media')
+                .update({ telegram_confirmed_at: new Date().toISOString() })
+                .eq('draft_id', draftId)
+                .in('storage_url', urls);
+            if (confirmErr) {
+                console.error(`[Media Retention] Could not stamp telegram_confirmed_at for ticket ${ticketId}:`, confirmErr.message);
+            }
+        }
     } catch (err) {
         const detail = err.response?.data ? JSON.stringify(err.response.data, null, 2) : err.message;
         console.error(`[Telegram] ✘ Troubleshooting evidence failed for ticket ${ticketId}:\n`, detail);
@@ -2491,6 +2536,10 @@ app.listen(PORT, () => {
     console.log(`\n🚀  FieldOps running → http://localhost:${PORT}`);
     console.log(`    Mode : ${supabase ? 'Supabase (cloud database)' : 'Local JSON  (database.json)'}`);
     console.log(`    Telegram : ${BOT_TOKEN ? 'enabled' : 'disabled (no BOT_TOKEN)'}`);
-    if (supabase) console.log(`    Guided Troubleshooting : storage bucket 'troubleshooting' must exist (public) — see supabase_migration_troubleshooting.sql\n`);
-    else console.log('');
+    if (supabase) {
+        console.log(`    Guided Troubleshooting : storage bucket 'troubleshooting' must exist (public) — see supabase_migration_troubleshooting.sql`);
+        console.log(`    Media Retention : 15-day Storage purge runs nightly via Supabase Cron — see supabase_migration_media_retention.sql\n`);
+    } else {
+        console.log('');
+    }
 });
