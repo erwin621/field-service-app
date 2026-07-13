@@ -27,6 +27,13 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
 }
 
 // ─── Telegram ───────────────────────────────────────────────────────────────
+// BOT_TOKEN/CHAT_ID below are the admin/global bot — used ONLY for the
+// ticket-cancellation notification. Task proofs no longer use this bot; each
+// technician's proof is sent through their OWN bot/chat, stored on their user
+// row as telegram_bot_token / telegram_chat_id (see /api/users/:tech_code/telegram-settings).
+// Supabase mode requires these two columns on `users`:
+//   ALTER TABLE users ADD COLUMN telegram_bot_token text;
+//   ALTER TABLE users ADD COLUMN telegram_chat_id   text;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID   = process.env.TELEGRAM_CHAT_ID;
 
@@ -818,6 +825,95 @@ app.post('/api/auth/tech/login', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  Per-user Telegram Settings (App Preferences)
+//  Each technician owns their own Bot + Chat/Group — no global fallback.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── GET /api/users/:tech_code/telegram-settings ───────────────────────────
+app.get('/api/users/:tech_code/telegram-settings', async (req, res) => {
+    const { tech_code } = req.params;
+    try {
+        let user;
+        if (supabase) {
+            const { data } = await supabase.from('users')
+                .select('telegram_bot_token, telegram_chat_id')
+                .eq('tech_code', tech_code).maybeSingle();
+            user = data;
+        } else {
+            user = readDB().users.find(u => u.tech_code === tech_code);
+        }
+        if (!user) return res.status(404).json({ error: 'Technician not found' });
+        res.json({
+            telegram_bot_token: user.telegram_bot_token || '',
+            telegram_chat_id:   user.telegram_chat_id   || ''
+        });
+    } catch (err) {
+        console.error('[GET /users/telegram-settings]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/users/:tech_code/telegram-settings ──────────────────────────
+// body: { telegram_bot_token, telegram_chat_id }
+app.post('/api/users/:tech_code/telegram-settings', async (req, res) => {
+    const { tech_code } = req.params;
+    const { telegram_bot_token, telegram_chat_id } = req.body;
+    if (!telegram_bot_token || !telegram_chat_id)
+        return res.status(400).json({ error: 'Bot Token and Chat ID are required' });
+    try {
+        if (supabase) {
+            const { error } = await supabase.from('users')
+                .update({ telegram_bot_token, telegram_chat_id })
+                .eq('tech_code', tech_code);
+            if (error) throw error;
+        } else {
+            const db = readDB();
+            const user = db.users.find(u => u.tech_code === tech_code);
+            if (!user) return res.status(404).json({ error: 'Technician not found' });
+            user.telegram_bot_token = telegram_bot_token;
+            user.telegram_chat_id   = telegram_chat_id;
+            writeDB(db);
+        }
+        res.json({ message: 'Telegram settings saved.' });
+    } catch (err) {
+        console.error('[POST /users/telegram-settings]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/users/telegram/test ─────────────────────────────────────────
+// body: { telegram_bot_token, telegram_chat_id }
+// "Send Test Message" button — verifies the token via getMe, then sends a
+// real message to the chat_id. Tests whatever was just typed in, not
+// necessarily what's already saved, so users can validate before saving.
+app.post('/api/users/telegram/test', async (req, res) => {
+    const { telegram_bot_token, telegram_chat_id } = req.body;
+    if (!telegram_bot_token || !telegram_chat_id)
+        return res.status(400).json({ error: 'Bot Token and Chat ID are required' });
+
+    const API = `https://api.telegram.org/bot${telegram_bot_token}`;
+
+    try {
+        await axios.get(`${API}/getMe`);
+    } catch (err) {
+        const detail = err.response?.data?.description || err.message;
+        return res.status(400).json({ error: `Invalid Bot Token — ${detail}` });
+    }
+
+    try {
+        await axios.post(`${API}/sendMessage`, {
+            chat_id: telegram_chat_id,
+            text: '✅ FieldOps: this Telegram Bot is configured correctly.'
+        });
+    } catch (err) {
+        const detail = err.response?.data?.description || err.message;
+        return res.status(400).json({ error: `Invalid Chat ID — ${detail}` });
+    }
+
+    res.json({ message: 'Telegram configuration is working.' });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  GET /api/tickets/open  — all unassigned OPEN tickets
 // ═══════════════════════════════════════════════════════════════════════════
 app.get('/api/tickets/open', async (req, res) => {
@@ -1141,6 +1237,21 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
     if (!id || !technician_id || !req.files?.length)
         return res.status(400).json({ error: 'Missing id, technician_id, or proof files' });
     try {
+        // ── Per-user Telegram gate ──────────────────────────────────────────
+        // Task proofs are delivered through the submitting technician's own
+        // Telegram Bot — there is no shared/global fallback. If they haven't
+        // configured one yet, block here (before any upload work) and send
+        // them back to App Preferences to fix it.
+        const techUser = supabase
+            ? await getUserByTechCode(technician_id)
+            : readDB().users.find(u => u.tech_code === technician_id);
+        if (!techUser) return res.status(404).json({ error: 'Technician not found' });
+        if (!techUser.telegram_bot_token || !techUser.telegram_chat_id) {
+            return res.status(409).json({
+                error: 'Set up your Telegram Bot in App Preferences before submitting a task proof.'
+            });
+        }
+
         // ADDITIVE — Guided Troubleshooting gate. Submitting proof now requires a
         // completed (technician-confirmed) troubleshooting draft for this job.
         // This is the same message shown client-side when Submit Proof is disabled.
@@ -1228,7 +1339,7 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
         // Send proof to Telegram (non-blocking) — unchanged from today. proofIds is
         // passed through so a successful send can stamp telegram_confirmed_at
         // (Media Retention gate) on exactly the rows that were just uploaded.
-        sendTelegramProof(ticketNumber, technician_id, notes, req.files, siteId, siteName, proofIds).catch(() => {});
+        sendTelegramProof(techUser.telegram_bot_token, techUser.telegram_chat_id, ticketNumber, technician_id, notes, req.files, siteId, siteName, proofIds).catch(() => {});
 
         // ADDITIVE — Guided Troubleshooting: relay the AI-assisted summary and any
         // evidence captured during troubleshooting as a supplementary Telegram
@@ -1238,7 +1349,7 @@ app.post('/api/tickets/submit', upload.array('proof', 5), async (req, res) => {
         // completedDraft.id is passed through so a successful evidence send can stamp
         // telegram_confirmed_at on the matching troubleshooting_media rows.
         if (troubleshootingSummary || troubleshootingMedia.length) {
-            sendTelegramTroubleshootingFollowup(ticketNumber, troubleshootingSummary, troubleshootingMedia, completedDraft.id).catch(() => {});
+            sendTelegramTroubleshootingFollowup(techUser.telegram_bot_token, techUser.telegram_chat_id, ticketNumber, troubleshootingSummary, troubleshootingMedia, completedDraft.id).catch(() => {});
         }
         tsMarkSubmitted(id).catch(() => {});
 
@@ -1955,9 +2066,9 @@ app.get('/api/admin/tickets/export', async (req, res) => {
 //     videos are not silently truncated
 //  4. Full error detail is logged (err.response.data) instead of swallowed
 //
-async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteName, proofIds = []) {
-    if (!BOT_TOKEN || !CHAT_ID) {
-        console.log('[Telegram] Skipped — BOT_TOKEN or CHAT_ID not set in .env');
+async function sendTelegramProof(botToken, chatId, ticketId, techId, notes, files, siteId, siteName, proofIds = []) {
+    if (!botToken || !chatId) {
+        console.log(`[Telegram] Skipped for ticket ${ticketId} — technician has no Telegram Bot configured`);
         return;
     }
     if (!files || !files.length) {
@@ -1965,7 +2076,7 @@ async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteNam
         return;
     }
 
-    const API     = `https://api.telegram.org/bot${BOT_TOKEN}`;
+    const API     = `https://api.telegram.org/bot${botToken}`;
     // HTML parse mode is used throughout — it is immune to special characters
     // in tech notes/IDs that would break Telegram's Markdown (v1) parser.
     // All user-supplied strings are passed through escapeHtml() for safety.
@@ -1991,7 +2102,7 @@ async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteNam
             const field   = isVideo ? 'video'     : 'photo';
 
             const form = new FormData();
-            form.append('chat_id',    CHAT_ID);
+            form.append('chat_id',    chatId);
             form.append('caption',    caption);
             form.append('parse_mode', 'HTML');
             // Pass { filename, contentType } so Telegram knows the file type
@@ -2019,7 +2130,7 @@ async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteNam
             }));
 
             const form = new FormData();
-            form.append('chat_id', CHAT_ID);
+            form.append('chat_id', chatId);
             form.append('media',   JSON.stringify(media));
             batch.forEach((f, i) => {
                 // { filename, contentType } required — plain string breaks type detection
@@ -2072,15 +2183,15 @@ async function sendTelegramProof(ticketId, techId, notes, files, siteId, siteNam
 //  this function is caught internally and can never affect the core proof
 //  submission, which has already completed by the time this is called.
 // ═══════════════════════════════════════════════════════════════════════════
-async function sendTelegramTroubleshootingFollowup(ticketId, summaryText, media, draftId) {
-    if (!BOT_TOKEN || !CHAT_ID) return;
+async function sendTelegramTroubleshootingFollowup(botToken, chatId, ticketId, summaryText, media, draftId) {
+    if (!botToken || !chatId) return;
     if (!summaryText && (!media || !media.length)) return;
-    const API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+    const API = `https://api.telegram.org/bot${botToken}`;
 
     try {
         if (summaryText) {
             await axios.post(`${API}/sendMessage`, {
-                chat_id:    CHAT_ID,
+                chat_id:    chatId,
                 parse_mode: 'HTML',
                 text: `🛠 <b>Guided Troubleshooting Summary</b>\n` +
                       `Ticket: <code>${escapeHtml(ticketId)}</code>\n\n` +
@@ -2102,7 +2213,7 @@ async function sendTelegramTroubleshootingFollowup(ticketId, summaryText, media,
         if (safeMedia.length === 1) {
             const isVideo = safeMedia[0].media_type === 'video';
             await axios.post(`${API}/${isVideo ? 'sendVideo' : 'sendPhoto'}`, {
-                chat_id: CHAT_ID,
+                chat_id: chatId,
                 [isVideo ? 'video' : 'photo']: safeMedia[0].storage_url,
                 caption: `Troubleshooting evidence — Ticket ${escapeHtml(ticketId)}`,
             });
@@ -2112,7 +2223,7 @@ async function sendTelegramTroubleshootingFollowup(ticketId, summaryText, media,
                 media: m.storage_url, // existing Storage URL — Telegram fetches it directly
                 ...(i === 0 ? { caption: `Troubleshooting evidence — Ticket ${escapeHtml(ticketId)}` } : {}),
             }));
-            await axios.post(`${API}/sendMediaGroup`, { chat_id: CHAT_ID, media: group });
+            await axios.post(`${API}/sendMediaGroup`, { chat_id: chatId, media: group });
         }
         console.log(`[Telegram] ✔ Sent ${safeMedia.length} troubleshooting evidence file(s) for ticket ${ticketId}`);
 
@@ -2535,7 +2646,8 @@ app.get('/api/sync/poll', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`\n🚀  FieldOps running → http://localhost:${PORT}`);
     console.log(`    Mode : ${supabase ? 'Supabase (cloud database)' : 'Local JSON  (database.json)'}`);
-    console.log(`    Telegram : ${BOT_TOKEN ? 'enabled' : 'disabled (no BOT_TOKEN)'}`);
+    console.log(`    Telegram (cancel alerts, admin bot) : ${BOT_TOKEN ? 'enabled' : 'disabled (no BOT_TOKEN)'}`);
+    console.log(`    Telegram (task proofs) : per-technician, configured in App Preferences`);
     if (supabase) {
         console.log(`    Guided Troubleshooting : storage bucket 'troubleshooting' must exist (public) — see supabase_migration_troubleshooting.sql`);
         console.log(`    Media Retention : 15-day Storage purge runs nightly via Supabase Cron — see supabase_migration_media_retention.sql\n`);

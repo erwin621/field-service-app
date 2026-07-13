@@ -1293,6 +1293,10 @@ button{cursor:pointer}
 <div id="cam-settings-overlay" style="display:none;position:fixed;inset:0;z-index:150;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
 </div>
 
+<!-- ══════════════════════════════════════ APP PREFERENCES (Telegram Settings) ══════════════════════════════════════ -->
+<div id="app-prefs-overlay" style="display:none;position:fixed;inset:0;z-index:151;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+
 <!-- ══════════════════════════════════════ DOCUMENT SCANNER MODULE ══════════════════════════════════════ -->
 <!-- Step 1: Camera capture with edge detection -->
 <div id="docscan-overlay" style="display:none;position:fixed;inset:0;z-index:205;background:#000;max-width:480px;margin:0 auto;flex-direction:column">
@@ -3539,7 +3543,7 @@ function renderProfileOverlay(){
         </div>
       </div>
       <div class="list-card fade-up" style="background:#fff;border-radius:4px;box-shadow:var(--s2);overflow:hidden;border:1px solid var(--bd);margin-bottom:14px">
-        ${[['Personal Info','Edit your details','user',null],['__availability__'],['Notifications','3 unread','bell',null],['Preferences','App settings','settings',null],['Help & Support','Troubleshooting guides & FAQs','helpCircle','hcOpen()']].map(([t,s,i,fn])=>t==='__availability__'?`
+        ${[['Personal Info','Edit your details','user',null],['__availability__'],['Notifications','3 unread','bell',null],['Preferences','App settings','settings','showAppPrefs()'],['Help & Support','Troubleshooting guides & FAQs','helpCircle','hcOpen()']].map(([t,s,i,fn])=>t==='__availability__'?`
         <div style="display:flex;align-items:center;padding:14px 16px;gap:12px;border-bottom:1px solid var(--bd)">
           <div style="width:36px;height:36px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ic('power',18)}</div>
           <div style="flex:1;font-size:14px;font-weight:600;color:var(--tx)">Availability</div>
@@ -5619,6 +5623,113 @@ function camSetPosition(v,btn){
     b.style.color=isSel?'var(--primary-dk)':'var(--tx2)';
   });
 }
+/* ════════════════════════════════════════════════════════════════════════
+   APP PREFERENCES — Telegram Settings
+   ─ Per-user Bot Token + Chat ID. No shared/global bot — each technician's
+     task proofs are delivered through their own bot, configured here.
+   ─ Backed by GET/POST /api/users/:tech_code/telegram-settings and
+     POST /api/users/telegram/test (see server.js).
+════════════════════════════════════════════════════════════════════════ */
+const AppPrefsState={testOk:false};
+
+function showAppPrefs(){
+  document.getElementById('profile-overlay').style.display='none';
+  const ov=document.getElementById('app-prefs-overlay');
+  ov.style.display='flex';
+  renderAppPrefs();
+}
+function closeAppPrefs(){
+  document.getElementById('app-prefs-overlay').style.display='none';
+  document.getElementById('profile-overlay').style.display='flex';
+}
+
+async function renderAppPrefs(){
+  const ov=document.getElementById('app-prefs-overlay');
+  ov.innerHTML=`
+    <div class="app-header" style="flex-shrink:0">
+      <button class="icon-btn" onclick="closeAppPrefs()">${ic('arrowL',18)}</button>
+      <div class="app-brand-info">
+        <div class="app-brand-name">App Preferences</div>
+        <div class="app-brand-role">Telegram Settings</div>
+      </div>
+    </div>
+    <div class="app-scroll" style="flex:1;overflow-y:auto;padding:16px 16px 80px">
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Telegram Settings</div>
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:16px;margin-bottom:12px">
+        <div style="font-size:.76rem;color:var(--tx2);line-height:1.5;margin-bottom:16px">
+          Your task proofs are sent to your own Telegram Bot and Chat — not a shared bot. Create a bot via <strong>@BotFather</strong>, add it to your group, then paste both values below.
+        </div>
+        <div class="fg">
+          <label class="flbl">Bot Token</label>
+          <input class="finp" id="tg-bot-token" type="text" placeholder="123456789:AA...H" oninput="AppPrefsState.testOk=false;tgHideStatus()" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="fg" style="margin-bottom:8px">
+          <label class="flbl">Chat ID / Group Chat ID</label>
+          <input class="finp" id="tg-chat-id" type="text" placeholder="-1001234567890" oninput="AppPrefsState.testOk=false;tgHideStatus()" autocomplete="off" spellcheck="false">
+        </div>
+        <div id="tg-status" style="display:none;border-radius:4px;padding:10px 12px;font-size:.76rem;line-height:1.4;margin-bottom:12px"></div>
+        <button id="tg-test-btn" onclick="tgTestConfig()" style="width:100%;height:44px;border-radius:4px;background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx);font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+          ${ic('upload',15)} Send Test Message
+        </button>
+        <button id="tg-save-btn" onclick="tgSaveConfig()" style="width:100%;height:44px;border-radius:4px;background:linear-gradient(135deg,#14B8A6,#0D9488);border:none;color:#fff;font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          ${ic('check',15)} Save Settings
+        </button>
+      </div>
+    </div>`;
+  // Pre-fill with whatever this technician already has saved
+  try{
+    const r=await fetch(`/api/users/${encodeURIComponent(CU.id)}/telegram-settings`);
+    if(r.ok){
+      const d=await r.json();
+      document.getElementById('tg-bot-token').value=d.telegram_bot_token||'';
+      document.getElementById('tg-chat-id').value=d.telegram_chat_id||'';
+    }
+  }catch(e){/* best-effort — fields just stay blank */}
+}
+
+function tgShowStatus(msg,ok){
+  const el=document.getElementById('tg-status');if(!el)return;
+  el.style.display='block';
+  el.style.background=ok?'var(--green-lt)':'var(--red-lt)';
+  el.style.border='1px solid '+(ok?'var(--green-bd)':'var(--red-bd)');
+  el.style.color=ok?'var(--green-dk)':'var(--red-dk)';
+  el.innerHTML=(ok?ic('check',14):ic('x',14))+' '+msg;
+}
+function tgHideStatus(){
+  const el=document.getElementById('tg-status');
+  if(el)el.style.display='none';
+}
+
+async function tgTestConfig(){
+  const token=document.getElementById('tg-bot-token').value.trim();
+  const chatId=document.getElementById('tg-chat-id').value.trim();
+  if(!token||!chatId){toast('Enter both Bot Token and Chat ID first.','err');return;}
+  const btn=document.getElementById('tg-test-btn');
+  btn.disabled=true;btn.innerHTML=ic('upload',15)+' Testing...';
+  try{
+    const r=await fetch('/api/users/telegram/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telegram_bot_token:token,telegram_chat_id:chatId})});
+    const d=await r.json();
+    if(r.ok){AppPrefsState.testOk=true;tgShowStatus(d.message||'Telegram configuration is working.',true);}
+    else{AppPrefsState.testOk=false;tgShowStatus(d.error||'Test failed.',false);}
+  }catch(e){AppPrefsState.testOk=false;tgShowStatus('Cannot reach server.',false);}
+  btn.disabled=false;btn.innerHTML=ic('upload',15)+' Send Test Message';
+}
+
+async function tgSaveConfig(){
+  const token=document.getElementById('tg-bot-token').value.trim();
+  const chatId=document.getElementById('tg-chat-id').value.trim();
+  if(!token||!chatId){toast('Enter both Bot Token and Chat ID first.','err');return;}
+  const btn=document.getElementById('tg-save-btn');
+  btn.disabled=true;btn.innerHTML=ic('upload',15)+' Saving...';
+  try{
+    const r=await fetch(`/api/users/${encodeURIComponent(CU.id)}/telegram-settings`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telegram_bot_token:token,telegram_chat_id:chatId})});
+    const d=await r.json();
+    if(r.ok){toast('Telegram settings saved.','ok');}
+    else{toast(d.error||'Could not save settings.','err');}
+  }catch(e){toast('Cannot reach server.','err');}
+  btn.disabled=false;btn.innerHTML=ic('check',15)+' Save Settings';
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    DOCUMENT SCANNER MODULE  —  Microsoft Lens-style scanning
    ─ Zero server-side processing. Pure browser: getUserMedia, Canvas, jsPDF.
