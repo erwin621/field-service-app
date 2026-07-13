@@ -37,6 +37,16 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID   = process.env.TELEGRAM_CHAT_ID;
 
+// ─── Personal Info (Profile → Personal Info) ───────────────────────────────
+// Nickname / birth date / current address, plus a profile photo that
+// replaces the initial-letter avatar in the header and on the Profile
+// screen (see /api/users/:tech_code/personal-info and /photo below).
+// Supabase mode requires these four columns on `users`:
+//   ALTER TABLE users ADD COLUMN nickname   text;
+//   ALTER TABLE users ADD COLUMN birth_date date;
+//   ALTER TABLE users ADD COLUMN address    text;
+//   ALTER TABLE users ADD COLUMN photo_url  text;
+
 // ─── Local JSON DB (fallback when Supabase is not configured) ───────────────
 const DB_PATH = path.join(__dirname, 'database.json');
 
@@ -911,6 +921,96 @@ app.post('/api/users/telegram/test', async (req, res) => {
     }
 
     res.json({ message: 'Telegram configuration is working.' });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Personal Info (Profile → Personal Info)
+//  Nickname / birth date / current address, plus a profile photo that
+//  replaces the initial-letter avatar in the header and on Profile.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── GET /api/users/:tech_code/personal-info ───────────────────────────────
+app.get('/api/users/:tech_code/personal-info', async (req, res) => {
+    const { tech_code } = req.params;
+    try {
+        let user;
+        if (supabase) {
+            const { data } = await supabase.from('users')
+                .select('nickname, birth_date, address, photo_url')
+                .eq('tech_code', tech_code).maybeSingle();
+            user = data;
+        } else {
+            user = readDB().users.find(u => u.tech_code === tech_code);
+        }
+        if (!user) return res.status(404).json({ error: 'Technician not found' });
+        res.json({
+            nickname:   user.nickname   || '',
+            birth_date: user.birth_date || '',
+            address:    user.address    || '',
+            photo_url:  user.photo_url  || ''
+        });
+    } catch (err) {
+        console.error('[GET /users/personal-info]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/users/:tech_code/personal-info ──────────────────────────────
+// body: { nickname, birth_date, address } — all optional, saved as-is.
+app.post('/api/users/:tech_code/personal-info', async (req, res) => {
+    const { tech_code } = req.params;
+    const { nickname, birth_date, address } = req.body;
+    try {
+        if (supabase) {
+            const { error } = await supabase.from('users')
+                .update({
+                    nickname:   nickname   || null,
+                    birth_date: birth_date || null,
+                    address:    address    || null
+                })
+                .eq('tech_code', tech_code);
+            if (error) throw error;
+        } else {
+            const db = readDB();
+            const user = db.users.find(u => u.tech_code === tech_code);
+            if (!user) return res.status(404).json({ error: 'Technician not found' });
+            user.nickname   = nickname   || '';
+            user.birth_date = birth_date || '';
+            user.address    = address    || '';
+            writeDB(db);
+        }
+        res.json({ message: 'Personal info saved.' });
+    } catch (err) {
+        console.error('[POST /users/personal-info]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/users/:tech_code/photo — upload/replace the profile photo ───
+// multipart/form-data, field name "photo". Stored under /uploads (same
+// disk storage as proof photos/videos) and served via /uploads/<filename>.
+app.post('/api/users/:tech_code/photo', upload.single('photo'), async (req, res) => {
+    const { tech_code } = req.params;
+    if (!req.file) return res.status(400).json({ error: 'No photo uploaded' });
+    const photo_url = `/uploads/${req.file.filename}`;
+    try {
+        if (supabase) {
+            const { error } = await supabase.from('users')
+                .update({ photo_url })
+                .eq('tech_code', tech_code);
+            if (error) throw error;
+        } else {
+            const db = readDB();
+            const user = db.users.find(u => u.tech_code === tech_code);
+            if (!user) return res.status(404).json({ error: 'Technician not found' });
+            user.photo_url = photo_url;
+            writeDB(db);
+        }
+        res.json({ message: 'Photo updated.', photo_url });
+    } catch (err) {
+        console.error('[POST /users/photo]', err.message);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

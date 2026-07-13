@@ -183,7 +183,7 @@ button{cursor:pointer}
 .icon-btn:hover{background:var(--bd)}
 .icon-btn:active{transform:scale(.92)}
 .nbadge{position:absolute;top:3px;right:3px;width:15px;height:15px;background:var(--red);border-radius:2px;font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
-.avatar-btn{width:36px;height:36px;border-radius:4px;background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;transition:all .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(124,58,237,.35)}
+.avatar-btn{width:36px;height:36px;border-radius:4px;background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;padding:0;overflow:hidden;transition:all .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(124,58,237,.35)}
 .avatar-btn:active{transform:scale(.92)}
 
 /* ── Open-tab control bar ── */
@@ -657,6 +657,16 @@ button{cursor:pointer}
 .avail-switch.on{background:var(--teal)}
 .avail-slider{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .avail-switch.on .avail-slider{transform:translateX(24px)}
+/* ── Shared "landed here" focus pulse (teal, brand-consistent) —
+   used after Slide-to-Reserve → My Route, and Claim → My Jobs, so the
+   destination card is unmistakable without an intrusive banner. ── */
+@keyframes foPulse{
+  0%{box-shadow:0 0 0 0 rgba(20,184,166,.55)}
+  70%{box-shadow:0 0 0 10px rgba(20,184,166,0)}
+  100%{box-shadow:0 0 0 0 rgba(20,184,166,0)}
+}
+.fo-pulse{animation:foPulse 1s ease-out 2}
+
 /* ══════════════════════════════════════
    MY ROUTE overlay
 ══════════════════════════════════════ */
@@ -1297,6 +1307,10 @@ button{cursor:pointer}
 <div id="app-prefs-overlay" style="display:none;position:fixed;inset:0;z-index:151;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
 </div>
 
+<!-- ══════════════════════════════════════ PERSONAL INFO (Nickname / Birth Date / Address / Photo) ══════════════════════════════════════ -->
+<div id="personal-info-overlay" style="display:none;position:fixed;inset:0;z-index:152;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+
 <!-- ══════════════════════════════════════ DOCUMENT SCANNER MODULE ══════════════════════════════════════ -->
 <!-- Step 1: Camera capture with edge detection -->
 <div id="docscan-overlay" style="display:none;position:fixed;inset:0;z-index:205;background:#000;max-width:480px;margin:0 auto;flex-direction:column">
@@ -1557,7 +1571,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       go('admin-db');loadAdminData();
     } else {
       document.getElementById('tch-dn').textContent=CU.name;
-      document.getElementById('avatar-btn').textContent=(CU.name||'T').trim().charAt(0).toUpperCase();
+      renderAvatar();loadPersonalInfoAndAvatar();
       go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
     }
   }
@@ -1590,6 +1604,33 @@ function loadSession(){
     if(!parsed||!parsed.user||!parsed.role)return null;
     return parsed;
   }catch(e){return null;}
+}
+
+/* ── Avatar (header + Profile) ──────────────────────────────────────
+   Shows the initial letter by default; once a technician uploads a
+   Personal Info photo, CU.photo_url is set and every avatar spot
+   (header button, Profile screen) shows that photo instead. ── */
+function renderAvatar(){
+  const btn=document.getElementById('avatar-btn');
+  if(!btn)return;
+  const initial=((CU&&CU.name)||'T').trim().charAt(0).toUpperCase();
+  if(CU&&CU.photo_url){
+    btn.innerHTML=`<img src="${CU.photo_url}" alt="Profile photo" style="width:100%;height:100%;object-fit:cover;border-radius:4px">`;
+  }else{
+    btn.textContent=initial;
+  }
+}
+async function loadPersonalInfoAndAvatar(){
+  if(!CU)return;
+  try{
+    const r=await fetch(`/api/users/${encodeURIComponent(CU.id)}/personal-info`);
+    if(r.ok){
+      const d=await r.json();
+      CU.photo_url=d.photo_url||'';
+      saveSession();
+    }
+  }catch(e){/* best-effort — keeps showing the initial letter */}
+  renderAvatar();
 }
 
 let smTicket=null,cardClickGuardId=null,cardClickGuardUntil=0;
@@ -1818,7 +1859,7 @@ async function loginTech(){
     CU={id:d.tech_code,name:d.display_name,role:'tech'};CR='tech';
     saveSession();
     document.getElementById('tch-dn').textContent=d.display_name;
-    document.getElementById('avatar-btn').textContent=(d.display_name||'T').trim().charAt(0).toUpperCase();
+    renderAvatar();loadPersonalInfoAndAvatar();
     showTchLogin();
     go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
@@ -1868,7 +1909,7 @@ async function registerTech(){
         CU={id:ld.tech_code,name:ld.display_name,role:'tech'};CR='tech';
         saveSession();
         document.getElementById('tch-dn').textContent=ld.display_name;
-        document.getElementById('avatar-btn').textContent=(ld.display_name||'T').trim().charAt(0).toUpperCase();
+        renderAvatar();loadPersonalInfoAndAvatar();
         go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
       } else { showTchLogin(); }
     },1200);
@@ -2529,6 +2570,13 @@ async function reserveSiteFromModal(id,locality,wrap){
         smTicket={...smTicket,reservation:{reserved_by:CU.id,reserved_by_name:CU.name}};
         renderSiteModalReserveZone(smTicket);
       }
+      // Redesigned flow: Slide to Reserve now jumps straight into My Route
+      // (under Tools) so the technician immediately sees their updated
+      // route, instead of staying on the Site Details screen.
+      setTimeout(()=>{
+        techNav('tools');
+        showRouteOverlay(id);
+      },650);
     } else {
       toast(d.error||'Could not reserve site.','err');
       resetSlideClaim(wrap);
@@ -3240,12 +3288,25 @@ async function loadMyRoute(silent){
   return RouteState.active;
 }
 
-/* ── Overlay open/close ── */
-function showRouteOverlay(){
+/* ── Overlay open/close ──
+   focusId (optional): after the route renders, scroll to and briefly
+   pulse-highlight this site's row — used when arriving here right after
+   a Slide-to-Reserve on the Site Details screen. */
+function showRouteOverlay(focusId){
   document.getElementById('tools-overlay').style.display='none';
   const ov=document.getElementById('route-overlay');
   ov.style.display='flex';
-  loadMyRoute().then(renderRouteOverlay);
+  loadMyRoute().then(()=>{
+    renderRouteOverlay();
+    if(focusId) focusRouteSite(focusId);
+  });
+}
+function focusRouteSite(id){
+  const row=document.querySelector(`.route-site[data-site-id="${id}"]`);
+  if(!row)return;
+  row.scrollIntoView({behavior:'smooth',block:'center'});
+  row.classList.add('fo-pulse');
+  setTimeout(()=>row.classList.remove('fo-pulse'),2000);
 }
 function closeRouteOverlay(){
   document.getElementById('route-overlay').style.display='none';
@@ -3390,7 +3451,7 @@ function renderRouteActive(body,route){
     </div>
     <div class="section-label">Suggested Order</div>
     ${ordered.length?ordered.map((t,i)=>`
-      <div class="route-site fade-up" style="animation-delay:${Math.min(i,6)*0.04}s">
+      <div class="route-site fade-up" data-site-id="${t.id}" style="animation-delay:${Math.min(i,6)*0.04}s">
         <div class="route-site-seq">${i+1}</div>
         <div class="route-site-body">
           <div class="route-site-name">${t.site_name}</div>
@@ -3419,9 +3480,27 @@ async function claimFromRoute(id){
     const d=await r.json();
     if(r.ok){
       toast('Job claimed — ticket '+(d.ticket_id||'')+'!','ok');
-      await loadMyRoute();renderRouteOverlay();loadOpen();loadMine();
+      await loadMyRoute();renderRouteOverlay();loadOpen();
+      await loadMine();
+      // Redesigned flow: Claim now jumps straight to the site's submit
+      // card under Tasks → My Jobs, instead of staying on My Route.
+      setTimeout(async()=>{
+        const rOv=document.getElementById('route-overlay');
+        if(rOv) rOv.style.display='none';
+        techNav('tasks'); // already selects the My Jobs sub-tab and refreshes it
+        await loadMine();  // wait for that refresh to land before we grab the card,
+        focusMineCard(id); // so a later re-render can't wipe the highlight mid-pulse
+      },650);
     }else{toast(d.error||'Could not claim job.','err');}
   }catch(e){toast('Cannot reach server.','err');}
+}
+function focusMineCard(id){
+  const submitBtn=document.getElementById('sbtn-'+id);
+  const card=submitBtn?submitBtn.closest('.tc'):null;
+  if(!card)return;
+  card.scrollIntoView({behavior:'smooth',block:'center'});
+  card.classList.add('fo-pulse');
+  setTimeout(()=>card.classList.remove('fo-pulse'),2000);
 }
 
 async function removeSiteFromRoute(id){
@@ -3528,6 +3607,7 @@ function renderProfileOverlay(){
   const el=document.getElementById('profile-overlay');
   const name=(CU&&CU.name)||'Technician';
   const initial=name.trim().charAt(0).toUpperCase();
+  const photoUrl=(CU&&CU.photo_url)||'';
   el.innerHTML=`
     <div class="app-header">
       <button class="icon-btn" onclick="techNav('open')">${ic('arrowL',18)}</button>
@@ -3535,7 +3615,7 @@ function renderProfileOverlay(){
     </div>
     <div class="app-scroll">
       <div class="fade-up" style="background:linear-gradient(135deg,#3B82F6,#14B8A6);border-radius:4px;padding:26px;display:flex;align-items:center;gap:16px;color:#fff;margin-bottom:14px">
-        <div style="width:58px;height:58px;border-radius:4px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;border:2px solid rgba(255,255,255,.4);flex-shrink:0">${initial}</div>
+        <div style="width:58px;height:58px;border-radius:4px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;border:2px solid rgba(255,255,255,.4);flex-shrink:0;overflow:hidden">${photoUrl?`<img src="${photoUrl}" alt="Profile photo" style="width:100%;height:100%;object-fit:cover">`:initial}</div>
         <div>
           <div style="font-size:17px;font-weight:800;letter-spacing:-.02em">${name}</div>
           <div style="font-size:12.5px;opacity:.85;margin-top:2px">Field Technician</div>
@@ -3543,7 +3623,7 @@ function renderProfileOverlay(){
         </div>
       </div>
       <div class="list-card fade-up" style="background:#fff;border-radius:4px;box-shadow:var(--s2);overflow:hidden;border:1px solid var(--bd);margin-bottom:14px">
-        ${[['Personal Info','Edit your details','user',null],['__availability__'],['Notifications','3 unread','bell',null],['Preferences','App settings','settings','showAppPrefs()'],['Help & Support','Troubleshooting guides & FAQs','helpCircle','hcOpen()']].map(([t,s,i,fn])=>t==='__availability__'?`
+        ${[['Personal Info','Edit your details','user','showPersonalInfo()'],['__availability__'],['Notifications','3 unread','bell',null],['Preferences','App settings','settings','showAppPrefs()'],['Help & Support','Troubleshooting guides & FAQs','helpCircle','hcOpen()']].map(([t,s,i,fn])=>t==='__availability__'?`
         <div style="display:flex;align-items:center;padding:14px 16px;gap:12px;border-bottom:1px solid var(--bd)">
           <div style="width:36px;height:36px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ic('power',18)}</div>
           <div style="flex:1;font-size:14px;font-weight:600;color:var(--tx)">Availability</div>
@@ -5728,6 +5808,126 @@ async function tgSaveConfig(){
     else{toast(d.error||'Could not save settings.','err');}
   }catch(e){toast('Cannot reach server.','err');}
   btn.disabled=false;btn.innerHTML=ic('check',15)+' Save Settings';
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PERSONAL INFO  (Profile → Personal Info)
+   ─ Nick Name / Birth Date / Current Address, plus a profile photo that
+     replaces the initial-letter avatar in the header and on this screen.
+   ─ Backed by GET/POST /api/users/:tech_code/personal-info and
+     POST /api/users/:tech_code/photo (multipart) — see server.js.
+════════════════════════════════════════════════════════════════════════ */
+function showPersonalInfo(){
+  document.getElementById('profile-overlay').style.display='none';
+  const ov=document.getElementById('personal-info-overlay');
+  ov.style.display='flex';
+  renderPersonalInfo();
+}
+function closePersonalInfo(){
+  document.getElementById('personal-info-overlay').style.display='none';
+  renderProfileOverlay();
+  document.getElementById('profile-overlay').style.display='flex';
+}
+
+async function renderPersonalInfo(){
+  const ov=document.getElementById('personal-info-overlay');
+  const photoUrl=(CU&&CU.photo_url)||'';
+  const initial=((CU&&CU.name)||'T').trim().charAt(0).toUpperCase();
+  ov.innerHTML=`
+    <div class="app-header" style="flex-shrink:0">
+      <button class="icon-btn" onclick="closePersonalInfo()">${ic('arrowL',18)}</button>
+      <div class="app-brand-info">
+        <div class="app-brand-name">Personal Info</div>
+        <div class="app-brand-role">Your details &amp; profile photo</div>
+      </div>
+    </div>
+    <div class="app-scroll" style="flex:1;overflow-y:auto;padding:20px 16px 80px">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:22px">
+        <div id="pi-photo-wrap" style="width:88px;height:88px;border-radius:4px;background:linear-gradient(135deg,#3B82F6,#14B8A6);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff;overflow:hidden;box-shadow:var(--s2);margin-bottom:12px">${photoUrl?`<img id="pi-photo-img" src="${photoUrl}" alt="Profile photo" style="width:100%;height:100%;object-fit:cover">`:initial}</div>
+        <input type="file" id="pi-photo-input" accept="image/*" style="display:none" onchange="piPhotoSelected(this)">
+        <button onclick="document.getElementById('pi-photo-input').click()" style="background:var(--teal-lt);border:1.5px solid var(--teal);color:var(--teal-dk);font-size:.76rem;font-weight:700;padding:9px 16px;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--ff)">${ic('camera',15)} ${photoUrl?'Change Photo':'Upload Photo'}</button>
+        <div style="font-size:.68rem;color:var(--tx2);margin-top:8px;text-align:center;max-width:280px;line-height:1.5">This replaces your initials in the header and here on Profile — <span style="color:var(--red-dk);font-weight:700">make sure it clearly shows your face.</span></div>
+      </div>
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Your Details</div>
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:16px;margin-bottom:12px">
+        <div class="fg">
+          <label class="flbl">Nick Name</label>
+          <input class="finp" id="pi-nickname" type="text" placeholder="e.g. Jun" autocomplete="off">
+        </div>
+        <div class="fg">
+          <label class="flbl">Birth Date</label>
+          <input class="finp" id="pi-birthdate" type="date">
+        </div>
+        <div class="fg" style="margin-bottom:8px">
+          <label class="flbl">Current Address</label>
+          <input class="finp" id="pi-address" type="text" placeholder="House / Street, Barangay, City" autocomplete="off">
+        </div>
+        <div id="pi-status" style="display:none;border-radius:4px;padding:10px 12px;font-size:.76rem;line-height:1.4;margin-bottom:12px"></div>
+        <button id="pi-save-btn" onclick="piSaveInfo()" style="width:100%;height:44px;border-radius:4px;background:linear-gradient(135deg,#14B8A6,#0D9488);border:none;color:#fff;font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          ${ic('check',15)} Save Details
+        </button>
+      </div>
+    </div>`;
+  // Pre-fill with whatever this technician already has saved
+  try{
+    const r=await fetch(`/api/users/${encodeURIComponent(CU.id)}/personal-info`);
+    if(r.ok){
+      const d=await r.json();
+      document.getElementById('pi-nickname').value=d.nickname||'';
+      document.getElementById('pi-birthdate').value=d.birth_date||'';
+      document.getElementById('pi-address').value=d.address||'';
+      if(d.photo_url && CU) CU.photo_url=d.photo_url;
+    }
+  }catch(e){/* best-effort — fields just stay blank */}
+}
+
+function piShowStatus(msg,ok){
+  const el=document.getElementById('pi-status');if(!el)return;
+  el.style.display='block';
+  el.style.background=ok?'var(--green-lt)':'var(--red-lt)';
+  el.style.border='1px solid '+(ok?'var(--green-bd)':'var(--red-bd)');
+  el.style.color=ok?'var(--green-dk)':'var(--red-dk)';
+  el.innerHTML=(ok?ic('check',14):ic('x',14))+' '+msg;
+}
+
+async function piPhotoSelected(input){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+  if(!file.type.startsWith('image/')){toast('Please choose an image file.','err');return;}
+  if(file.size>8*1024*1024){toast('Photo is too large — please choose one under 8MB.','err');return;}
+  // Instant local preview while the upload completes
+  const localUrl=URL.createObjectURL(file);
+  const wrap=document.getElementById('pi-photo-wrap');
+  if(wrap)wrap.innerHTML=`<img id="pi-photo-img" src="${localUrl}" alt="Profile photo" style="width:100%;height:100%;object-fit:cover">`;
+  try{
+    const fd=new FormData();
+    fd.append('photo',file);
+    const r=await fetch(`/api/users/${encodeURIComponent(CU.id)}/photo`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(r.ok){
+      CU.photo_url=d.photo_url;
+      saveSession();
+      renderAvatar();
+      toast('Profile photo updated.','ok');
+    }else{
+      toast(d.error||'Could not upload photo.','err');
+    }
+  }catch(e){toast('Cannot reach server.','err');}
+}
+
+async function piSaveInfo(){
+  const nickname=document.getElementById('pi-nickname').value.trim();
+  const birth_date=document.getElementById('pi-birthdate').value;
+  const address=document.getElementById('pi-address').value.trim();
+  const btn=document.getElementById('pi-save-btn');
+  btn.disabled=true;btn.innerHTML=ic('upload',15)+' Saving...';
+  try{
+    const r=await fetch(`/api/users/${encodeURIComponent(CU.id)}/personal-info`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname,birth_date,address})});
+    const d=await r.json();
+    if(r.ok){piShowStatus('Details saved.',true);toast('Personal info saved.','ok');}
+    else{piShowStatus(d.error||'Could not save details.',false);}
+  }catch(e){piShowStatus('Cannot reach server.',false);}
+  btn.disabled=false;btn.innerHTML=ic('check',15)+' Save Details';
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
