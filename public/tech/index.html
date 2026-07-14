@@ -189,19 +189,47 @@ button{cursor:pointer}
 .avatar-btn{width:36px;height:36px;border-radius:4px;background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;padding:0;overflow:hidden;transition:all .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(124,58,237,.35)}
 .avatar-btn:active{transform:scale(.92)}
 
-/* ── Open-tab control bar ── */
+/* ── Open-tab control bar ──
+   Collapsing-header animation: --cj is a 0→1 scroll-progress variable
+   written by the hdrCollapse script further down. 0 = default/expanded
+   (top of list, unchanged look), 1 = fully collapsed. The white bg/blur/
+   border/shadow live on ::before so they can cross-fade as one layer
+   without touching the layout of the count text or the buttons. */
 .open-bar{
   position:sticky;top:var(--header-h);z-index:55;
-  background:rgba(255,255,255,.97);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-bottom:1px solid var(--bd);
+  background:transparent;border-bottom:1px solid transparent;
   display:flex;align-items:center;justify-content:space-between;
   padding:0 16px;height:48px;flex-shrink:0;gap:10px;
+  isolation:isolate;
+  --cj:0;
+}
+.open-bar::before{
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:rgba(255,255,255,.97);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--bd);
+  opacity:calc(1 - var(--cj));
+  will-change:opacity;
 }
 .open-bar-count{
+  position:relative;z-index:1;
   font-size:.7rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
   color:var(--tx2);white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
 }
-.open-bar-controls{display:flex;align-items:center;gap:6px;flex-shrink:0}
+/* The actual glyphs — scaled/translated/letter-spaced by hdrCollapse.
+   transform-origin defaults to center, so scaling never shifts the
+   text's own center; only the translateX (computed once against the
+   bar's true center) moves it, which is what makes the "float to
+   center" motion land exactly regardless of digit count. */
+.open-bar-count-txt{display:inline-block;transform-origin:center;will-change:transform}
+.hdr-condensed .open-bar-count-txt{font-weight:900}
+.open-bar-controls{
+  position:relative;z-index:1;
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+  opacity:calc(1 - var(--cj));
+  transform:scale(calc(1 - var(--cj) * .3));
+  will-change:opacity,transform;
+}
 .open-bar-pill{
   display:inline-flex;align-items:center;gap:6px;
   height:32px;padding:0 12px;
@@ -1128,9 +1156,14 @@ button{cursor:pointer}
     </div>
   </div>
 
-  <!-- Open-tab control bar: count · nearest-first pill · refresh · filter -->
+  <!-- Open-tab control bar: count · nearest-first pill · refresh · filter
+       The count text sits in an inner .open-bar-count-txt span so the
+       collapsing-header script (hdrCollapse) can scale/translate just the
+       glyphs; the outer .open-bar-count keeps its original flex/ellipsis
+       box untouched, and #open-bar-count (the id updateOpenLabel() writes
+       to) still points at the text node itself, so nothing else changes. -->
   <div class="open-bar" id="tp-open" style="display:flex">
-    <span class="open-bar-count" id="open-bar-count">— AVAILABLE JOBS</span>
+    <span class="open-bar-count"><span class="open-bar-count-txt" id="open-bar-count">— AVAILABLE JOBS</span></span>
     <div class="open-bar-controls">
       <button class="open-bar-pill" id="sort-mode-pill" style="display:none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -1963,6 +1996,87 @@ const navHide=(()=>{
     show();
   }
   return{attach,show,hide};
+})();
+
+/* ══════════════════════════════════════
+   OPEN-JOBS COLLAPSING HEADER (visual-only)
+   Drives the "XX JOBS" bar (#tp-open) from scroll position of the tech
+   portal's .app-scroll: fades the white bg/border/shadow, floats the
+   count text toward center while scaling it up, and fades+shrinks the
+   refresh/filter buttons — reversing smoothly on the way back up.
+
+   Self-contained: only reads scroll position and writes CSS custom
+   properties + a couple of inline styles (transform/opacity/letter-
+   spacing/text-shadow) on elements it looks up itself. It does not call,
+   wrap, or modify manualGeoRefresh(), openLocalityFilter(),
+   updateOpenLabel(), techNav(), or any data/filter/refresh logic —
+   those keep working exactly as before. Buttons only lose pointer-events
+   once they're almost fully faded, and instantly regain them scrolling
+   back up, so tapping Refresh/Filter is never broken.
+══════════════════════════════════════ */
+const hdrCollapse=(()=>{
+  const DIST=90; // px of scroll over which the header fully collapses
+  const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; // easeInOutCubic — floaty, not linear
+
+  let bar=null,txt=null,controls=null,scrollEl=null;
+  let shift=0,raf=false,condensed=false;
+
+  // Measures how far the text's own center is from the bar's true
+  // center, at rest (identity transform), so translateX can move it
+  // exactly to center regardless of how many digits are in the count.
+  function measure(){
+    if(!bar||!txt)return;
+    const pt=txt.style.transform,pl=txt.style.letterSpacing;
+    txt.style.transform='none';txt.style.letterSpacing='';
+    const b=bar.getBoundingClientRect(),t=txt.getBoundingClientRect();
+    shift=(b.left+b.width/2)-(t.left+t.width/2);
+    txt.style.transform=pt;txt.style.letterSpacing=pl;
+  }
+
+  function apply(rawP){
+    const e=ease(Math.max(0,Math.min(1,rawP)));
+    bar.style.setProperty('--cj',e.toFixed(4));
+    txt.style.transform=`translateX(${(shift*e).toFixed(2)}px) scale(${(1+e*.5).toFixed(3)})`;
+    txt.style.letterSpacing=(.09+e*.05).toFixed(3)+'em';
+    // Subtle shadow keeps "XX JOBS" readable over whatever card color
+    // is scrolling underneath once the white bar behind it is gone.
+    txt.style.textShadow=e>.03
+      ?`0 1px 3px rgba(15,23,42,${(e*.22).toFixed(3)}),0 2px 14px rgba(15,23,42,${(e*.14).toFixed(3)})`
+      :'none';
+    // Buttons: keep tappable until they're nearly invisible, then stop
+    // intercepting taps on the now-transparent header strip.
+    controls.style.pointerEvents=e>.92?'none':'';
+    if(e>.6&&!condensed){bar.classList.add('hdr-condensed');condensed=true;}
+    else if(e<.5&&condensed){bar.classList.remove('hdr-condensed');condensed=false;}
+  }
+
+  function onScroll(){
+    if(raf)return;raf=true;
+    requestAnimationFrame(()=>{apply(scrollEl.scrollTop/DIST);raf=false;});
+  }
+
+  function init(){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    scrollEl=document.querySelector('#scr-tech-db .app-scroll');
+    bar=document.getElementById('tp-open');
+    txt=document.getElementById('open-bar-count');
+    controls=bar?bar.querySelector('.open-bar-controls'):null;
+    if(!scrollEl||!bar||!txt||!controls)return;
+    measure();
+    apply(scrollEl.scrollTop/DIST);
+    scrollEl.addEventListener('scroll',onScroll,{passive:true});
+    window.addEventListener('resize',()=>{measure();apply(scrollEl.scrollTop/DIST);});
+    // Re-measure whenever the job count's text changes width (e.g. "5
+    // JOBS" -> "61 JOBS"), so centering stays accurate without needing
+    // any change to updateOpenLabel() itself.
+    new MutationObserver(()=>{measure();apply(scrollEl.scrollTop/DIST);})
+      .observe(txt,{characterData:true,childList:true,subtree:true});
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
+  else init();
+
+  return{};
 })();
 
 function logout(){
