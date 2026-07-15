@@ -452,6 +452,61 @@ button{cursor:pointer}
 .slide-claim.claimed .slide-claim-thumb{background:linear-gradient(135deg,#16A34A,#15803D)}
 .slide-claim.disabled{pointer-events:none}
 
+/* ── SLIDE TO RESERVE — premium visual redesign ──────────────────────
+   Scoped entirely to [data-action="reserve"], so the base .slide-claim
+   rules above are untouched for any other consumer of this component.
+   No JS, thresholds, callbacks, or drag math were changed — appearance
+   only. Fill uses --teal-dk (already an existing brand token, used
+   elsewhere in this file for the teal button's gradient/hover state)
+   rather than the lighter --teal, because solid --teal under white
+   bold text falls well short of accessible contrast; --teal-dk keeps
+   the exact same brand family while reading clearly. ── */
+.slide-claim[data-action="reserve"]{
+  height:66px;
+  border-radius:16px;
+  border:none;
+  background-color:var(--teal-dk);
+  background-image:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,0) 46%);
+  box-shadow:0 6px 18px rgba(13,148,136,.34),0 2px 6px rgba(15,23,42,.10);
+  transition:filter .2s ease;
+}
+.slide-claim[data-action="reserve"]:has(.slide-claim-thumb:active){
+  filter:brightness(1.08);
+}
+.slide-claim[data-action="reserve"] .slide-claim-label{
+  left:0;right:0;
+  color:#fff;
+  font-weight:700;
+  font-size:.88rem;
+  letter-spacing:.01em;
+  text-shadow:0 1px 2px rgba(0,0,0,.18);
+  z-index:1;
+}
+.slide-claim[data-action="reserve"] .slide-claim-thumb{
+  left:6px;top:6px;bottom:6px;
+  width:54px;
+  border-radius:14px;
+  background:#fff;
+  color:var(--teal-dk);
+  box-shadow:0 3px 10px rgba(15,23,42,.22),0 1px 3px rgba(15,23,42,.12);
+  z-index:2;
+  transition:box-shadow .2s ease;
+}
+.slide-claim[data-action="reserve"] .slide-claim-thumb:active{
+  box-shadow:0 2px 6px rgba(15,23,42,.24),0 1px 2px rgba(15,23,42,.16);
+}
+.slide-claim[data-action="reserve"] .slide-claim-thumb svg{
+  margin:0 -4px;
+  transition:transform .2s ease;
+}
+.slide-claim[data-action="reserve"] .slide-claim-thumb:active svg{
+  transform:scale(.9);
+}
+.slide-claim[data-action="reserve"].claimed .slide-claim-thumb{
+  background:#fff;
+  color:var(--teal-dk);
+}
+
 /* ══════════════════════════════════════
    BUTTONS
 ══════════════════════════════════════ */
@@ -2681,7 +2736,7 @@ function renderSiteModalReserveZone(t){
     const loc=(t.locality||'').replace(/"/g,'&quot;');
     zone.innerHTML=`<div class="slide-claim" data-id="${t.id}" data-action="reserve" data-locality="${loc}">
       <span class="slide-claim-label">Slide to Reserve</span>
-      <div class="slide-claim-thumb">${ic('chevR',15)}${ic('chevR',15)}</div>
+      <div class="slide-claim-thumb">${ic('chevR',20)}${ic('chevR',20)}</div>
     </div>`;
   }
 }
