@@ -223,6 +223,13 @@ button{cursor:pointer}
    center" motion land exactly regardless of digit count. */
 .open-bar-count-txt{display:inline-block;transform-origin:center;will-change:transform}
 .hdr-condensed .open-bar-count-txt{font-weight:900}
+/* Once the header's substantially faded, real card content can be
+   peeking through behind the floating count text (see .hdr-overlap
+   below) — let taps reach it instead of hitting this now-mostly-
+   invisible label. Refresh/Filter keep their own separate, more
+   conservative threshold (set in hdrCollapse) since they stay
+   individually tappable a while longer. */
+.open-bar.hdr-condensed{pointer-events:none}
 .open-bar-controls{
   position:relative;z-index:1;
   display:flex;align-items:center;gap:6px;flex-shrink:0;
@@ -291,6 +298,14 @@ button{cursor:pointer}
 .seg-btn .seg-cnt{font-size:10px;opacity:.85}
 
 .app-scroll{flex:1;overflow-y:auto;overscroll-behavior-y:contain;padding:14px 16px calc(var(--nav-h) + var(--sab) + 16px);-webkit-overflow-scrolling:touch}
+/* Collapsing-header reveal: pulls .app-scroll's box up by the jobs-bar's
+   own height (48px) with matching extra top padding — net-zero visual
+   change at rest — so once #tp-open fades, the scrolled job cards (not
+   the plain shell background) show through behind it. hdrCollapse only
+   turns this on while the Open tab's jobs bar is actually showing and
+   the locality-filter drawer is closed; any other state (Tasks tab,
+   drawer open) falls back to the untouched rule above. */
+.app-scroll.hdr-overlap{margin-top:-48px;padding-top:calc(14px + 48px)}
 .section-label{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);padding:2px 2px 12px;display:flex;align-items:center;gap:8px}
 
 /* ══════════════════════════════════════
@@ -2018,7 +2033,7 @@ const hdrCollapse=(()=>{
   const DIST=90; // px of scroll over which the header fully collapses
   const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; // easeInOutCubic — floaty, not linear
 
-  let bar=null,txt=null,controls=null,scrollEl=null;
+  let bar=null,txt=null,controls=null,scrollEl=null,drawer=null;
   let shift=0,raf=false,condensed=false;
 
   // Measures how far the text's own center is from the bar's true
@@ -2033,6 +2048,18 @@ const hdrCollapse=(()=>{
     txt.style.transform=pt;txt.style.letterSpacing=pl;
   }
 
+  // .app-scroll only physically overlaps the jobs-bar (so real cards —
+  // not the plain shell background — show through as it fades) while
+  // that bar is actually the thing sitting above the list: the Open tab
+  // is active AND the locality-filter drawer isn't showing. Any other
+  // state (Tasks tab, drawer open) leaves .app-scroll untouched.
+  function syncOverlap(){
+    if(!scrollEl||!bar)return;
+    const barShown=getComputedStyle(bar).display!=='none';
+    const drawerShown=drawer&&getComputedStyle(drawer).display!=='none';
+    scrollEl.classList.toggle('hdr-overlap',barShown&&!drawerShown);
+  }
+
   function apply(rawP){
     const e=ease(Math.max(0,Math.min(1,rawP)));
     bar.style.setProperty('--cj',e.toFixed(4));
@@ -2045,7 +2072,12 @@ const hdrCollapse=(()=>{
       :'none';
     // Buttons: keep tappable until they're nearly invisible, then stop
     // intercepting taps on the now-transparent header strip.
-    controls.style.pointerEvents=e>.92?'none':'';
+    // Explicit 'auto', not '' — .open-bar itself goes pointer-events:none
+    // once .hdr-condensed is on (see CSS) so taps reach cards peeking
+    // through behind it; these buttons need their own later threshold,
+    // and pointer-events inherits, so leaving this as '' would let them
+    // silently inherit 'none' from their now-transparent parent.
+    controls.style.pointerEvents=e>.92?'none':'auto';
     if(e>.6&&!condensed){bar.classList.add('hdr-condensed');condensed=true;}
     else if(e<.5&&condensed){bar.classList.remove('hdr-condensed');condensed=false;}
   }
@@ -2061,8 +2093,10 @@ const hdrCollapse=(()=>{
     bar=document.getElementById('tp-open');
     txt=document.getElementById('open-bar-count');
     controls=bar?bar.querySelector('.open-bar-controls'):null;
+    drawer=document.getElementById('locality-drawer');
     if(!scrollEl||!bar||!txt||!controls)return;
     measure();
+    syncOverlap();
     apply(scrollEl.scrollTop/DIST);
     scrollEl.addEventListener('scroll',onScroll,{passive:true});
     window.addEventListener('resize',()=>{measure();apply(scrollEl.scrollTop/DIST);});
@@ -2071,6 +2105,12 @@ const hdrCollapse=(()=>{
     // any change to updateOpenLabel() itself.
     new MutationObserver(()=>{measure();apply(scrollEl.scrollTop/DIST);})
       .observe(txt,{characterData:true,childList:true,subtree:true});
+    // Re-check the overlap condition whenever techNav() shows/hides the
+    // jobs bar, or openLocalityFilter() shows/hides the drawer — both
+    // toggle style.display directly, so watching that attribute is
+    // enough. Neither function needs to know this script exists.
+    new MutationObserver(syncOverlap).observe(bar,{attributes:true,attributeFilter:['style']});
+    if(drawer) new MutationObserver(syncOverlap).observe(drawer,{attributes:true,attributeFilter:['style']});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
