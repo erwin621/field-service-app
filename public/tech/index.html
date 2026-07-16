@@ -189,6 +189,16 @@ button{cursor:pointer}
 .avatar-btn{width:36px;height:36px;border-radius:4px;background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;padding:0;overflow:hidden;transition:all .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(124,58,237,.35)}
 .avatar-btn:active{transform:scale(.92)}
 
+/* ── Telegram Settings: masked/read-only credential card ── */
+.tg-edit-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--teal);background:var(--teal-lt);color:var(--teal-dk);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.tg-edit-btn:hover{background:var(--teal-dk);color:#fff}
+.tg-edit-btn:active{transform:scale(.92)}
+.tg-edit-btn:disabled{opacity:.55;cursor:default;pointer-events:none}
+.tg-cancel-btn{transition:background .15s}
+.tg-cancel-btn:hover{background:var(--srf2)}
+.tg-status-dot{display:inline-block;transition:background-color .25s,box-shadow .25s}
+.tg-field-locked,.tg-field-locked:focus{background:var(--srf2)!important;color:var(--tx2)!important;-webkit-text-fill-color:var(--tx2);opacity:1!important;cursor:default;letter-spacing:2px;box-shadow:none!important;border-color:var(--bd)!important}
+
 /* ── Open-tab control bar ──
    Collapsing-header animation: --cj is a 0→1 scroll-progress variable
    written by the hdrCollapse script further down. 0 = default/expanded
@@ -1701,6 +1711,7 @@ const IC={
   routeNav:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17V7a2 2 0 0 1 2-2h4"/><path d="M18 7v10a2 2 0 0 1-2 2h-4"/><polyline points="14 3 18 7 14 11"/><polyline points="10 13 6 17 2 13"/></svg>`,
   lock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
   unlock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`,
+  edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
   power:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`,
   mapPin:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
   route:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/><path d="M10 6.5h4"/><path d="M17.5 10v4"/><path d="M10 17.5h4"/><path d="M6.5 10v4"/></svg>`,
@@ -6179,9 +6190,19 @@ function camSetPosition(v,btn){
    ─ Per-user Bot Token + Chat ID. No shared/global bot — each technician's
      task proofs are delivered through their own bot, configured here.
    ─ Backed by GET/POST /api/users/:tech_code/telegram-settings and
-     POST /api/users/telegram/test (see server.js).
+     POST /api/users/telegram/test (see server.js). Validation, save, and
+     test behavior are unchanged from the original implementation.
+   ─ Security/UX: once credentials are saved, the fields render masked and
+     read-only behind a single edit affordance. The real values are only
+     ever fetched into the DOM at the moment the user taps Edit, and are
+     wiped out of the DOM again on Cancel or after a successful Save —
+     they're never held in JS state longer than the edit session needs,
+     and never written to the console or into error messages.
 ════════════════════════════════════════════════════════════════════════ */
-const AppPrefsState={testOk:false};
+const AppPrefsState={testOk:false,configured:false,editing:false,status:'unset'};
+const TG_MASK_TOKEN='••••••••••••••••••';
+const TG_MASK_CHAT='••••••••••';
+const tgEscAttr=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 function showAppPrefs(){
   document.getElementById('profile-overlay').style.display='none';
@@ -6195,6 +6216,9 @@ function closeAppPrefs(){
 }
 
 async function renderAppPrefs(){
+  // Always (re)open in the locked/masked state — never resume a stale edit session.
+  AppPrefsState.editing=false;
+  AppPrefsState.testOk=false;
   const ov=document.getElementById('app-prefs-overlay');
   ov.innerHTML=`
     <div class="app-header" style="flex-shrink:0">
@@ -6205,37 +6229,114 @@ async function renderAppPrefs(){
       </div>
     </div>
     <div class="app-scroll" style="flex:1;overflow-y:auto;padding:16px 16px 80px">
-      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">Telegram Settings</div>
-      <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:16px;margin-bottom:12px">
-        <div style="font-size:.76rem;color:var(--tx2);line-height:1.5;margin-bottom:16px">
-          Your task proofs are sent to your own Telegram Bot and Chat — not a shared bot. Create a bot via <strong>@BotFather</strong>, add it to your group, then paste both values below.
-        </div>
-        <div class="fg">
-          <label class="flbl">Bot Token</label>
-          <input class="finp" id="tg-bot-token" type="text" placeholder="123456789:AA...H" oninput="AppPrefsState.testOk=false;tgHideStatus()" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="fg" style="margin-bottom:8px">
-          <label class="flbl">Chat ID / Group Chat ID</label>
-          <input class="finp" id="tg-chat-id" type="text" placeholder="-1001234567890" oninput="AppPrefsState.testOk=false;tgHideStatus()" autocomplete="off" spellcheck="false">
-        </div>
-        <div id="tg-status" style="display:none;border-radius:4px;padding:10px 12px;font-size:.76rem;line-height:1.4;margin-bottom:12px"></div>
-        <button id="tg-test-btn" onclick="tgTestConfig()" style="width:100%;height:44px;border-radius:4px;background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx);font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
-          ${ic('upload',15)} Send Test Message
-        </button>
-        <button id="tg-save-btn" onclick="tgSaveConfig()" style="width:100%;height:44px;border-radius:4px;background:linear-gradient(135deg,#14B8A6,#0D9488);border:none;color:#fff;font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-          ${ic('check',15)} Save Settings
-        </button>
-      </div>
+      <div id="tg-card-wrap"></div>
     </div>`;
-  // Pre-fill with whatever this technician already has saved
+  // Check only WHETHER credentials exist — the values themselves are never
+  // written into the DOM here, and no reference to them is kept.
   try{
     const r=await fetch(`/api/users/${encodeURIComponent(CU.id)}/telegram-settings`);
     if(r.ok){
       const d=await r.json();
-      document.getElementById('tg-bot-token').value=d.telegram_bot_token||'';
-      document.getElementById('tg-chat-id').value=d.telegram_chat_id||'';
+      AppPrefsState.configured=!!(d.telegram_bot_token&&d.telegram_chat_id);
+    }else{
+      AppPrefsState.configured=false;
     }
-  }catch(e){/* best-effort — fields just stay blank */}
+  }catch(e){
+    AppPrefsState.configured=false;
+  }
+  AppPrefsState.status=AppPrefsState.configured?'valid':'unset';
+  tgRenderCard();
+}
+
+function tgDotInfo(){
+  if(AppPrefsState.status==='valid')return{bg:'var(--green)',ring:'var(--green-bd)',label:'Telegram configuration is valid'};
+  if(AppPrefsState.status==='invalid')return{bg:'var(--red)',ring:'var(--red-bd)',label:'Telegram configuration is invalid'};
+  return{bg:'var(--tx3)',ring:'var(--bd2)',label:'Telegram not configured yet'};
+}
+
+function tgRenderCard(prefill){
+  const wrap=document.getElementById('tg-card-wrap');
+  if(!wrap)return;
+  const dot=tgDotInfo();
+  const locked=AppPrefsState.configured&&!AppPrefsState.editing;
+  const tok=(prefill&&prefill.token)||'';
+  const cid=(prefill&&prefill.chatId)||'';
+
+  wrap.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);display:flex;align-items:center;gap:7px">
+        Telegram Settings
+        <span class="tg-status-dot" title="${dot.label}" style="width:7px;height:7px;border-radius:50%;background:${dot.bg};box-shadow:0 0 0 3px ${dot.ring}"></span>
+      </div>
+      ${locked?`<button id="tg-edit-btn" class="tg-edit-btn" onclick="tgEnterEditMode()" title="Edit Telegram Settings" aria-label="Edit Telegram Settings">${ic('edit',14)}</button>`:''}
+    </div>
+    <div style="background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:16px;margin-bottom:12px">
+      <div style="font-size:.76rem;color:var(--tx2);line-height:1.5;margin-bottom:16px">
+        Your task proofs are sent to your own Telegram Bot and Chat — not a shared bot. Create a bot via <strong>@BotFather</strong>, add it to your group, then paste both values below.
+      </div>
+      <div class="fg">
+        <label class="flbl">Bot Token</label>
+        <input class="finp${locked?' tg-field-locked':''}" id="tg-bot-token" type="text" placeholder="123456789:AA...H"
+          value="${locked?TG_MASK_TOKEN:tgEscAttr(tok)}"
+          ${locked?'readonly disabled':'oninput="AppPrefsState.testOk=false;tgHideStatus()"'}
+          autocomplete="off" spellcheck="false">
+      </div>
+      <div class="fg" style="margin-bottom:8px">
+        <label class="flbl">Chat ID / Group Chat ID</label>
+        <input class="finp${locked?' tg-field-locked':''}" id="tg-chat-id" type="text" placeholder="-1001234567890"
+          value="${locked?TG_MASK_CHAT:tgEscAttr(cid)}"
+          ${locked?'readonly disabled':'oninput="AppPrefsState.testOk=false;tgHideStatus()"'}
+          autocomplete="off" spellcheck="false">
+      </div>
+      <div id="tg-status" style="display:none;border-radius:4px;padding:10px 12px;font-size:.76rem;line-height:1.4;margin-bottom:12px"></div>
+      ${locked?`
+      <div style="display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--tx3);line-height:1.4">
+        ${ic('lock',13)} Saved and hidden for your security. Tap the edit icon above to change them.
+      </div>`:`
+      <button id="tg-test-btn" onclick="tgTestConfig()" style="width:100%;height:44px;border-radius:4px;background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx);font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+        ${ic('upload',15)} Send Test Message
+      </button>
+      <div style="display:flex;gap:10px">
+        ${AppPrefsState.configured?`<button id="tg-cancel-btn" class="tg-cancel-btn" onclick="tgCancelEdit()" style="flex:1;height:44px;border-radius:4px;background:var(--card);border:1.5px solid var(--bd);color:var(--tx2);font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">Cancel</button>`:''}
+        <button id="tg-save-btn" style="flex:2;height:44px;border-radius:4px;background:linear-gradient(135deg,#14B8A6,#0D9488);border:none;color:#fff;font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" onclick="tgSaveConfig()">
+          ${ic('check',15)} Save Settings
+        </button>
+      </div>`}
+    </div>`;
+}
+
+async function tgEnterEditMode(){
+  const btn=document.getElementById('tg-edit-btn');
+  if(btn)btn.disabled=true;
+  let token='',chatId='';
+  try{
+    const r=await fetch(`/api/users/${encodeURIComponent(CU.id)}/telegram-settings`);
+    if(!r.ok){toast('Could not load current settings.','err');if(btn)btn.disabled=false;return;}
+    const d=await r.json();
+    token=d.telegram_bot_token||'';
+    chatId=d.telegram_chat_id||'';
+  }catch(e){
+    toast('Cannot reach server.','err');
+    if(btn)btn.disabled=false;
+    return;
+  }
+  AppPrefsState.editing=true;
+  AppPrefsState.testOk=false;
+  // token/chatId live only in these locals and, next, the edit inputs —
+  // nothing persists them beyond this edit session.
+  tgRenderCard({token,chatId});
+}
+
+function tgCancelEdit(){
+  const tokenEl=document.getElementById('tg-bot-token');
+  const chatEl=document.getElementById('tg-chat-id');
+  if(tokenEl)tokenEl.value='';
+  if(chatEl)chatEl.value='';
+  AppPrefsState.editing=false;
+  AppPrefsState.testOk=false;
+  AppPrefsState.status=AppPrefsState.configured?'valid':'unset';
+  tgHideStatus();
+  tgRenderCard();
 }
 
 function tgShowStatus(msg,ok){
@@ -6251,34 +6352,68 @@ function tgHideStatus(){
   if(el)el.style.display='none';
 }
 
+function tgUpdateDot(){
+  // Surgical update so an in-progress edit (typed-but-unsaved values,
+  // focus) isn't disturbed by a full card re-render.
+  const dotEl=document.querySelector('#tg-card-wrap .tg-status-dot');
+  if(!dotEl)return;
+  const dot=tgDotInfo();
+  dotEl.title=dot.label;
+  dotEl.style.background=dot.bg;
+  dotEl.style.boxShadow=`0 0 0 3px ${dot.ring}`;
+}
+
 async function tgTestConfig(){
-  const token=document.getElementById('tg-bot-token').value.trim();
-  const chatId=document.getElementById('tg-chat-id').value.trim();
+  const tokenEl=document.getElementById('tg-bot-token');
+  const chatEl=document.getElementById('tg-chat-id');
+  if(!tokenEl||!chatEl)return;
+  const token=tokenEl.value.trim();
+  const chatId=chatEl.value.trim();
   if(!token||!chatId){toast('Enter both Bot Token and Chat ID first.','err');return;}
   const btn=document.getElementById('tg-test-btn');
   btn.disabled=true;btn.innerHTML=ic('upload',15)+' Testing...';
   try{
     const r=await fetch('/api/users/telegram/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telegram_bot_token:token,telegram_chat_id:chatId})});
     const d=await r.json();
-    if(r.ok){AppPrefsState.testOk=true;tgShowStatus(d.message||'Telegram configuration is working.',true);}
-    else{AppPrefsState.testOk=false;tgShowStatus(d.error||'Test failed.',false);}
-  }catch(e){AppPrefsState.testOk=false;tgShowStatus('Cannot reach server.',false);}
+    if(r.ok){AppPrefsState.testOk=true;AppPrefsState.status='valid';tgShowStatus(d.message||'Telegram configuration is working.',true);}
+    else{AppPrefsState.testOk=false;AppPrefsState.status='invalid';tgShowStatus(d.error||'Test failed.',false);}
+  }catch(e){AppPrefsState.testOk=false;AppPrefsState.status='invalid';tgShowStatus('Cannot reach server.',false);}
   btn.disabled=false;btn.innerHTML=ic('upload',15)+' Send Test Message';
+  tgUpdateDot();
 }
 
 async function tgSaveConfig(){
-  const token=document.getElementById('tg-bot-token').value.trim();
-  const chatId=document.getElementById('tg-chat-id').value.trim();
+  const tokenEl=document.getElementById('tg-bot-token');
+  const chatEl=document.getElementById('tg-chat-id');
+  if(!tokenEl||!chatEl)return;
+  const token=tokenEl.value.trim();
+  const chatId=chatEl.value.trim();
   if(!token||!chatId){toast('Enter both Bot Token and Chat ID first.','err');return;}
   const btn=document.getElementById('tg-save-btn');
   btn.disabled=true;btn.innerHTML=ic('upload',15)+' Saving...';
   try{
     const r=await fetch(`/api/users/${encodeURIComponent(CU.id)}/telegram-settings`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telegram_bot_token:token,telegram_chat_id:chatId})});
     const d=await r.json();
-    if(r.ok){toast('Telegram settings saved.','ok');}
-    else{toast(d.error||'Could not save settings.','err');}
-  }catch(e){toast('Cannot reach server.','err');}
+    if(r.ok){
+      toast('Telegram settings saved.','ok');
+      // Wipe plaintext out of the DOM immediately, then drop back to the
+      // locked/masked view with the green "configured" indicator.
+      tokenEl.value='';chatEl.value='';
+      AppPrefsState.configured=true;
+      AppPrefsState.editing=false;
+      AppPrefsState.testOk=false;
+      AppPrefsState.status='valid';
+      tgHideStatus();
+      tgRenderCard();
+      return;
+    }
+    AppPrefsState.status='invalid';
+    toast(d.error||'Could not save settings.','err');
+  }catch(e){
+    toast('Cannot reach server.','err');
+  }
   btn.disabled=false;btn.innerHTML=ic('check',15)+' Save Settings';
+  tgUpdateDot();
 }
 
 /* ════════════════════════════════════════════════════════════════════════
