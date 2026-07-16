@@ -1137,6 +1137,79 @@ button{cursor:pointer}
 .ts-sum-box{width:100%;border:1px solid var(--bd);border-radius:4px;background:var(--card);padding:11px 12px;font-family:var(--ff);font-size:.82rem;color:var(--tx);line-height:1.5;resize:vertical;outline:none;min-height:44px;box-sizing:border-box}
 .ts-sum-box:focus{border-color:var(--primary-bd);background:var(--primary-lt)}
 .ts-sum-status{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:.78rem;padding:6px 12px;border-radius:4px}
+
+/* ══════════════════════════════════════
+   TOOLS & UTILITIES — premium redesign (v2)
+   Scoped entirely under .tu-/.tmr- classes + .tc-timer so nothing else in
+   the app is touched. Colors reuse the existing CSS variables (teal/green/
+   charcoal/soft-gray/white) already defined in :root above — no new brand
+   colors, just new shapes (rounded cards, gradients, depth, motion).
+══════════════════════════════════════ */
+.tu-header{background:linear-gradient(120deg,#0F172A 0%,#0F3D3A 48%,#0D9488 100%);border-bottom:none;gap:12px}
+.tu-header .icon-btn{background:rgba(255,255,255,.14);color:#fff}
+.tu-header .icon-btn:hover{background:rgba(255,255,255,.24)}
+.tu-header-badge{width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.tu-header-title{font-size:16.5px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.tu-header-sub{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.75);margin-top:2px}
+
+.tu-scroll{background:linear-gradient(180deg,#EFFDFA 0%,var(--bg) 260px)}
+.tu-section-label{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin:2px 2px 12px;display:flex;align-items:center;gap:6px}
+
+.tu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tu-card{
+  position:relative;background:linear-gradient(165deg,#ffffff 0%,#FAFBFC 100%);
+  border:1px solid var(--bd);border-radius:16px;padding:16px 14px;
+  box-shadow:0 1px 2px rgba(15,23,42,.05),0 5px 16px rgba(15,23,42,.05);
+  display:flex;flex-direction:column;align-items:flex-start;cursor:pointer;
+  transition:transform .18s cubic-bezier(.34,1.4,.64,1),box-shadow .2s ease,border-color .2s ease;
+}
+.tu-card.hl{border-color:var(--teal)}
+.tu-card:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(15,23,42,.06),0 10px 26px rgba(15,23,42,.08)}
+.tu-card:active{transform:scale(.96);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+.tu-card.off{opacity:.6;cursor:default}
+.tu-card.off:hover{transform:none;box-shadow:0 1px 2px rgba(15,23,42,.05),0 5px 16px rgba(15,23,42,.05)}
+.tu-card.off:active{transform:none}
+.tu-icon{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:11px;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.tu-name{font-size:14px;font-weight:800;color:var(--tx);letter-spacing:-.01em}
+.tu-desc{font-size:11.5px;color:var(--tx3);margin-top:2px;line-height:1.4;font-weight:500}
+.tu-soon-tag{position:absolute;top:12px;right:12px;font-size:8.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--tx3);background:var(--srf2);padding:3px 7px;border-radius:20px}
+.tu-live-pill{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:4px 9px 4px 7px;border-radius:20px;background:var(--green-lt);color:var(--green-dk);font-size:10.5px;font-weight:800;font-family:var(--fm)}
+.tu-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green-dk);animation:tuPulse 1.6s ease-in-out infinite;flex-shrink:0}
+@keyframes tuPulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Timer tool (Active card + History list) ── */
+.tmr-active-card{
+  background:linear-gradient(135deg,#0D9488 0%,#0F766E 55%,#0F172A 140%);
+  border-radius:18px;padding:20px;color:#fff;margin-bottom:18px;
+  box-shadow:0 10px 26px rgba(13,148,136,.28);position:relative;overflow:hidden;
+}
+.tmr-active-card::before{content:'';position:absolute;top:-46px;right:-46px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.08)}
+.tmr-active-top{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative;flex-wrap:wrap}
+.tmr-active-tag{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.16);padding:5px 10px;border-radius:20px;font-family:var(--fm)}
+.tmr-active-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:tuPulse 1.4s ease-in-out infinite;flex-shrink:0}
+.tmr-active-site{font-size:15px;font-weight:800;margin-top:16px;letter-spacing:-.01em;display:flex;align-items:center;gap:7px;position:relative}
+.tmr-active-meta{font-size:12px;color:rgba(255,255,255,.78);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:relative}
+.tmr-active-meta .dvd,.tmr-hist-meta .dvd{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0;display:inline-block}
+.tmr-elapsed-lbl{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.65);margin-top:20px;position:relative}
+.tmr-elapsed-val{font-family:var(--fm);font-size:34px;font-weight:700;letter-spacing:.01em;margin-top:4px;position:relative}
+
+.tmr-hist-item{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 15px;margin-bottom:10px;box-shadow:var(--s1)}
+.tmr-hist-r1{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px}
+.tmr-hist-site{font-size:14px;font-weight:800;color:var(--tx);letter-spacing:-.01em;display:flex;align-items:center;gap:6px}
+.tmr-hist-meta{font-size:11.5px;color:var(--tx3);margin-top:3px;display:flex;align-items:center;gap:5px}
+.tmr-hist-cols{display:flex;gap:10px;margin-top:2px}
+.tmr-hist-col{flex:1;background:var(--srf2);border-radius:10px;padding:9px 10px}
+.tmr-hist-col-lbl{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);margin-bottom:3px}
+.tmr-hist-col-date{font-size:11.5px;font-weight:700;color:var(--tx)}
+.tmr-hist-col-time{font-size:10.5px;color:var(--tx3);margin-top:1px;font-family:var(--fm)}
+.tmr-hist-dur{display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:11px;border-top:1px dashed var(--bd)}
+.tmr-hist-dur-lbl{font-size:11px;font-weight:700;color:var(--tx2);display:flex;align-items:center;gap:5px}
+.tmr-hist-dur-val{font-family:var(--fm);font-size:13.5px;font-weight:700;color:var(--teal-dk)}
+
+/* ── Elapsed-time chip on the Ongoing Job card (Tasks → My Jobs) ── */
+.tc-timer{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--teal-lt);border:1px solid var(--teal);border-radius:10px;padding:10px 12px;margin:2px 0 12px}
+.tc-timer-lbl{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--teal-dk);display:flex;align-items:center;gap:5px}
+.tc-timer-val{font-family:var(--fm);font-size:16px;font-weight:700;color:var(--teal-dk);letter-spacing:.01em}
 </style>
 </style>
 </head>
@@ -1312,6 +1385,10 @@ button{cursor:pointer}
 
 <!-- ══════════════════════════════════════ INCOME OVERVIEW PANEL (sub-page of Tools) ══════════════════════════════════════ -->
 <div id="income-overlay" style="display:none;position:fixed;inset:0;z-index:130;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+
+<!-- ══════════════════════════════════════ TIMER PANEL (sub-page of Tools) ══════════════════════════════════════ -->
+<div id="timer-overlay" style="display:none;position:fixed;inset:0;z-index:130;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
 </div>
 
 <!-- ══════════════════════════════════════ NAVIGATOR PANEL (sub-page of Tools) ══════════════════════════════════════ -->
@@ -1678,7 +1755,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     } else {
       document.getElementById('tch-dn').textContent=CU.name;
       renderAvatar();loadPersonalInfoAndAvatar();
-      go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
+      go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();
     }
   }
 });
@@ -1967,7 +2044,7 @@ async function loginTech(){
     document.getElementById('tch-dn').textContent=d.display_name;
     renderAvatar();loadPersonalInfoAndAvatar();
     showTchLogin();
-    go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
+    go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
 }
 
@@ -2016,7 +2093,7 @@ async function registerTech(){
         saveSession();
         document.getElementById('tch-dn').textContent=ld.display_name;
         renderAvatar();loadPersonalInfoAndAvatar();
-        go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();
+        go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();
       } else { showTchLogin(); }
     },1200);
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
@@ -2526,6 +2603,7 @@ function renderMine(tix){
   c.innerHTML=tix.map(t=>`<div class="tc ONGO"><div class="tc-strip"></div><div class="tc-body">
     <button class="tc-help-btn${t.troubleshooting_completed?' done':''}" onclick="tsOpen('${t.id}','${escJS(t.site_id)}','${escJS(t.site_name)}','${escJS(t.ticket_id||'')}','${escJS(t.coordinates||'')}')">${ic(t.troubleshooting_completed?'check':'helpCircle',16)} ${t.troubleshooting_completed?'Troubleshooting Complete — Tap to Review':'Need Help? Guided Troubleshooting'}</button>
     <div class="tc-r1"><span class="tc-id c-blue">${t.ticket_id||'Pending ticket'}</span><span class="bdg ${t.priority} dot">${t.priority}</span></div>
+    <div class="tc-timer"><span class="tc-timer-lbl">${ic('clock',12)} Elapsed Time</span><span class="tc-timer-val" data-timer-live data-claimed-at="${t.claimed_at||''}">${fmtElapsedHMS(t.claimed_at?Date.now()-new Date(t.claimed_at).getTime():0)}</span></div>
     <div class="tc-name">${ic('build',15)} ${t.site_name}</div>
     <div class="tc-meta"><span>${ic('pin',13)} ${t.locality}</span><span class="dvd"></span><span>${ic('pin',13)} ${t.coordinates}</span></div>
     <div class="tc-addr">${t.address}</div>
@@ -3267,6 +3345,7 @@ const BACK_GUARD_LAYERS=[
   ()=>_isOverlayVisible('ts-overlay')              && tsHandleBack,
   ()=>_isOverlayVisible('help-overlay')            && hcClose,
   ()=>_isOverlayVisible('income-overlay')          && closeIncomeOverlay,
+  ()=>_isOverlayVisible('timer-overlay')           && closeTimerOverlay,
   ()=>_isOverlayVisible('navigator-overlay')       && closeNavigatorOverlay,
   ()=>_isOverlayVisible('route-overlay')           && closeRouteOverlay,
   ()=>_isOverlayVisible('site-map-overlay')        && closeSiteMapFull,
@@ -3785,33 +3864,46 @@ async function releaseRoute(silent){
   }catch(e){if(!silent)toast('Cannot reach server.','err');}
 }
 
-/* ── TOOLS overlay ── */
+/* ── TOOLS overlay (premium v2) ── */
 function renderToolsOverlay(){
   const el=document.getElementById('tools-overlay');
   const tools=[
-    {name:'Inventory',      desc:'Check parts & stock',      bg:'var(--primary-lt)', ic_:'var(--primary)',    icon:'tag'},
-    {name:'Timer',          desc:'Track job duration',       bg:'var(--green-lt)',   ic_:'var(--green-dk)',   icon:'clock'},
-    {name:'Income Overview',desc:'Earnings & job summary',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',    icon:'trendUp', action:'showIncomeOverlay()'},
-    {name:'Alerts',         desc:'System notifications',     bg:'var(--violet-lt)', ic_:'var(--violet-dk)', icon:'alert'},
-    {name:'My Route',       desc:'Reserve & plan your route', bg:'var(--teal-lt)',   ic_:'var(--teal-dk)',   icon:'routeNav', action:'showRouteOverlay()'},
-    {name:'Navigator',      desc:'Optimize travel routes',   bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',   icon:'nav', action:'showNavigatorOverlay()'},
-    {name:'Camera',         desc:'Timestamp photo & video',  bg:'var(--red-lt)',     ic_:'var(--red-dk)',     icon:'camera',  action:'camOpenFromTools()'},
-    {name:'Document Scan',  desc:'Scan, crop & export docs', bg:'var(--teal-lt)',    ic_:'var(--teal-dk)',    icon:'scan',    action:'docScanOpenFromTools()'},
-    {name:'Settings',       desc:'App & camera preferences', bg:'var(--srf2)',       ic_:'var(--tx2)',        icon:'settings', action:'showCamSettings()'},
+    {name:'Inventory',      desc:'Check parts & stock',      bg:'linear-gradient(135deg,var(--primary-lt),#DCEAFE)', ic_:'var(--primary)',    icon:'tag'},
+    {name:'Timer',          desc:'Track job duration',       bg:'linear-gradient(135deg,var(--green-lt),#CFF4DA)',   ic_:'var(--green-dk)',   icon:'clock', action:'showTimerOverlay()'},
+    {name:'Income Overview',desc:'Earnings & job summary',   bg:'linear-gradient(135deg,var(--teal-lt),#D6F3ED)',    ic_:'var(--teal-dk)',    icon:'trendUp', action:'showIncomeOverlay()'},
+    {name:'Alerts',         desc:'System notifications',     bg:'linear-gradient(135deg,var(--violet-lt),#EAE3FC)', ic_:'var(--violet-dk)', icon:'alert'},
+    {name:'My Route',       desc:'Reserve & plan your route', bg:'linear-gradient(135deg,var(--teal-lt),#D6F3ED)',  ic_:'var(--teal-dk)',   icon:'routeNav', action:'showRouteOverlay()'},
+    {name:'Navigator',      desc:'Optimize travel routes',   bg:'linear-gradient(135deg,#DFF8FB,#C9F0F6)',           ic_:'#0E7490',           icon:'nav', action:'showNavigatorOverlay()'},
+    {name:'Camera',         desc:'Timestamp photo & video',  bg:'linear-gradient(135deg,var(--red-lt),#FDDCDC)',     ic_:'var(--red-dk)',     icon:'camera',  action:'camOpenFromTools()'},
+    {name:'Document Scan',  desc:'Scan, crop & export docs', bg:'linear-gradient(135deg,var(--teal-lt),#D6F3ED)',   ic_:'var(--teal-dk)',    icon:'scan',    action:'docScanOpenFromTools()'},
+    {name:'Settings',       desc:'App & camera preferences', bg:'linear-gradient(135deg,var(--srf2),#E7ECF1)',      ic_:'var(--tx2)',        icon:'settings', action:'showCamSettings()'},
   ];
+  // Functional tools first, inactive placeholders pushed to the bottom —
+  // relative order otherwise preserved exactly as authored above.
+  const ordered=[...tools.filter(t=>t.action),...tools.filter(t=>!t.action)];
   el.innerHTML=`
-    <div class="app-header">
+    <div class="app-header tu-header">
       <button class="icon-btn" onclick="techNav('open')">${ic('arrowL',18)}</button>
-      <div class="app-brand-info"><div class="app-brand-name">Tools &amp; Utilities</div></div>
+      <div class="tu-header-badge">${ic('wrench',18)}</div>
+      <div class="app-brand-info">
+        <div class="tu-header-title">Tools &amp; Utilities</div>
+        <div class="tu-header-sub">Everything you need, in one place</div>
+      </div>
     </div>
-    <div class="app-scroll">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:4px 0">
-        ${tools.map((t,i)=>`<div class="scard fade-up" style="flex-direction:column;align-items:flex-start;border-radius:4px;cursor:pointer;animation-delay:${i*0.04}s;${t.action?'border-color:var(--teal);':''}" ${t.action?'onclick="'+t.action+'"':''}>          <div class="sico" style="background:${t.bg};color:${t.ic_};width:44px;height:44px;border-radius:4px;margin-bottom:6px">${ic(t.icon,21)}</div>
-          <div style="font-size:14px;font-weight:700;color:var(--tx)">${t.name}</div>
-          <div style="font-size:12px;color:var(--tx3);margin-top:2px;line-height:1.4">${t.desc}</div>
-        </div>`).join('')}
+    <div class="app-scroll tu-scroll" id="tools-scroll">
+      <div class="tu-grid">
+        ${ordered.map((t,i)=>{
+          const isOff=!t.action;
+          return `<div class="tu-card fade-up${t.action?' hl':''}${isOff?' off':''}"${t.name==='Timer'?' id="tu-timer-card"':''} style="animation-delay:${i*0.035}s" ${t.action?`onclick="${t.action}"`:''}>
+          ${isOff?`<span class="tu-soon-tag">Coming Soon</span>`:''}
+          <div class="tu-icon" style="background:${t.bg};color:${t.ic_}">${ic(t.icon,21)}</div>
+          <div class="tu-name">${t.name}</div>
+          <div class="tu-desc">${t.desc}</div>
+        </div>`;
+        }).join('')}
       </div>
     </div>`;
+  refreshToolsTimerBadge();
 }
 
 /* ── PROFILE overlay (new section, presentational) ── */
@@ -4258,6 +4350,173 @@ function mockT(){
   ];
 }
 document.getElementById('modal-cancel').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+/* ══════════════════════════════════════════════════════════════════════
+   TIMER — Job Duration Tracking (Tools & Utilities)
+   ─ No new fields, columns, or endpoints. Elapsed/duration are always
+     derived from timestamps the server already writes on claim/submit/
+     cancel:
+       claimed_at    → set by POST /api/tickets/claim
+       completed_at  → set by POST /api/tickets/submit
+       cancelled_at  → set by POST /api/tickets/cancel
+     Because claimed_at is refetched from the server on every reload/login
+     (loadMine() already runs on boot — see session-restore & login flows
+     above), the running timer always resumes at the correct elapsed time,
+     even after a refresh, an app restart, or a spell offline. Nothing is
+     trusted from client memory alone.
+   ─ Sources: /api/tickets/ongoing (running), /completed + /cancelled (history)
+════════════════════════════════════════════════════════════════════════ */
+const TimerState={active:[],history:[],loaded:false};
+
+function fmtElapsedHMS(ms){
+  if(ms==null||isNaN(ms)||ms<0)ms=0;
+  const total=Math.floor(ms/1000);
+  const h=Math.floor(total/3600),m=Math.floor((total%3600)/60),s=total%60;
+  const p=n=>String(n).padStart(2,'0');
+  return `${p(h)}:${p(m)}:${p(s)}`;
+}
+function fmtDurationShort(ms){
+  if(ms==null||isNaN(ms)||ms<0)return '—';
+  const totalMin=Math.round(ms/60000);
+  const h=Math.floor(totalMin/60),m=totalMin%60;
+  return h>0?`${h}h ${m}m`:`${m}m`;
+}
+function fmtTimeOnly(d){
+  try{return new Date(d).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return '';}
+}
+function timerDurationMs(t){
+  const start=t.claimed_at?new Date(t.claimed_at).getTime():null;
+  const end=t.completed_at?new Date(t.completed_at).getTime():(t.cancelled_at?new Date(t.cancelled_at).getTime():null);
+  if(start==null||end==null||isNaN(start)||isNaN(end))return null;
+  return Math.max(0,end-start);
+}
+
+/* One global 1s tick for the whole app — updates every element currently
+   carrying data-timer-live/data-claimed-at (the Ongoing Job card, the
+   Timer tool's live badge, the Timer overlay's Active card). Cheap even
+   when nothing is on screen, so it's simplest — and safest for "survives
+   reload" — to just start it once at login/boot and leave it running. */
+let _timerLiveHandle=null;
+function startTimerLiveClock(){
+  if(_timerLiveHandle)return;
+  _timerLiveHandle=setInterval(()=>{
+    document.querySelectorAll('[data-timer-live]').forEach(el=>{
+      const iso=el.getAttribute('data-claimed-at');
+      if(!iso)return;
+      el.textContent=fmtElapsedHMS(Date.now()-new Date(iso).getTime());
+    });
+  },1000);
+}
+
+async function loadTimerData(){
+  let ongoing=[],done=[],canc=[];
+  try{const r=await fetch(`/api/tickets/ongoing?technician_id=${CU.id}`);ongoing=r.ok?await r.json():[];}catch(e){ongoing=[];}
+  try{const r=await fetch(`/api/tickets/completed?technician_id=${CU.id}`);done=r.ok?await r.json():[];}catch(e){done=[];}
+  try{const r=await fetch(`/api/tickets/cancelled?technician_id=${CU.id}`);canc=r.ok?await r.json():[];}catch(e){canc=[];}
+  TimerState.active=ongoing;
+  TimerState.history=[
+    ...done.map(t=>({...t,_status:'COMPLETED',_end:t.completed_at})),
+    ...canc.map(t=>({...t,_status:'CANCELLED',_end:t.cancelled_at})),
+  ].sort((a,b)=>new Date(b._end||0)-new Date(a._end||0));
+  TimerState.loaded=true;
+}
+
+function showTimerOverlay(){
+  document.getElementById('tools-overlay').style.display='none';
+  const ov=document.getElementById('timer-overlay');
+  ov.style.display='flex';
+  renderTimerOverlay();
+}
+function closeTimerOverlay(){
+  document.getElementById('timer-overlay').style.display='none';
+  renderToolsOverlay();
+  document.getElementById('tools-overlay').style.display='flex';
+  navHide.attach(document.querySelector('#tools-overlay .app-scroll'));
+}
+
+async function renderTimerOverlay(){
+  const ov=document.getElementById('timer-overlay');
+  ov.innerHTML=`
+    <div class="app-header tu-header">
+      <button class="icon-btn" onclick="closeTimerOverlay()">${ic('arrowL',18)}</button>
+      <div class="tu-header-badge">${ic('clock',18)}</div>
+      <div class="app-brand-info">
+        <div class="tu-header-title">Timer</div>
+        <div class="tu-header-sub">Job duration — live &amp; history</div>
+      </div>
+    </div>
+    <div class="app-scroll tu-scroll" id="timer-scroll">
+      <div id="timer-body"><div class="loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div></div>
+    </div>`;
+  navHide.attach(document.getElementById('timer-scroll'));
+  await loadTimerData();
+  renderTimerBody();
+}
+
+function renderTimerBody(){
+  const el=document.getElementById('timer-body');
+  if(!el)return;
+  const activeHtml=TimerState.active.map(t=>{
+    const dur=t.claimed_at?Date.now()-new Date(t.claimed_at).getTime():0;
+    return `<div class="tmr-active-card fade-up">
+      <div class="tmr-active-top">
+        <span class="tmr-active-tag"><span class="tmr-active-dot"></span> Timer Running</span>
+        <span class="tmr-active-tag">${escHtml(t.site_id||'')}</span>
+      </div>
+      <div class="tmr-active-site">${ic('build',15)} ${escHtml(t.site_name||'Untitled site')}</div>
+      <div class="tmr-active-meta">${ic('pin',12)} ${escHtml(t.locality||'—')}${t.ticket_id?`<span class="dvd"></span>${ic('tag',12)} ${escHtml(t.ticket_id)}`:''}</div>
+      <div class="tmr-elapsed-lbl">Elapsed Time</div>
+      <div class="tmr-elapsed-val" data-timer-live data-claimed-at="${t.claimed_at||''}">${fmtElapsedHMS(dur)}</div>
+    </div>`;
+  }).join('');
+
+  const historyHtml=TimerState.history.length?TimerState.history.map(t=>{
+    const dur=timerDurationMs(t);
+    const isDone=t._status==='COMPLETED';
+    return `<div class="tmr-hist-item fade-up">
+      <div class="tmr-hist-r1">
+        <div>
+          <div class="tmr-hist-site">${ic('build',14)} ${escHtml(t.site_name||'Untitled site')}</div>
+          <div class="tmr-hist-meta">${ic('pin',11)} ${escHtml(t.locality||'—')}<span class="dvd"></span>${ic('tag',11)} ${escHtml(t.site_id||'—')}</div>
+        </div>
+        <span class="bdg ${t._status}">${isDone?'Completed':'Cancelled'}</span>
+      </div>
+      <div class="tmr-hist-cols">
+        <div class="tmr-hist-col"><div class="tmr-hist-col-lbl">Claimed</div><div class="tmr-hist-col-date">${t.claimed_at?fmtDate(t.claimed_at):'—'}</div><div class="tmr-hist-col-time">${t.claimed_at?fmtTimeOnly(t.claimed_at):''}</div></div>
+        <div class="tmr-hist-col"><div class="tmr-hist-col-lbl">${isDone?'Completed':'Cancelled'}</div><div class="tmr-hist-col-date">${t._end?fmtDate(t._end):'—'}</div><div class="tmr-hist-col-time">${t._end?fmtTimeOnly(t._end):''}</div></div>
+      </div>
+      <div class="tmr-hist-dur"><span class="tmr-hist-dur-lbl">${ic('clock',13)} Total Duration</span><span class="tmr-hist-dur-val">${fmtDurationShort(dur)}</span></div>
+    </div>`;
+  }).join(''):emptyState(ic('clock',22),'No timer history yet','Completed jobs will appear here with their tracked duration.');
+
+  el.innerHTML=`
+    ${activeHtml}
+    <div class="tu-section-label">${ic('clock',13)} History${TimerState.history.length?` · ${TimerState.history.length}`:''}</div>
+    ${historyHtml}
+  `;
+}
+
+/* Lightweight, best-effort live badge for the Timer card on the Tools grid
+   itself — lets a technician see at a glance (without opening the tool)
+   whether a job timer is currently running. Fetches independently of
+   renderMine() so it works the moment Tools is opened, from any screen. */
+async function refreshToolsTimerBadge(){
+  if(!CU)return;
+  try{
+    const r=await fetch(`/api/tickets/ongoing?technician_id=${CU.id}`);
+    const list=r.ok?await r.json():[];
+    const card=document.getElementById('tu-timer-card');
+    if(!card)return; // navigated away before this resolved
+    const old=card.querySelector('.tu-live-pill');
+    if(old)old.remove();
+    if(list.length&&list[0].claimed_at){
+      const pill=document.createElement('div');
+      pill.className='tu-live-pill';
+      pill.innerHTML=`<span class="tu-live-dot"></span><span data-timer-live data-claimed-at="${list[0].claimed_at}">${fmtElapsedHMS(Date.now()-new Date(list[0].claimed_at).getTime())}</span>`;
+      card.appendChild(pill);
+    }
+  }catch(e){/* best-effort — badge is non-critical */}
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    NAVIGATOR — Route Optimization Module
