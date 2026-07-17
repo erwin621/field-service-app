@@ -1272,21 +1272,21 @@ button{cursor:pointer}
         <div class="fg"><label class="flbl">Your Name</label><select class="fsel" id="tch-sel"><option value="">— Loading technicians... —</option></select></div>
         <div class="fg"><label class="flbl">PIN Code</label><input class="finp" id="tch-pin" type="password" placeholder="••••" maxlength="6" onkeydown="if(event.key==='Enter')loginTech()"></div>
         <button class="btn-auth tech" onclick="loginTech()">Sign In to Tech Portal</button>
-        <div class="auth-divider"><span>or</span></div>
-        <button class="btn-ghost-full" onclick="showTchReg()">Register as Technician</button>
       </div>
 
-      <div id="tch-rf" style="display:none">
-        <div class="auth-hd">Create <span>Tech Account</span></div>
-        <div class="auth-sub">Register your name and set a PIN to get started</div>
-        <div class="auth-err" id="tch-reg-err">Please check your details.</div>
-        <div class="success-banner" id="tch-reg-ok">Account created! Signing you in...</div>
-        <div class="fg"><label class="flbl">Your Full Name</label><input class="finp" id="tch-dn-in" type="text" placeholder="e.g. Juan dela Cruz"><div class="form-sub">This is how you will appear to the admin</div></div>
-        <div class="fg"><label class="flbl">PIN Code</label><input class="finp" id="tch-pi-in" type="password" placeholder="4–6 digits" maxlength="6" inputmode="numeric"></div>
-        <div class="fg"><label class="flbl">Confirm PIN</label><input class="finp" id="tch-cp-in" type="password" placeholder="Repeat your PIN" maxlength="6" inputmode="numeric" onkeydown="if(event.key==='Enter')registerTech()"></div>
-        <button class="btn-auth tech" onclick="registerTech()">Create Account</button>
-        <div class="auth-divider"><span>or</span></div>
-        <button class="btn-ghost-full" onclick="showTchLogin()">Back to Sign In</button>
+      <!-- Mandatory first-login PIN change — shown instead of the dashboard
+           when the admin-created (or reset) account has must_change_pin
+           set. Technicians can no longer register their own accounts; see
+           POST /api/auth/tech/change-pin on the server. -->
+      <div id="tch-cf" style="display:none">
+        <div class="auth-hd">Update Your <span>PIN</span></div>
+        <div class="auth-sub">For security, set a new PIN before continuing</div>
+        <div class="auth-err" id="tch-cf-err">Please check your details.</div>
+        <div class="fg"><label class="flbl">Current PIN</label><input class="finp" id="tch-cur-pin" type="password" placeholder="Enter your current PIN" maxlength="6" inputmode="numeric"></div>
+        <div class="fg"><label class="flbl">New PIN</label><input class="finp" id="tch-new-pin" type="password" placeholder="4–6 digits" maxlength="6" inputmode="numeric"></div>
+        <div class="fg"><label class="flbl">Confirm New PIN</label><input class="finp" id="tch-conf-pin" type="password" placeholder="Repeat your new PIN" maxlength="6" inputmode="numeric" onkeydown="if(event.key==='Enter')changePinTech()"></div>
+        <button class="btn-auth tech" onclick="changePinTech()">Update PIN &amp; Continue</button>
+        <button class="btn-ghost-full" style="margin-top:10px" onclick="cancelPinChange()">Not you? Sign out</button>
       </div>
     </div>
     </div>
@@ -1771,7 +1771,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[];
+let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[],pendingTech=null;
 
 /* ── Session persistence ──────────────────────────────────────────────
    CU/CR previously lived only in JS memory, so any full page reload —
@@ -1990,15 +1990,22 @@ function showAdmReg(){
 /* ── Tech auth toggle ── */
 function showTchLogin(){
   document.getElementById('tch-lf').style.display='';
-  document.getElementById('tch-rf').style.display='none';
-  document.getElementById('tch-reg-ok').classList.remove('show');
-  document.getElementById('tch-reg-err').classList.remove('show');
+  document.getElementById('tch-cf').style.display='none';
+  document.getElementById('tch-cf-err').classList.remove('show');
   loadTechDropdown();
 }
-function showTchReg(){
+function showTchChangePin(prefillPin){
   document.getElementById('tch-lf').style.display='none';
-  document.getElementById('tch-rf').style.display='';
-  document.getElementById('tch-err').classList.remove('show');
+  document.getElementById('tch-cf').style.display='';
+  document.getElementById('tch-cf-err').classList.remove('show');
+  document.getElementById('tch-cur-pin').value=prefillPin||'';
+  document.getElementById('tch-new-pin').value='';
+  document.getElementById('tch-conf-pin').value='';
+}
+function cancelPinChange(){
+  pendingTech=null;
+  ['tch-cur-pin','tch-new-pin','tch-conf-pin'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  showTchLogin();
 }
 
 /* ── Load technician list from server ── */
@@ -2050,7 +2057,44 @@ async function loginTech(){
     const d=await r.json();
     if(!r.ok){e.innerHTML=ic('x',13)+' '+(d.error||'Sign in failed.');e.classList.add('show');return;}
     e.classList.remove('show');
+    if(d.must_change_pin){
+      // Admin-assigned temporary PIN (or a reset) — block dashboard access
+      // until the technician sets their own PIN. Nothing is persisted to
+      // CU/session yet; that only happens after changePinTech() succeeds.
+      pendingTech={tech_code:d.tech_code,display_name:d.display_name};
+      document.getElementById('tch-pin').value='';
+      showTchChangePin(pin);
+      return;
+    }
     CU={id:d.tech_code,name:d.display_name,role:'tech'};CR='tech';
+    saveSession();
+    document.getElementById('tch-dn').textContent=d.display_name;
+    renderAvatar();loadPersonalInfoAndAvatar();
+    showTchLogin();
+    go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();
+  }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
+}
+
+/* ── Mandatory PIN change (first login on an admin-provisioned account,
+   or after an admin resets a technician's PIN) ── */
+async function changePinTech(){
+  const cur=document.getElementById('tch-cur-pin').value;
+  const np=document.getElementById('tch-new-pin').value;
+  const cp=document.getElementById('tch-conf-pin').value;
+  const e=document.getElementById('tch-cf-err');
+  e.classList.remove('show');
+  if(!pendingTech){showTchLogin();return;}
+  if(!cur||!np||!cp){e.innerHTML=ic('x',13)+' All fields are required.';e.classList.add('show');return;}
+  if(!/^\d{4,6}$/.test(np)){e.innerHTML=ic('x',13)+' New PIN must be 4–6 digits.';e.classList.add('show');return;}
+  if(np!==cp){e.innerHTML=ic('x',13)+' New PIN and confirmation do not match.';e.classList.add('show');return;}
+  if(np===cur){e.innerHTML=ic('x',13)+' New PIN must be different from your current PIN.';e.classList.add('show');return;}
+  try{
+    const r=await fetch('/api/auth/tech/change-pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tech_code:pendingTech.tech_code,current_pin:cur,new_pin:np})});
+    const d=await r.json();
+    if(!r.ok){e.innerHTML=ic('x',13)+' '+(d.error||'Could not update PIN.');e.classList.add('show');return;}
+    ['tch-cur-pin','tch-new-pin','tch-conf-pin'].forEach(id=>{document.getElementById(id).value='';});
+    CU={id:d.tech_code,name:d.display_name,role:'tech'};CR='tech';
+    pendingTech=null;
     saveSession();
     document.getElementById('tch-dn').textContent=d.display_name;
     renderAvatar();loadPersonalInfoAndAvatar();
@@ -2078,35 +2122,6 @@ async function registerAdmin(){
     ok.innerHTML=ic('check',14)+' Account created! You can now sign in.';ok.classList.add('show');
     ['adm-dn-in','adm-un-in','adm-pw-in','adm-cp-in'].forEach(id=>document.getElementById(id).value='');
     setTimeout(()=>showAdmLogin(),2000);
-  }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
-}
-
-async function registerTech(){
-  const dn=document.getElementById('tch-dn-in').value.trim();
-  const pi=document.getElementById('tch-pi-in').value;
-  const cp=document.getElementById('tch-cp-in').value;
-  const e=document.getElementById('tch-reg-err');
-  const ok=document.getElementById('tch-reg-ok');
-  e.classList.remove('show');ok.classList.remove('show');
-  if(!dn||!pi){e.innerHTML=ic('x',13)+' Name and PIN are required.';e.classList.add('show');return;}
-  if(!/^\d{4,6}$/.test(pi)){e.innerHTML=ic('x',13)+' PIN must be 4–6 digits only.';e.classList.add('show');return;}
-  if(pi!==cp){e.innerHTML=ic('x',13)+' PINs do not match.';e.classList.add('show');return;}
-  try{
-    const r=await fetch('/api/auth/tech/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({display_name:dn,pin:pi})});
-    const d=await r.json();
-    if(!r.ok){e.innerHTML=ic('x',13)+' '+(d.error||'Registration failed.');e.classList.add('show');return;}
-    ok.innerHTML=ic('check',14)+' Account created! Signing you in...';ok.classList.add('show');
-    setTimeout(async()=>{
-      const lr=await fetch('/api/auth/tech/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tech_code:d.tech_code,pin:pi})});
-      const ld=await lr.json();
-      if(lr.ok){
-        CU={id:ld.tech_code,name:ld.display_name,role:'tech'};CR='tech';
-        saveSession();
-        document.getElementById('tch-dn').textContent=ld.display_name;
-        renderAvatar();loadPersonalInfoAndAvatar();
-        go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();
-      } else { showTchLogin(); }
-    },1200);
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
 }
 
@@ -2263,10 +2278,10 @@ const hdrCollapse=(()=>{
 })();
 
 function logout(){
-  CU=null;CR=null;
+  CU=null;CR=null;pendingTech=null;
   clearSession();
   GeoEngine.stopWatch();
-  ['tch-pin','tch-dn-in','tch-pi-in','tch-cp-in']
+  ['tch-pin','tch-cur-pin','tch-new-pin','tch-conf-pin']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const slot=document.getElementById('geo-banner-slot');if(slot)slot.innerHTML='';
   showTchLogin();

@@ -770,46 +770,12 @@ app.post('/api/auth/admin/login', async (req, res) => {
     }
 });
 
-// ── POST /api/auth/tech/register ──────────────────────────────────────────
-app.post('/api/auth/tech/register', async (req, res) => {
-    const { display_name, pin } = req.body;
-    if (!display_name || !pin)
-        return res.status(400).json({ error: 'Name and PIN are required' });
-    if (!/^\d{4,6}$/.test(String(pin)))
-        return res.status(400).json({ error: 'PIN must be 4–6 digits' });
-
-    const tech_code       = display_name.trim().replace(/\s+/g, '_');
-    const credential_hash = await bcrypt.hash(String(pin), 10);
-
-    try {
-        if (supabase) {
-            const { data: ex } = await supabase.from('users').select('id')
-                .eq('tech_code', tech_code).maybeSingle();
-            if (ex) return res.status(409).json({ error: 'A technician with this name already exists' });
-            const { error } = await supabase.from('users').insert({
-                id: generateId(), role: 'technician',
-                display_name: display_name.trim(), tech_code, credential_hash
-            });
-            if (error) throw error;
-        } else {
-            const db = readDB();
-            if (db.users.find(u => u.tech_code === tech_code))
-                return res.status(409).json({ error: 'A technician with this name already exists' });
-            db.users.push({
-                id: generateId(), role: 'technician',
-                display_name: display_name.trim(), tech_code,
-                credential_hash, created_at: new Date().toISOString()
-            });
-            writeDB(db);
-        }
-        res.json({ message: 'Account created', tech_code, display_name: display_name.trim() });
-    } catch (err) {
-        console.error('[POST /auth/tech/register]', err.message);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // ── POST /api/auth/tech/login ─────────────────────────────────────────────
+// Technician accounts are provisioned directly in Supabase (no frontend
+// self-registration — see /api/auth/tech/change-pin below). Every login
+// response includes must_change_pin so the client can gate dashboard
+// access behind the mandatory PIN-change screen when an admin has just
+// created the account or reset its PIN.
 app.post('/api/auth/tech/login', async (req, res) => {
     const { tech_code, pin } = req.body;
     if (!tech_code || !pin)
@@ -827,9 +793,69 @@ app.post('/api/auth/tech/login', async (req, res) => {
         if (!user) return res.status(401).json({ error: 'Technician not found' });
         const valid = await bcrypt.compare(String(pin), user.credential_hash);
         if (!valid) return res.status(401).json({ error: 'Incorrect PIN. Please try again.' });
-        res.json({ id: user.tech_code, display_name: user.display_name, tech_code: user.tech_code, role: 'technician' });
+        res.json({
+            id: user.tech_code,
+            display_name: user.display_name,
+            tech_code: user.tech_code,
+            role: 'technician',
+            must_change_pin: !!user.must_change_pin
+        });
     } catch (err) {
         console.error('[POST /auth/tech/login]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── POST /api/auth/tech/change-pin ─────────────────────────────────────────
+// Mandatory first-login (and post-reset) PIN change. Re-validates the
+// current PIN against the stored hash server-side — this is the actual
+// enforcement boundary, since it does not trust that the client only
+// calls this route after a legitimate must_change_pin login. Clears
+// must_change_pin only once the new PIN has been verified and saved.
+const PIN_FORMAT = /^\d{4,6}$/;
+app.post('/api/auth/tech/change-pin', async (req, res) => {
+    const { tech_code, current_pin, new_pin } = req.body;
+    if (!tech_code || !current_pin || !new_pin)
+        return res.status(400).json({ error: 'Current PIN and new PIN are required' });
+    if (!PIN_FORMAT.test(String(new_pin)))
+        return res.status(400).json({ error: 'New PIN must be 4–6 digits' });
+
+    try {
+        let user = null;
+        if (supabase) {
+            const { data } = await supabase.from('users').select('*')
+                .eq('tech_code', tech_code).eq('role', 'technician').maybeSingle();
+            user = data;
+        } else {
+            const db = readDB();
+            user = db.users.find(u => u.tech_code === tech_code && u.role === 'technician');
+        }
+        if (!user) return res.status(401).json({ error: 'Technician not found' });
+
+        const currentValid = await bcrypt.compare(String(current_pin), user.credential_hash);
+        if (!currentValid) return res.status(401).json({ error: 'Current PIN is incorrect' });
+
+        const sameAsOld = await bcrypt.compare(String(new_pin), user.credential_hash);
+        if (sameAsOld) return res.status(400).json({ error: 'New PIN must be different from your current PIN' });
+
+        const credential_hash = await bcrypt.hash(String(new_pin), 10);
+
+        if (supabase) {
+            const { error } = await supabase.from('users')
+                .update({ credential_hash, must_change_pin: false })
+                .eq('tech_code', tech_code);
+            if (error) throw error;
+        } else {
+            const db = readDB();
+            const u = db.users.find(u => u.tech_code === tech_code && u.role === 'technician');
+            u.credential_hash = credential_hash;
+            u.must_change_pin = false;
+            writeDB(db);
+        }
+
+        res.json({ id: user.tech_code, display_name: user.display_name, tech_code: user.tech_code, role: 'technician' });
+    } catch (err) {
+        console.error('[POST /auth/tech/change-pin]', err.message);
         res.status(500).json({ error: err.message });
     }
 });
