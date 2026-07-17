@@ -172,19 +172,21 @@ button{cursor:pointer}
 
 .app-header{
   position:sticky;top:0;z-index:60;
-  background:rgba(255,255,255,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-bottom:1px solid var(--bd);
+  background:linear-gradient(120deg,#0F172A 0%,#0F3D3A 48%,#0D9488 100%);
+  border-bottom:none;
   height:var(--header-h);display:flex;align-items:center;padding:0 16px;gap:11px;flex-shrink:0;
 }
 .app-logo{width:36px;height:36px;background:linear-gradient(135deg,#3B82F6,#14B8A6);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(37,99,235,.28)}
 .app-brand-info{flex:1;min-width:0}
-.app-brand-name{font-size:14.5px;font-weight:800;color:var(--tx);letter-spacing:-.02em}
-.app-brand-name em{font-style:normal;color:var(--primary)}
-.app-brand-role{font-size:11px;font-weight:500;color:var(--tx3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-brand-name{font-size:14.5px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.app-brand-name em{font-style:normal;color:#5EEAD4}
+.app-brand-role{font-size:11px;font-weight:500;color:rgba(255,255,255,.75);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .app-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .icon-btn{width:36px;height:36px;border-radius:4px;border:none;background:var(--srf2);color:var(--tx2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;position:relative;flex-shrink:0}
 .icon-btn:hover{background:var(--bd)}
 .icon-btn:active{transform:scale(.92)}
+.app-header .icon-btn,.route-hdr .icon-btn,.sm-hdr .icon-btn{background:rgba(255,255,255,.14);color:#fff}
+.app-header .icon-btn:hover,.route-hdr .icon-btn:hover,.sm-hdr .icon-btn:hover{background:rgba(255,255,255,.24)}
 .nbadge{position:absolute;top:3px;right:3px;width:15px;height:15px;background:var(--red);border-radius:2px;font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
 .avatar-btn{width:36px;height:36px;border-radius:4px;background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;padding:0;overflow:hidden;transition:all .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(124,58,237,.35)}
 .avatar-btn:active{transform:scale(.92)}
@@ -781,9 +783,9 @@ button{cursor:pointer}
 /* ══════════════════════════════════════
    MY ROUTE overlay
 ══════════════════════════════════════ */
-.route-hdr{display:flex;align-items:center;height:var(--header-h);padding:0 16px;background:rgba(255,255,255,.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd);gap:11px;flex-shrink:0}
-.route-hdr-title{flex:1;font-size:15px;font-weight:800;letter-spacing:-.02em;color:var(--tx)}
-.route-hdr-sub{font-size:11px;font-weight:500;color:var(--tx3);margin-top:1px}
+.route-hdr{display:flex;align-items:center;height:var(--header-h);padding:0 16px;background:linear-gradient(120deg,#0F172A 0%,#0F3D3A 48%,#0D9488 100%);border-bottom:none;gap:11px;flex-shrink:0}
+.route-hdr-title{flex:1;font-size:15px;font-weight:800;letter-spacing:-.02em;color:#fff}
+.route-hdr-sub{font-size:11px;font-weight:500;color:rgba(255,255,255,.75);margin-top:1px}
 .route-banner{background:linear-gradient(135deg,#0EA5E9,#14B8A6);border-radius:4px;padding:16px;margin-bottom:14px;color:#fff;position:relative;overflow:hidden}
 .route-banner::before{content:'';position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.07)}
 .route-banner-locality{font-size:.64rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:4px}
@@ -852,13 +854,13 @@ button{cursor:pointer}
 .maplibregl-ctrl-group button{width:32px!important;height:32px!important}
 
 /* ── Header ── */
-.nav-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:var(--header-h);background:rgba(255,255,255,.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd);flex-shrink:0;gap:10px}
-.nav-hdr-center{flex:1;text-align:center;font-size:15px;font-weight:800;letter-spacing:-.02em;color:var(--tx)}
-.nav-hdr-center span{font-size:11px;font-weight:500;color:var(--tx3);display:block;margin-top:1px;letter-spacing:.02em}
-.nav-icon-btn{width:36px;height:36px;border-radius:4px;border:none;background:var(--srf2);color:var(--tx2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
-.nav-icon-btn:hover{background:var(--teal-lt);color:var(--teal-dk)}
+.nav-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:var(--header-h);background:linear-gradient(120deg,#0F172A 0%,#0F3D3A 48%,#0D9488 100%);border-bottom:none;flex-shrink:0;gap:10px}
+.nav-hdr-center{flex:1;text-align:center;font-size:15px;font-weight:800;letter-spacing:-.02em;color:#fff}
+.nav-hdr-center span{font-size:11px;font-weight:500;color:rgba(255,255,255,.75);display:block;margin-top:1px;letter-spacing:.02em}
+.nav-icon-btn{width:36px;height:36px;border-radius:4px;border:none;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.nav-icon-btn:hover{background:rgba(255,255,255,.24);color:#fff}
 .nav-icon-btn:active{transform:scale(.92)}
-.nav-icon-btn.active{background:var(--teal-lt);color:var(--teal-dk);border:1.5px solid var(--teal)}
+.nav-icon-btn.active{background:var(--teal);color:#fff;border:1.5px solid rgba(255,255,255,.5)}
 
 /* ── Route summary card ── */
 .nav-summary{background:var(--card);border:1px solid var(--bd);border-radius:4px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--s2);border-left:3px solid var(--teal)}
@@ -989,10 +991,10 @@ button{cursor:pointer}
   position:relative;z-index:2;flex-shrink:0;
   display:flex;align-items:center;gap:11px;
   height:var(--header-h);padding:0 16px;
-  background:rgba(255,255,255,.97);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-bottom:1px solid var(--bd);
+  background:linear-gradient(120deg,#0F172A 0%,#0F3D3A 48%,#0D9488 100%);
+  border-bottom:none;
 }
-.sm-hdr-title{flex:1;font-size:14.5px;font-weight:800;letter-spacing:-.02em;color:var(--tx)}
+.sm-hdr-title{flex:1;font-size:14.5px;font-weight:800;letter-spacing:-.02em;color:#fff}
 .sm-card{background:var(--card);border:1px solid rgba(229,231,235,.8);border-radius:4px;box-shadow:var(--s2);overflow:hidden;margin-bottom:20px}
 .sm-card-strip{height:6px}
 .sm-card-strip.LOW{background:linear-gradient(120deg,var(--teal),var(--teal-dk))}
@@ -1603,7 +1605,7 @@ button{cursor:pointer}
 
 <!-- Step 3: Enhancement & page review -->
 <div id="docscan-enhance-overlay" style="display:none;position:fixed;inset:0;z-index:215;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
-  <div class="app-header" style="flex-shrink:0;background:rgba(15,23,42,.98)">
+  <div class="app-header" style="flex-shrink:0">
     <button onclick="docScanEnhanceBack()" style="width:36px;height:36px;border-radius:4px;border:none;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </button>
@@ -7878,7 +7880,7 @@ function tsRenderStep(){
     <div class="app-header">
       <button class="icon-btn" onclick="tsHandleBack()">${ic('arrowL',18)}</button>
       <div class="app-brand-info"><div class="app-brand-name">Guided Troubleshooting</div></div>
-      <div style="font-size:.72rem;color:var(--tx3);font-family:var(--fm);padding-right:2px">${TSState.index+1}/${total}</div>
+      <div style="font-size:.72rem;color:rgba(255,255,255,.75);font-family:var(--fm);padding-right:2px">${TSState.index+1}/${total}</div>
     </div>
     <div class="ts-progress-track"><div class="ts-progress-fill" style="width:${pct}%"></div></div>
     <div class="app-scroll" style="padding:16px 16px 4px">
