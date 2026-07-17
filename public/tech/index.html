@@ -987,6 +987,21 @@ button{cursor:pointer}
   visibility:visible;
   transition:transform .32s cubic-bezier(.34,.9,.4,1);
 }
+/* ── Reserve processing overlay ──────────────────────────────────────
+   Shown the instant a Slide-to-Reserve gesture completes, on top of
+   the Site Details modal, while the reservation request is handled.
+   Purely a transient loading state — no card, copy, or actions — so it
+   never reads as a dialog. Fades in/out via opacity only; visibility
+   and input are gated by .show so it never intercepts taps while
+   hidden. ── */
+.reserve-processing-overlay{
+  position:fixed;inset:0;z-index:148;
+  max-width:480px;margin:0 auto;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .25s ease;
+}
+.reserve-processing-overlay.show{opacity:1;pointer-events:auto}
 .sm-hdr{
   position:relative;z-index:2;flex-shrink:0;
   display:flex;align-items:center;gap:11px;
@@ -2867,17 +2882,38 @@ async function copySiteInfo(){
   }
 }
 
+/* ── Reserve processing overlay helpers ──
+   showReserveProcessing() fades the centered spinner in immediately once
+   a Slide-to-Reserve gesture completes. hideReserveProcessing() fades it
+   back out and resolves once that transition has finished, so callers can
+   `await` it right before navigating. ── */
+function showReserveProcessing(){
+  document.getElementById('reserve-processing-overlay')?.classList.add('show');
+}
+function hideReserveProcessing(){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('reserve-processing-overlay');
+    if(!ov){resolve();return;}
+    ov.classList.remove('show');
+    setTimeout(resolve,250); // matches the overlay's opacity transition duration
+  });
+}
+
 async function reserveSiteFromModal(id,locality,wrap){
   const label=wrap?wrap.querySelector('.slide-claim-label'):null;
   if(!CU){toast('Please sign in again.','err');resetSlideClaim(wrap);return;}
+  // The slider itself is already locked by the caller (w.classList.add('claimed','disabled')
+  // right after the successful slide), which blocks any further drag input.
+  // Show the processing spinner on top of that same locked state, and hold it
+  // for ~2.5s of simulated processing OR the real request — whichever is longer —
+  // before revealing the result exactly as before.
+  showReserveProcessing();
+  const minDelay=new Promise(res=>setTimeout(res,2500));
   try{
-    let r;
-    if(RouteState.active && Array.isArray(RouteState.active.site_ids)){
-      const newIds=[...new Set([...(RouteState.active.site_ids||[]),id])];
-      r=await fetch('/api/routes/update-sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,site_ids:newIds})});
-    } else {
-      r=await fetch('/api/routes/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,technician_name:CU.name,locality:locality||'Unknown',site_ids:[id]})});
-    }
+    const reqPromise=(RouteState.active && Array.isArray(RouteState.active.site_ids))
+      ? fetch('/api/routes/update-sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,site_ids:[...new Set([...(RouteState.active.site_ids||[]),id])]})})
+      : fetch('/api/routes/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician_id:CU.id,technician_name:CU.name,locality:locality||'Unknown',site_ids:[id]})});
+    const [r]=await Promise.all([reqPromise,minDelay]);
     const d=await r.json();
     if(r.ok){
       toast('Site added to your route.','ok');
@@ -2888,18 +2924,19 @@ async function reserveSiteFromModal(id,locality,wrap){
         smTicket={...smTicket,reservation:{reserved_by:CU.id,reserved_by_name:CU.name}};
         renderSiteModalReserveZone(smTicket);
       }
+      await hideReserveProcessing();
       // Redesigned flow: Slide to Reserve now jumps straight into My Route
       // (under Tools) so the technician immediately sees their updated
       // route, instead of staying on the Site Details screen.
-      setTimeout(()=>{
-        techNav('tools');
-        showRouteOverlay(id);
-      },650);
+      techNav('tools');
+      showRouteOverlay(id);
     } else {
+      await hideReserveProcessing();
       toast(d.error||'Could not reserve site.','err');
       resetSlideClaim(wrap);
     }
   }catch(e){
+    await hideReserveProcessing();
     toast('Cannot reach server.','err');
     resetSlideClaim(wrap);
   }
@@ -8188,6 +8225,11 @@ function tsFormatSummaryText(s){
     </div>
   </div>
   <div class="sm-footer" id="sm-reserve-zone"></div>
+</div>
+
+<!-- ══════════════════════════════════════ RESERVE PROCESSING OVERLAY — brief indeterminate spinner shown right after a successful Slide to Reserve, before jumping to My Route ══════════════════════════════════════ -->
+<div id="reserve-processing-overlay" class="reserve-processing-overlay" aria-hidden="true">
+  <div class="nav-loading-spinner"></div>
 </div>
 
 <!-- ══════════════════════════════════════ SITE MAP — full-screen map overlay, drills in from the Site Details mini map ══════════════════════════════════════ -->
