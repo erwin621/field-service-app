@@ -3442,10 +3442,29 @@ function _isOverlayVisible(id){
   return !!el && el.style.display==='flex';
 }
 
+// reserve-processing-overlay toggles via the .show class (opacity/pointer-events),
+// not the display:flex inline-style convention _isOverlayVisible checks — it needs
+// its own predicate rather than reusing that helper.
+function _reserveProcessingVisible(){
+  return !!document.getElementById('reserve-processing-overlay')?.classList.contains('show');
+}
+// While a Slide-to-Reserve request is in flight this swallows the Back press
+// entirely instead of closing anything: there is no "previous layer" to reveal
+// here since Site Details is still the correct screen underneath, and closing
+// it out from under the spinner would strand reserve-processing-overlay on
+// screen (Site Details gone, spinner still showing on top of the Open list)
+// and leave the pending request to redirect the user out from under them the
+// moment it resolves. Re-checked on every Back press until the request settles.
+function _reserveProcessingBackGuard(){
+  console.log('[BackGuard] reserve request in flight — Back press ignored until it completes');
+}
+
 // Checked top-to-bottom; the FIRST match found open is closed and we stop there
 // (closing one layer per Back press, same as normal drill-down navigation).
 const BACK_GUARD_LAYERS=[
+  ()=>_reserveProcessingVisible() && _reserveProcessingBackGuard,
   ()=>document.getElementById('modal-cancel')?.classList.contains('open') && closeModal,
+  ()=>document.getElementById('modal-offduty')?.style.display==='flex' && closeOffDutyModal,
   ()=>_isOverlayVisible('docscan-enhance-overlay') && docScanEnhanceBack,
   ()=>_isOverlayVisible('docscan-adjust-overlay')  && docScanAdjustBack,
   ()=>_isOverlayVisible('cam-preview-overlay')     && camPreviewBack,
@@ -3454,6 +3473,10 @@ const BACK_GUARD_LAYERS=[
   ()=>_isOverlayVisible('cam-settings-overlay')    && closeCamSettings,
   ()=>_isOverlayVisible('ts-overlay')              && tsHandleBack,
   ()=>_isOverlayVisible('help-overlay')            && hcClose,
+  ()=>_isOverlayVisible('contact-support-overlay') && closeContactSupport,
+  ()=>_isOverlayVisible('help-support-overlay')    && closeHelpSupportHub,
+  ()=>_isOverlayVisible('app-prefs-overlay')       && closeAppPrefs,
+  ()=>_isOverlayVisible('personal-info-overlay')   && closePersonalInfo,
   ()=>_isOverlayVisible('income-overlay')          && closeIncomeOverlay,
   ()=>_isOverlayVisible('timer-overlay')           && closeTimerOverlay,
   ()=>_isOverlayVisible('navigator-overlay')       && closeNavigatorOverlay,
@@ -3658,6 +3681,13 @@ async function offDutyReleaseRoute(){
   document.getElementById('modal-offduty').style.display='none';
   await releaseRoute(true);
   await setDuty(false);
+}
+// Back-button dismiss only — no existing UI affordance closes this dialog
+// without picking Keep/Release, so this adds none either. It just hides the
+// modal with no side effects (duty stays on, route untouched), the same
+// no-op outcome as if the user had simply left the toggle alone.
+function closeOffDutyModal(){
+  document.getElementById('modal-offduty').style.display='none';
 }
 
 /* ── Lightweight real-time sync: poll every 7s for reservation/duty changes ── */
