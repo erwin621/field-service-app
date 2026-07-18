@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FieldOps — Technician Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#2563EB;--primary-dk:#1D4ED8;--primary-lt:#EFF6FF;--primary-bd:#BFDBFE;
+  --teal:#14B8A6;--teal-dk:#0D9488;--teal-lt:#F0FDFA;
+  --bg:#F7F8FA;--card:#FFFFFF;--srf2:#F1F5F9;
+  --bd:#E5E7EB;--bd2:#D7DBE0;
+  --tx:#0F172A;--tx2:#64748B;--tx3:#94A3B8;
+  --red:#EF4444;--red-dk:#991B1B;--red-lt:#FEE2E2;--red-bd:#FECACA;
+  --amber:#F59E0B;--amber-dk:#92400E;--amber-lt:#FEF3C7;--amber-bd:#FDE68A;
+  --green:#22C55E;--green-dk:#166534;--green-lt:#DCFCE7;--green-bd:#BBF7D0;
+  --ff:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --fm:'JetBrains Mono',monospace;
+  --r:4px;
+  --s2:0 2px 6px rgba(15,23,42,.05),0 6px 16px rgba(15,23,42,.06);
+  --s3:0 4px 12px rgba(15,23,42,.06),0 14px 32px rgba(15,23,42,.08);
+  --s4:0 8px 24px rgba(15,23,42,.08),0 24px 56px rgba(15,23,42,.10);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--ff);background:var(--bg);color:var(--tx);line-height:1.6;font-size:15px;-webkit-font-smoothing:antialiased}
+a{color:var(--primary)}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+img,svg{display:block}
+
+/* ── Top bar ── */
+.topbar{background:var(--tx);color:#fff;padding:14px 0}
+.topbar .wrap{display:flex;align-items:center;gap:12px}
+.logo-mark{width:34px;height:34px;border-radius:var(--r);background:linear-gradient(135deg,#3B82F6 0%,#14B8A6 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 10px rgba(37,99,235,.35)}
+.logo-mark svg{stroke:#fff}
+.wordmark{font-weight:800;font-size:1.05rem;letter-spacing:-.02em}
+.wordmark em{font-style:normal;color:#5EEAD4}
+.eyebrow-top{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-top:1px}
+
+/* ── Quick-jump chip nav ── */
+.chipnav{position:sticky;top:0;z-index:20;background:rgba(247,248,250,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd);padding:10px 0}
+.chipnav .wrap{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.chipnav .wrap::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;font-size:.72rem;font-weight:700;color:var(--tx2);background:var(--card);border:1.5px solid var(--bd);border-radius:999px;padding:7px 13px;white-space:nowrap}
+.chip:hover{border-color:var(--primary-bd);color:var(--primary)}
+
+main{padding-bottom:60px}
+
+/* ── Hero ── */
+.hero{padding:44px 0 8px}
+.hero-eyebrow{font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-dk);margin-bottom:10px}
+.hero h1{font-size:2.1rem;font-weight:900;letter-spacing:-.03em;line-height:1.12;margin-bottom:12px}
+.hero p{color:var(--tx2);font-size:.95rem;max-width:52ch;margin-bottom:26px}
+.quickstart{display:flex;flex-wrap:wrap;gap:0;align-items:center;margin-bottom:8px}
+.qs-step{background:var(--card);border:1.5px solid var(--bd);border-radius:var(--r);padding:10px 14px;font-size:.76rem;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:8px;box-shadow:var(--s2)}
+.qs-step .qn{width:18px;height:18px;border-radius:50%;background:var(--primary);color:#fff;font-size:.62rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qs-arrow{color:var(--tx3);padding:0 8px;font-size:.9rem}
+
+/* ── Route rail (signature element) ── */
+.rail{position:relative;margin-top:36px;padding-left:46px}
+.rail::before{content:'';position:absolute;left:16px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,#2563EB,#14B8A6);border-radius:2px;opacity:.35}
+.stop{position:relative;padding-bottom:52px}
+.stop:last-child{padding-bottom:0}
+.stop-marker{position:absolute;left:-46px;top:0;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#14B8A6);color:#fff;font-family:var(--fm);font-weight:700;font-size:.82rem;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(15,23,42,.18);border:3px solid var(--bg)}
+.stop-eyebrow{font-family:var(--fm);font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-dk);margin-bottom:4px}
+.stop h2{font-size:1.32rem;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.stop-lede{color:var(--tx2);font-size:.88rem;margin-bottom:16px;max-width:58ch}
+
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:18px 20px;box-shadow:var(--s2);margin-bottom:14px}
+.card h3{font-size:.86rem;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h3 svg{flex-shrink:0;color:var(--primary)}
+.steps{list-style:none;counter-reset:step}
+.steps li{counter-increment:step;position:relative;padding-left:30px;margin-bottom:11px;font-size:.86rem;color:var(--tx)}
+.steps li:last-child{margin-bottom:0}
+.steps li::before{content:counter(step);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;background:var(--primary-lt);color:var(--primary-dk);font-family:var(--fm);font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.steps b{font-weight:700}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+.minicard{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;box-shadow:var(--s2)}
+.minicard .mc-ico{width:30px;height:30px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;margin-bottom:9px}
+.minicard .mc-title{font-size:.82rem;font-weight:800;margin-bottom:3px}
+.minicard .mc-desc{font-size:.76rem;color:var(--tx2);line-height:1.45}
+
+.callout{border-radius:var(--r);padding:13px 15px;font-size:.8rem;line-height:1.5;margin-bottom:14px;display:flex;gap:10px;border:1px solid}
+.callout svg{flex-shrink:0;margin-top:1px}
+.callout.tip{background:var(--teal-lt);border-color:#99E9DD;color:#0F5C52}
+.callout.warn{background:var(--amber-lt);border-color:var(--amber-bd);color:var(--amber-dk)}
+.callout.note{background:var(--primary-lt);border-color:var(--primary-bd);color:var(--primary-dk)}
+.callout b{font-weight:800}
+
+kbd,.k{font-family:var(--fm);font-size:.78em;background:var(--srf2);border:1px solid var(--bd2);border-radius:3px;padding:1px 6px;font-weight:600;color:var(--tx)}
+
+/* ── Cheat sheet table ── */
+.cheat{width:100%;border-collapse:collapse;font-size:.82rem;background:var(--card);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;box-shadow:var(--s2)}
+.cheat th{text-align:left;background:var(--tx);color:#fff;padding:10px 14px;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.cheat td{padding:11px 14px;border-top:1px solid var(--bd)}
+.cheat tr:nth-child(even) td{background:var(--srf2)}
+.cheat td:last-child{font-family:var(--fm);font-size:.78rem;color:var(--primary-dk);font-weight:600}
+
+/* ── Glossary ── */
+.gloss dt{font-weight:800;font-size:.88rem;margin-top:14px;font-family:var(--fm)}
+.gloss dt:first-child{margin-top:0}
+.gloss dd{color:var(--tx2);font-size:.84rem;margin-top:3px;max-width:60ch}
+
+/* ── FAQ ── */
+.faq details{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:9px;box-shadow:var(--s2);overflow:hidden}
+.faq summary{padding:14px 16px;font-size:.86rem;font-weight:700;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';font-size:1.1rem;color:var(--tx3);font-weight:400;flex-shrink:0}
+.faq details[open] summary::after{content:'–'}
+.faq details[open] summary{border-bottom:1px solid var(--bd)}
+.faq .a{padding:13px 16px 16px;font-size:.82rem;color:var(--tx2);line-height:1.55}
+
+.section-hd{margin:56px 0 18px}
+.section-hd .eyebrow{font-family:var(--fm);font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-dk);margin-bottom:5px}
+.section-hd h2{font-size:1.32rem;font-weight:800;letter-spacing:-.02em}
+
+footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 46px}
+footer p{font-size:.74rem;color:var(--tx3);line-height:1.6;max-width:56ch}
+footer .fmark{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+footer .fmark .logo-mark{width:22px;height:22px}
+footer .fmark span{font-weight:800;font-size:.82rem;color:var(--tx)}
+
+@media print{
+  .chipnav{display:none}
+  .topbar{background:#fff!important;color:var(--tx)!important;border-bottom:2px solid var(--tx)}
+  .logo-mark{box-shadow:none}
+  .wordmark em{color:var(--teal-dk)}
+  .eyebrow-top{color:var(--tx3)}
+  .stop{page-break-inside:avoid}
+  body{background:#fff}
+  .card,.minicard{box-shadow:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="logo-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+    <div>
+      <div class="wordmark">Field<em>Ops</em></div>
+      <div class="eyebrow-top">Technician Field Guide</div>
+    </div>
+  </div>
+</header>
+
+<nav class="chipnav">
+  <div class="wrap">
+    <a class="chip" href="#s1">1 · Sign In</a>
+    <a class="chip" href="#s2">2 · Get Oriented</a>
+    <a class="chip" href="#s3">3 · Find a Job</a>
+    <a class="chip" href="#s4">4 · Claim &amp; Work</a>
+    <a class="chip" href="#s5">5 · Submit</a>
+    <a class="chip" href="#s6">6 · Plan Travel</a>
+    <a class="chip" href="#s7">7 · Time &amp; Pay</a>
+    <a class="chip" href="#s8">8 · Profile</a>
+    <a class="chip" href="#cheatsheet">Cheat Sheet</a>
+    <a class="chip" href="#faq">FAQ</a>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Welcome</div>
+      <h1>Getting started with FieldOps</h1>
+      <p>This guide walks you through a normal day on the Technician Portal — from signing in to getting paid. No tech background needed. Keep it bookmarked; you can jump back to any step whenever you need it.</p>
+      <div class="quickstart">
+        <div class="qs-step"><span class="qn">1</span>Sign In</div>
+        <span class="qs-arrow">→</span>
+        <div class="qs-step"><span class="qn">2</span>Go On Duty</div>
+        <span class="qs-arrow">→</span>
+        <div class="qs-step"><span class="qn">3</span>Reserve &amp; Claim a Job</div>
+        <span class="qs-arrow">→</span>
+        <div class="qs-step"><span class="qn">4</span>Submit &amp; Get Paid</div>
+      </div>
+    </section>
+
+    <div class="rail">
+
+      <!-- STOP 1 -->
+      <div class="stop" id="s1">
+        <div class="stop-marker">1</div>
+        <div class="stop-eyebrow">Getting In</div>
+        <h2>Signing In</h2>
+        <p class="stop-lede">You don't create your own account — your supervisor or admin sets it up for you. All you need is your name and a PIN.</p>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="1"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> How to sign in</h3>
+          <ol class="steps">
+            <li>Open the web address your supervisor gave you, in your phone's browser.</li>
+            <li>If you see a choice of portals, choose <b>Technician</b> (use "Back to portal" if you land on the wrong screen).</li>
+            <li>Tap <b>Your Name</b> and find yourself in the list.</li>
+            <li>Enter your <b>PIN Code</b> and tap <b>Sign In to Tech Portal</b>.</li>
+          </ol>
+        </div>
+
+        <div class="callout warn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div><b>First time signing in?</b> You'll be asked to set your own PIN before you can continue. Enter the temporary PIN you were given as your <b>Current PIN</b>, then choose a new 4–6 digit PIN and type it twice to confirm. This only happens once — or again if an admin ever resets your PIN.</div>
+        </div>
+
+        <div class="callout tip">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div><b>Forgot your PIN?</b> You can't reset it yourself — ask your supervisor or admin to reset it. You'll set a new one the next time you sign in. For quicker access next time, add the page to your phone's Home Screen from your browser's menu, so it opens like a regular app.</div>
+        </div>
+      </div>
+
+      <!-- STOP 2 -->
+      <div class="stop" id="s2">
+        <div class="stop-marker">2</div>
+        <div class="stop-eyebrow">The Basics</div>
+        <h2>Get Oriented</h2>
+        <p class="stop-lede">Everything in the app lives behind four buttons at the bottom of the screen.</p>
+
+        <div class="grid2">
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--primary-lt);color:var(--primary)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+            <div class="mc-title">OPEN</div>
+            <div class="mc-desc">Jobs nobody has claimed yet, sorted closest to you first.</div>
+          </div>
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--amber-lt);color:var(--amber-dk)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+            <div class="mc-title">TASKS</div>
+            <div class="mc-desc">Your own jobs — My Jobs (in progress), Completed, and Cancelled.</div>
+          </div>
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--teal-lt);color:var(--teal-dk)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            <div class="mc-title">TOOLS</div>
+            <div class="mc-desc">Camera, Document Scan, My Route, Navigator, Timer, Income, Settings.</div>
+          </div>
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--srf2);color:var(--tx2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            <div class="mc-title">PROFILE</div>
+            <div class="mc-desc">Your details, the On/Off Duty switch, notifications, help, and sign out.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg> Going On Duty / Off Duty</h3>
+          <ol class="steps">
+            <li>Go to <b>Profile</b> and flip the <b>Availability</b> switch to <b>On Duty</b> before you start work — this is what lets you see and reserve jobs.</li>
+            <li>Switch to <b>Off Duty</b> at the end of your shift, or on a break, so nothing new gets assigned to you.</li>
+            <li>If you still have sites reserved when you go Off Duty, the app will ask whether to <b>keep them reserved</b> for later or <b>release them</b> for other technicians.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- STOP 3 -->
+      <div class="stop" id="s3">
+        <div class="stop-marker">3</div>
+        <div class="stop-eyebrow">Getting Work</div>
+        <h2>Find a Job &amp; Lock It In</h2>
+        <p class="stop-lede">Browsing a job doesn't start it — you first <b>reserve</b> it so nobody else can take it, then <b>claim</b> it when you're ready to work (Stop 4).</p>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Reserve a single site</h3>
+          <ol class="steps">
+            <li>On the <b>Open</b> tab, browse jobs near you — closest ones appear first once you allow location access.</li>
+            <li>Tap the filter icon to narrow the list to one area/city, if you like.</li>
+            <li>Tap a job card to open its full details — address, map, and distance.</li>
+            <li>If it's free, slide the bar at the bottom (<b>Slide to Reserve</b>) all the way across. This locks the site to you and takes you straight to <b>My Route</b>.</li>
+          </ol>
+        </div>
+
+        <div class="callout note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="1"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div>A job marked <b>"Reserved by [name]"</b> is already locked by someone else. You'll need to wait for them to release it or complete it.</div>
+        </div>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Reserve a whole area at once</h3>
+          <p style="font-size:.85rem;color:var(--tx2);margin-bottom:0">Heading to a whole neighborhood for the day? Go to <b>Tools → My Route → Start a Route</b>, pick a city or area, and every open job there gets reserved for you in one go — no need to reserve each one individually.</p>
+        </div>
+      </div>
+
+      <!-- STOP 4 -->
+      <div class="stop" id="s4">
+        <div class="stop-marker">4</div>
+        <div class="stop-eyebrow">On Site</div>
+        <h2>Claim It, Then Work It</h2>
+        <p class="stop-lede">Reserving locks a site to you. <b>Claiming</b> is the separate step that actually starts the job and moves it into your Tasks.</p>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Claim a reserved site</h3>
+          <ol class="steps">
+            <li>Open <b>Tools → My Route</b>. Your reserved sites are listed in a suggested visiting order, closest first.</li>
+            <li>Find the site you're at (or about to visit) and tap <b>Claim</b>.</li>
+            <li>It moves straight to <b>Tasks → My Jobs</b>, ready for you to work on.</li>
+          </ol>
+          <p style="font-size:.78rem;color:var(--tx2);margin-top:10px">Not doing a site after all? Tap <b>Remove</b> to drop just that one, or <b>Release Route</b> to give up everything you've reserved.</p>
+        </div>
+
+        <div class="callout warn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div>Reserved sites aren't held forever — if there's no activity on your route for <b>4 hours</b>, the reservation releases automatically so others can pick it up.</div>
+        </div>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg> Complete the Guided Troubleshooting checklist</h3>
+          <ol class="steps">
+            <li>Open the job in <b>My Jobs</b> and start the troubleshooting checklist ("Need Help?").</li>
+            <li>Go through each check in order and mark it <b>Passed</b> or <b>Failed</b>.</li>
+            <li>If a check fails, attach a photo and a short note about what you found — this is required before you can move on.</li>
+            <li>Some failed checks stop the checklist early, since later checks depend on that one — you'll see <b>"Diagnostic Stopped."</b> Tap <b>Override</b> to continue anyway, or fix the issue first.</li>
+            <li>At the end, review the summary and confirm it — this is what unlocks <b>Submit &amp; Complete</b> on the job.</li>
+          </ol>
+        </div>
+
+        <div class="callout tip">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <div>Not sure what a check is asking? <b>Profile → Help &amp; Support</b> has the entire checklist, searchable — worth a look before you even leave for the site.</div>
+        </div>
+
+        <div class="grid2">
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--red-lt);color:var(--red-dk)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+            <div class="mc-title">Camera</div>
+            <div class="mc-desc">From a job, tap the camera icon (or <b>Tools → Camera</b>). Photos are auto-stamped with date, time, GPS, and site ID. Flip the camera, use flash if it's dark, or hold to record video with sound. You'll always see a preview — retake or attach it.</div>
+          </div>
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--teal-lt);color:var(--teal-dk)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></svg></div>
+            <div class="mc-title">Document Scan</div>
+            <div class="mc-desc"><b>Tools → Document Scan</b> for signed forms or receipts. The app finds the page edges for you — drag the corners if needed, pick a cleaner look, add more pages, then Save. Multi-page scans save as one PDF and attach straight to the job.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STOP 5 -->
+      <div class="stop" id="s5">
+        <div class="stop-marker">5</div>
+        <div class="stop-eyebrow">Wrapping Up</div>
+        <h2>Submit or Cancel</h2>
+        <p class="stop-lede">Every job ends one of two ways: completed with proof, or cancelled with a reason.</p>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Submit a completed job</h3>
+          <ol class="steps">
+            <li>In <b>My Jobs</b>, attach at least one photo or video — from the camera or your phone's gallery (up to 5 files).</li>
+            <li>Add a note if it's useful.</li>
+            <li>Tap <b>Submit &amp; Complete</b>. This stays greyed out until the troubleshooting checklist (Stop 4) is finished.</li>
+          </ol>
+        </div>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Cancel a job you can't complete</h3>
+          <ol class="steps">
+            <li>Open the job and tap <b>Cancel</b>.</li>
+            <li>Type a short reason — this is required.</li>
+            <li>Confirm. It moves to your <b>Cancelled</b> list under Tasks.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- STOP 6 -->
+      <div class="stop" id="s6">
+        <div class="stop-marker">6</div>
+        <div class="stop-eyebrow">Getting Around</div>
+        <h2>Plan Your Route</h2>
+        <p class="stop-lede">Once you've claimed more than one job, let the app work out the best order to visit them.</p>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Navigator</h3>
+          <ol class="steps">
+            <li>Go to <b>Tools → Navigator</b>.</li>
+            <li>Tap <b>Optimize Route</b> — it works out the best order for your claimed jobs and draws it on a map.</li>
+            <li>Filter by <b>Today</b>, <b>High Priority</b>, or one area, and switch on <b>Avoid Tolls</b> if that matters to you.</li>
+            <li>Tap <b>Start</b> to open turn-by-turn directions in Google Maps or Waze.</li>
+          </ol>
+        </div>
+
+        <p style="font-size:.85rem;color:var(--tx2)">You can also keep checking <b>Tools → My Route</b> through the day — it shows what's left, reorders by distance automatically, and lets you add more sites or release ones you won't get to today.</p>
+      </div>
+
+      <!-- STOP 7 -->
+      <div class="stop" id="s7">
+        <div class="stop-marker">7</div>
+        <div class="stop-eyebrow">Staying On Top Of It</div>
+        <h2>Track Your Time &amp; Earnings</h2>
+        <p class="stop-lede">Both of these update automatically — there's nothing to start or fill in yourself.</p>
+
+        <div class="grid2">
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--green-lt);color:var(--green-dk)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div class="mc-title">Timer</div>
+            <div class="mc-desc"><b>Tools → Timer.</b> Tracks automatically from the moment you claim a job until you submit it, and keeps a history of past jobs too.</div>
+          </div>
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--teal-lt);color:var(--teal-dk)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
+            <div class="mc-title">Income Overview</div>
+            <div class="mc-desc"><b>Tools → Income Overview.</b> Your earnings from completed jobs, filterable by Today / Week / Month or a custom date range, with a chart and CSV/Excel export.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STOP 8 -->
+      <div class="stop" id="s8">
+        <div class="stop-marker">8</div>
+        <div class="stop-eyebrow">Your Account</div>
+        <h2>Profile &amp; Getting Help</h2>
+        <p class="stop-lede">Everything about you — and how to reach someone when the app can't answer it.</p>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Personal Info</h3>
+          <p style="font-size:.85rem;color:var(--tx2)"><b>Profile → Personal Info</b> — add your nickname, birth date, address, and a profile photo. Your photo replaces your initial in the header, so make sure it clearly shows your face.</p>
+        </div>
+
+        <div class="card">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg> Telegram Notifications <span style="font-weight:600;color:var(--tx3);font-size:.7rem;text-transform:none;letter-spacing:0">(optional)</span></h3>
+          <p style="font-size:.85rem;color:var(--tx2);margin-bottom:10px">Want your own completed-job proofs sent straight to you on Telegram?</p>
+          <ol class="steps">
+            <li>Go to <b>Profile → Preferences → Telegram Settings</b>.</li>
+            <li>Create a bot using Telegram's <b>@BotFather</b>, then get your Bot Token and Chat ID.</li>
+            <li>Paste both values in, tap <b>Send Test Message</b> to check it works, then <b>Save Settings</b>.</li>
+          </ol>
+          <p style="font-size:.78rem;color:var(--tx2);margin-top:10px">Once saved, the values are hidden for your security — tap the pencil icon to change them later.</p>
+        </div>
+
+        <div class="grid2">
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--srf2);color:var(--tx2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            <div class="mc-title">Camera Settings</div>
+            <div class="mc-desc"><b>Tools → Settings.</b> Choose what shows on your photos (date/time, GPS, site ID) and how it looks (position, size, color).</div>
+          </div>
+          <div class="minicard">
+            <div class="mc-ico" style="background:var(--primary-lt);color:var(--primary)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <div class="mc-title">Help &amp; Support</div>
+            <div class="mc-desc"><b>Profile → Help &amp; Support.</b> A searchable copy of the full troubleshooting checklist — handy to check any time.</div>
+          </div>
+        </div>
+
+        <div class="callout note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <div>Done for the day? <b>Profile → Sign Out</b>, at the very bottom.</div>
+        </div>
+      </div>
+
+    </div><!-- /rail -->
+
+    <!-- CHEAT SHEET -->
+    <section id="cheatsheet">
+      <div class="section-hd">
+        <div class="eyebrow">Quick Reference</div>
+        <h2>Cheat Sheet</h2>
+      </div>
+      <table class="cheat">
+        <tr><th>To do this…</th><th>Go here</th></tr>
+        <tr><td>See available jobs</td><td>OPEN tab</td></tr>
+        <tr><td>Reserve one site</td><td>Tap a job → Slide to Reserve</td></tr>
+        <tr><td>Reserve a whole area</td><td>Tools → My Route → Start a Route</td></tr>
+        <tr><td>Claim a reserved site</td><td>Tools → My Route → Claim</td></tr>
+        <tr><td>See your active jobs</td><td>TASKS → My Jobs</td></tr>
+        <tr><td>Run the troubleshooting checklist</td><td>My Jobs → Need Help?</td></tr>
+        <tr><td>Attach a proof photo</td><td>Camera icon on the job, or Tools → Camera</td></tr>
+        <tr><td>Scan a document</td><td>Tools → Document Scan</td></tr>
+        <tr><td>Finish a job</td><td>My Jobs → Submit &amp; Complete</td></tr>
+        <tr><td>Cancel a job</td><td>My Jobs → Cancel</td></tr>
+        <tr><td>Plan your travel order</td><td>Tools → Navigator</td></tr>
+        <tr><td>Check your earnings</td><td>Tools → Income Overview</td></tr>
+        <tr><td>Go On/Off Duty</td><td>PROFILE → Availability switch</td></tr>
+        <tr><td>Get Telegram alerts on your proofs</td><td>PROFILE → Preferences → Telegram Settings</td></tr>
+        <tr><td>Reset a forgotten PIN</td><td>Ask your supervisor/admin</td></tr>
+      </table>
+    </section>
+
+    <!-- GLOSSARY -->
+    <section id="glossary">
+      <div class="section-hd">
+        <div class="eyebrow">Terms Used In The App</div>
+        <h2>Glossary</h2>
+      </div>
+      <dl class="gloss">
+        <dt>Job / Ticket</dt><dd>One site that needs a visit. Has its own code, like <span class="k">FO-20260718-000123</span>.</dd>
+        <dt>Locality</dt><dd>The city or area a site is in — used for filtering, and for reserving a whole area at once.</dd>
+        <dt>On Duty / Off Duty</dt><dd>Whether you're currently available to see and reserve new jobs.</dd>
+        <dt>Reserve / Reservation</dt><dd>Locking a site to yourself before you claim it, so nobody else can take it.</dd>
+        <dt>Claim</dt><dd>Officially starting a job — moves it into My Jobs so you can work it.</dd>
+        <dt>Route</dt><dd>The group of sites you've reserved for the day, shown in Tools → My Route.</dd>
+        <dt>Proof</dt><dd>The photo, video, or scanned document you attach when you finish a job.</dd>
+        <dt>Guided Troubleshooting</dt><dd>The step-by-step checklist you complete on site before you can submit.</dd>
+        <dt>PIN</dt><dd>Your personal 4–6 digit sign-in code — not one you pick yourself the very first time.</dd>
+      </dl>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="faq">
+      <div class="section-hd">
+        <div class="eyebrow">When Something Looks Off</div>
+        <h2>Frequently Asked Questions</h2>
+      </div>
+
+      <details>
+        <summary>I don't see any jobs on the Open tab</summary>
+        <div class="a">Make sure you're <b>On Duty</b> (Profile → Availability). Check whether a locality filter is turned on — clear it if so. Also make sure you've allowed the app to use your location.</div>
+      </details>
+      <details>
+        <summary>The Submit &amp; Complete button is greyed out</summary>
+        <div class="a">Finish the Guided Troubleshooting checklist on that job first. The button unlocks once you review and confirm the summary at the end of the checklist.</div>
+      </details>
+      <details>
+        <summary>It says "Cannot reach server"</summary>
+        <div class="a">Check your internet connection and try again. Your entries usually aren't lost — just retry the action.</div>
+      </details>
+      <details>
+        <summary>I forgot my PIN</summary>
+        <div class="a">You can't reset it yourself. Ask your supervisor or admin to reset it for you — you'll be asked to choose a new PIN the next time you sign in.</div>
+      </details>
+      <details>
+        <summary>Someone else already reserved the job I wanted</summary>
+        <div class="a">Jobs are first-come, first-served. If you want a better chance at a whole area, use My Route to reserve it early in the day.</div>
+      </details>
+      <details>
+        <summary>My reservation disappeared</summary>
+        <div class="a">Reservations release automatically after 4 hours with no activity, so other technicians can pick them up. Open My Route and reserve again if the site is still open.</div>
+      </details>
+      <details>
+        <summary>Can I change my Telegram Bot Token after saving it?</summary>
+        <div class="a">Yes — go to Profile → Preferences, tap the pencil icon next to Telegram Settings, and enter the new values.</div>
+      </details>
+      <details>
+        <summary>What are the "Inventory" and "Alerts" tiles in Tools?</summary>
+        <div class="a">Those are marked "Coming Soon" — they're not available to use yet.</div>
+      </details>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fmark">
+      <div class="logo-mark"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <span>FieldOps</span>
+    </div>
+    <p>This guide reflects the FieldOps Technician Portal as of writing. Screens and wording may change slightly as the app is updated — ask your supervisor if something looks different from what's described here.</p>
+  </div>
+</footer>
+
+</body>
+</html>

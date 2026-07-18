@@ -1776,6 +1776,8 @@ const IC={
   // ── Contact Support icons ──
   phone:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
   chat:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`,
+  // ── External link (Help & Support → onsite guide, opens outside the app) ──
+  extLink:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
@@ -1820,7 +1822,7 @@ let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[]
    fetches it once at boot into APP_VERSION; the fallback below only
    covers the rare case the fetch fails (offline boot, static path not
    yet configured) and must be bumped in lockstep with version.json. ── */
-let APP_VERSION='1.1.0';
+let APP_VERSION='1.1.1';
 async function loadAppVersion(){
   try{
     const r=await fetch('/version.json',{cache:'no-store'});
@@ -7768,7 +7770,13 @@ function camUpdateAttachmentStrip(jobId) {
 function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function csAttr(s){return String(s==null?'':s).replace(/['"<>]/g,'');}
 
-/* ── Hub (Profile → Help & Support) ── */
+/* ── Hub (Profile → Help & Support) ──
+   Third entry below renders as a real anchor element with target=_blank
+   (not an onclick + JS overlay like the other two) — it deliberately
+   leaves the app and opens in a new browser tab, since it's a static
+   handbook page, not an in-app screen. Served as a static file (see
+   /public/help/ on the server); no API route needed. */
+const HELP_GUIDE_URL='/help/fieldops-onsite-support-guide.html';
 function showHelpSupportHub(){
   document.getElementById('profile-overlay').style.display='none';
   const ov=document.getElementById('help-support-overlay');
@@ -7789,7 +7797,12 @@ function renderHelpSupportHub(){
     </div>
     <div class="app-scroll" style="flex:1;overflow-y:auto;padding:16px">
       <div class="fade-up" style="background:#fff;border-radius:4px;box-shadow:var(--s2);overflow:hidden;border:1px solid var(--bd)">
-        ${[['Contact Support','Reach a support team directly','phone','showContactSupport()'],['Troubleshooting guides & FAQ','Step-by-step fixes and answers','helpCircle','hcOpen()']].map(([t,s,i,fn])=>`
+        ${[['Contact Support','Reach a support team directly','phone','showContactSupport()'],['Troubleshooting guides & FAQ','Step-by-step fixes and answers','helpCircle','hcOpen()'],['FieldOps Onsite Support App Guide','Opens the full handbook in a new tab','fileText',null,HELP_GUIDE_URL]].map(([t,s,i,fn,href])=>href?`
+        <a href="${href}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;padding:14px 16px;gap:12px;border-bottom:1px solid var(--bd);cursor:pointer;text-decoration:none;color:inherit">
+          <div style="width:36px;height:36px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ic(i,18)}</div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--tx)">${t}</div><div style="font-size:12px;color:var(--tx3);margin-top:1px">${s}</div></div>
+          ${ic('extLink',16)}
+        </a>`:`
         <div style="display:flex;align-items:center;padding:14px 16px;gap:12px;border-bottom:1px solid var(--bd);cursor:pointer" onclick="${fn}">
           <div style="width:36px;height:36px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ic(i,18)}</div>
           <div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--tx)">${t}</div><div style="font-size:12px;color:var(--tx3);margin-top:1px">${s}</div></div>
