@@ -1769,6 +1769,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('navico-profile').innerHTML=ic('user',21);
   document.getElementById('sm-map-expand').innerHTML=ic('expand',15);
   loadTechDropdown();
+  loadAppVersion();
 
   // Restore a session that survived in localStorage but not in memory —
   // this is the path taken after Android reclaims the backgrounded tab,
@@ -1789,6 +1790,24 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[],pendingTech=null;
+
+/* ── App version (Profile footer) ──────────────────────────────────────
+   version.json in the project root is the single source of truth. This
+   fetches it once at boot into APP_VERSION; the fallback below only
+   covers the rare case the fetch fails (offline boot, static path not
+   yet configured) and must be bumped in lockstep with version.json. ── */
+let APP_VERSION='1.0.0';
+async function loadAppVersion(){
+  try{
+    const r=await fetch('/version.json',{cache:'no-store'});
+    if(r.ok){
+      const d=await r.json();
+      if(d&&d.version)APP_VERSION=d.version;
+    }
+  }catch(e){/* keep fallback */}
+  const tag=document.getElementById('app-version-tag');
+  if(tag)tag.textContent='v'+APP_VERSION;
+}
 
 /* ── Session persistence ──────────────────────────────────────────────
    CU/CR previously lived only in JS memory, so any full page reload —
@@ -4005,6 +4024,7 @@ function renderProfileOverlay(){
         </div>`).join('')}
       </div>
       <button class="fade-up" onclick="logout()" style="width:100%;background:#fff;border:1.5px solid var(--red-bd);border-radius:4px;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--red);font-size:14px;font-weight:700;cursor:pointer">${ic('logout',16)} Sign Out</button>
+      <div id="app-version-tag" class="fade-up" style="text-align:center;color:var(--tx3);font-size:11px;font-weight:500;letter-spacing:.02em;margin-top:18px;margin-bottom:6px">v${APP_VERSION}</div>
     </div>`;
 }
 
