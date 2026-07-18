@@ -50,12 +50,25 @@ const CHAT_ID   = process.env.TELEGRAM_CHAT_ID;
 // ─── Local JSON DB (fallback when Supabase is not configured) ───────────────
 const DB_PATH = path.join(__dirname, 'database.json');
 
+// ─── Contact Support module (Profile → Help & Support → Contact Support) ───
+// Local-JSON-mode default categories, mirroring the INSERT in
+// contact_support_migration.sql so both modes start out identical.
+// Contacts start empty in both modes — added later via Supabase directly
+// (or a future Admin page) — never hardcoded into the frontend.
+function defaultSupportCategories() {
+    return [
+        { id: 'cat-technical',     name: 'Technical Support',      description: 'Application issues, bugs and troubleshooting',   sort_order: 1, is_active: true },
+        { id: 'cat-operations',    name: 'Operations Support',     description: 'Job assignments, routing and field operations',  sort_order: 2, is_active: true },
+        { id: 'cat-administrative', name: 'Administrative Support', description: 'Accounts, approvals and general inquiries',      sort_order: 3, is_active: true },
+    ];
+}
+
 // NOTE: readDB/writeDB were referenced throughout this file but never
 // defined, so the no-Supabase fallback path would crash. Added here so the
 // local-JSON mode (and the new sync engine's local fallback) actually works.
 function readDB() {
     if (!fs.existsSync(DB_PATH)) {
-        return { users: [], tickets: [], task_batches: [], task_sync_logs: [], route_reservations: [], technician_statuses: [] };
+        return { users: [], tickets: [], task_batches: [], task_sync_logs: [], route_reservations: [], technician_statuses: [], support_categories: defaultSupportCategories(), support_contacts: [] };
     }
     const raw = fs.readFileSync(DB_PATH, 'utf8');
     const db  = raw.trim() ? JSON.parse(raw) : {};
@@ -69,6 +82,9 @@ function readDB() {
     db.troubleshooting_drafts    = db.troubleshooting_drafts    || [];
     db.troubleshooting_responses = db.troubleshooting_responses || [];
     db.troubleshooting_media     = db.troubleshooting_media     || [];
+    // Contact Support module (see contact_support_migration.sql)
+    db.support_categories = db.support_categories || defaultSupportCategories();
+    db.support_contacts   = db.support_contacts   || [];
     return db;
 }
 
@@ -1579,6 +1595,66 @@ app.post('/api/tickets/reopen', async (req, res) => {
         console.error('[POST /reopen]', err.message);
         res.status(500).json({ error: err.message });
 
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CONTACT SUPPORT MODULE — routes
+//  -----------------------------------------------------------------------
+//  Backs Profile → Help & Support → Contact Support. Two new tables,
+//  support_categories and support_contacts (see contact_support_migration.sql
+//  / defaultSupportCategories() above for local-JSON mode). Read-only from
+//  the app today — an Admin page can later add/edit/delete rows in either
+//  table without any frontend change, since the frontend only ever calls
+//  this one directory endpoint.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── GET /api/support/directory ──────────────────────────────────────────────
+// Every active category (sorted by sort_order), each with its active
+// contacts nested underneath (sorted by display_order). Nothing here is
+// hardcoded — it's a straight passthrough of whatever rows exist right now.
+app.get('/api/support/directory', async (req, res) => {
+    try {
+        let categories, contacts;
+        if (supabase) {
+            const { data: cats, error: catErr } = await supabase
+                .from('support_categories')
+                .select('id, name, description, sort_order')
+                .eq('is_active', true)
+                .order('sort_order', { ascending: true });
+            if (catErr) throw catErr;
+            categories = cats;
+
+            const { data: cts, error: contactErr } = await supabase
+                .from('support_contacts')
+                .select('id, category_id, full_name, designation, phone_number, viber_number, avatar_url, display_order')
+                .eq('is_active', true)
+                .order('display_order', { ascending: true });
+            if (contactErr) throw contactErr;
+            contacts = cts;
+        } else {
+            const db = readDB();
+            categories = db.support_categories
+                .filter(c => c.is_active !== false)
+                .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            contacts = db.support_contacts
+                .filter(c => c.is_active !== false)
+                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+        }
+
+        const byCategory = {};
+        for (const c of contacts || []) {
+            (byCategory[c.category_id] = byCategory[c.category_id] || []).push(c);
+        }
+        const directory = (categories || []).map(cat => ({
+            ...cat,
+            contacts: byCategory[cat.id] || []
+        }));
+
+        res.json(directory);
+    } catch (err) {
+        console.error('[GET /support/directory]', err.message);
+        res.status(500).json({ error: err.message });
     }
 });
 
