@@ -1,6 +1,6 @@
 {
-  "name": "FIELD SERVICE APP",
-  "short_name": "FIELD OPS",
+  "name": "FieldOps — Technician Portal",
+  "short_name": "FieldOps",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

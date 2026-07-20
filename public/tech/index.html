@@ -651,6 +651,57 @@ button{cursor:pointer}
 .empty-main{font-size:.9rem;font-weight:700;color:var(--tx2);line-height:1.6}
 .empty-sub{font-size:.76rem;color:var(--tx3);margin-top:5px}
 
+/* ══════════════════════════════════════
+   NOTIFICATIONS & ALERTS (Profile → Notifications, header bell)
+══════════════════════════════════════ */
+.notif-markall-btn{background:rgba(255,255,255,.14);border:none;color:#fff;font-size:10.5px;font-weight:700;padding:0 11px;height:32px;border-radius:4px;cursor:pointer;white-space:nowrap;font-family:var(--ff);letter-spacing:.02em}
+.notif-markall-btn:active{transform:scale(.96)}
+.notif-section-hdr{display:flex;align-items:center;gap:8px;margin:18px 0 8px}
+.notif-section-hdr:first-child{margin-top:2px}
+.notif-section-title{font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
+
+.notif-card-wrap{position:relative;overflow:hidden;border-radius:4px;margin-bottom:8px;max-height:300px;transition:max-height .25s ease,opacity .25s ease,margin-bottom .25s ease}
+.notif-swipe-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-radius:4px;background:var(--srf2);transition:background .15s}
+.notif-swipe-bg.reveal-right{background:var(--teal-lt)}
+.notif-swipe-bg.reveal-left{background:var(--red-lt)}
+.notif-swipe-ico{width:34px;height:34px;border-radius:4px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;flex-shrink:0}
+.notif-swipe-ico.left{background:var(--teal);color:#fff}
+.notif-swipe-ico.right{background:var(--red);color:#fff}
+.notif-swipe-bg.reveal-right .notif-swipe-ico.left{opacity:1}
+.notif-swipe-bg.reveal-left .notif-swipe-ico.right{opacity:1}
+
+.notif-card{position:relative;z-index:1;display:flex;gap:11px;align-items:flex-start;background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--bd);border-radius:4px;padding:12px 16px 12px 13px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.notif-card.unread{background:#F5FBFB}
+.notif-cat-ico{width:36px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.notif-body{flex:1;min-width:0}
+.notif-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.notif-title{font-size:13.5px;font-weight:700;color:var(--tx);line-height:1.35}
+.notif-time{font-size:10px;color:var(--tx3);white-space:nowrap;flex-shrink:0;font-family:var(--fm)}
+.notif-msg{font-size:12px;color:var(--tx2);margin-top:2px;line-height:1.45}
+.notif-dot{position:absolute;top:15px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--teal);z-index:2}
+
+.notif-skel{height:76px;border-radius:4px;margin-bottom:8px;background:linear-gradient(100deg,#eef2f1 30%,#f6f9f8 45%,#eef2f1 60%);background-size:200% 100%;animation:mapShimmer 1.6s ease-in-out infinite}
+
+.notif-empty-ico{width:84px;height:84px;margin:0 auto 18px;border-radius:4px;background:linear-gradient(135deg,var(--teal-lt),var(--primary-lt));border:1.5px solid var(--bd);display:flex;align-items:center;justify-content:center;color:var(--teal-dk)}
+
+/* Long-press action sheet + tap detail sheet — bottom-anchored, distinct from
+   the centered #modal-cancel confirm dialog used elsewhere in the app. */
+.notif-sheet-backdrop{position:fixed;inset:0;z-index:1500;background:rgba(15,23,42,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+.notif-sheet-backdrop.open{display:flex}
+.notif-sheet-card{background:var(--card);width:100%;max-width:480px;border-radius:4px 4px 0 0;padding:10px 14px calc(var(--sab) + 14px);box-shadow:var(--s4);animation:fadeUp .22s cubic-bezier(.34,1.4,.64,1) both}
+.notif-sheet-handle{width:36px;height:4px;border-radius:4px;background:var(--bd2);margin:2px auto 14px}
+.notif-sheet-btn{width:100%;display:flex;align-items:center;gap:10px;padding:13px 12px;border:none;background:none;color:var(--tx);font-size:.85rem;font-weight:700;font-family:var(--ff);cursor:pointer;border-radius:4px;text-align:left}
+.notif-sheet-btn:active{background:var(--srf2)}
+.notif-sheet-btn.danger{color:var(--red-dk)}
+.notif-sheet-btn.cancel{color:var(--tx2);margin-top:4px;border-top:1px solid var(--bd);border-radius:0;padding-top:15px}
+.notif-detail-card{background:var(--card);width:100%;max-width:480px;border-radius:4px 4px 0 0;padding:22px 20px calc(var(--sab) + 20px);box-shadow:var(--s4);animation:fadeUp .22s cubic-bezier(.34,1.4,.64,1) both}
+.notif-detail-ico{width:44px;height:44px;border-radius:4px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.notif-detail-title{font-size:1rem;font-weight:800;color:var(--tx);margin-bottom:6px}
+.notif-detail-msg{font-size:.85rem;color:var(--tx2);line-height:1.55;margin-bottom:4px}
+.notif-detail-time{font-size:.72rem;color:var(--tx3);font-family:var(--fm);margin-bottom:18px}
+.notif-detail-close{width:100%;padding:13px;border-radius:4px;border:1.5px solid var(--bd);background:var(--srf2);color:var(--tx2);font-size:.84rem;font-weight:700;cursor:pointer;font-family:var(--ff)}
+
+
 .loading{display:flex;align-items:center;justify-content:center;gap:7px;padding:56px}
 .ld{width:8px;height:8px;border-radius:50%;animation:ldpop 1.2s ease-in-out infinite}
 .ld:nth-child(1){background:var(--primary)}
@@ -1342,7 +1393,7 @@ button{cursor:pointer}
       <div class="app-brand-role" id="tch-dn">Technician</div>
     </div>
     <div class="app-header-actions">
-      <button class="icon-btn" id="bell-btn"></button>
+      <button class="icon-btn" id="bell-btn" onclick="showNotifications('bell')"></button>
       <button class="avatar-btn" id="avatar-btn" onclick="techNav('tasks')">T</button>
     </div>
   </div>
@@ -1778,6 +1829,9 @@ const IC={
   chat:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`,
   // ── External link (Help & Support → onsite guide, opens outside the app) ──
   extLink:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  // ── Notifications & Alerts icons ──
+  briefcase:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
+  server:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg>`,
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
@@ -1788,7 +1842,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('tbk').prepend(icEl('arrowL',14));
   document.getElementById('m-hd').prepend(icEl('ban',20));
   document.getElementById('tch-err').prepend(icEl('x',13));
-  document.getElementById('bell-btn').innerHTML=ic('bell',19)+'<span class="nbadge">3</span>';
+  document.getElementById('bell-btn').innerHTML=ic('bell',19);
   document.getElementById('navico-open').innerHTML=ic('folder',21);
   document.getElementById('navico-tasks').innerHTML=ic('clipboard',21);
   document.getElementById('navico-tools').innerHTML=ic('settings',21);
@@ -1810,7 +1864,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     } else {
       document.getElementById('tch-dn').textContent=CU.name;
       renderAvatar();loadPersonalInfoAndAvatar();
-      go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();
+      go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();notifInit();
     }
   }
 });
@@ -1822,7 +1876,7 @@ let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[]
    fetches it once at boot into APP_VERSION; the fallback below only
    covers the rare case the fetch fails (offline boot, static path not
    yet configured) and must be bumped in lockstep with version.json. ── */
-let APP_VERSION='1.1.1';
+let APP_VERSION='1.2.0';
 async function loadAppVersion(){
   try{
     const r=await fetch('/version.json',{cache:'no-store'});
@@ -2133,7 +2187,7 @@ async function loginTech(){
     document.getElementById('tch-dn').textContent=d.display_name;
     renderAvatar();loadPersonalInfoAndAvatar();
     showTchLogin();
-    go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();
+    go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();notifInit();
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
 }
 
@@ -2161,7 +2215,7 @@ async function changePinTech(){
     document.getElementById('tch-dn').textContent=d.display_name;
     renderAvatar();loadPersonalInfoAndAvatar();
     showTchLogin();
-    go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();
+    go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();notifInit();
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
 }
 
@@ -2350,6 +2404,9 @@ function logout(){
   document.getElementById('tch-err').classList.remove('show');
   document.getElementById('tools-overlay').style.display='none';
   document.getElementById('profile-overlay').style.display='none';
+  const notifOv=document.getElementById('notifications-overlay'); if(notifOv) notifOv.style.display='none';
+  notifDisconnectSSE();
+  NotifState.items=[];NotifState.unreadCount=0;NotifState.filter='all';
   const hcOv=document.getElementById('help-overlay'); if(hcOv) hcOv.style.display='none';
   const tsOv=document.getElementById('ts-overlay'); if(tsOv) tsOv.style.display='none';
   camShowNav();
@@ -4067,7 +4124,7 @@ function renderProfileOverlay(){
         </div>
       </div>
       <div class="list-card fade-up" style="background:#fff;border-radius:4px;box-shadow:var(--s2);overflow:hidden;border:1px solid var(--bd);margin-bottom:14px">
-        ${[['Personal Info','Edit your details','user','showPersonalInfo()'],['__availability__'],['Notifications','3 unread','bell',null],['Preferences','App settings','settings','showAppPrefs()'],['Help & Support','Contact support or browse help topics','helpCircle','showHelpSupportHub()']].map(([t,s,i,fn])=>t==='__availability__'?`
+        ${[['Personal Info','Edit your details','user','showPersonalInfo()'],['__availability__'],['Notifications',notifProfileRowDesc(),'bell',"showNotifications('profile')"],['Preferences','App settings','settings','showAppPrefs()'],['Help & Support','Contact support or browse help topics','helpCircle','showHelpSupportHub()']].map(([t,s,i,fn])=>t==='__availability__'?`
         <div style="display:flex;align-items:center;padding:14px 16px;gap:12px;border-bottom:1px solid var(--bd)">
           <div style="width:36px;height:36px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ic('power',18)}</div>
           <div style="flex:1;font-size:14px;font-weight:600;color:var(--tx)">Availability</div>
@@ -4075,7 +4132,7 @@ function renderProfileOverlay(){
         </div>`:`
         <div style="display:flex;align-items:center;padding:14px 16px;gap:12px;border-bottom:1px solid var(--bd);${fn?'cursor:pointer':''}"${fn?` onclick="${fn}"`:''}>
           <div style="width:36px;height:36px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ic(i,18)}</div>
-          <div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--tx)">${t}</div><div style="font-size:12px;color:var(--tx3);margin-top:1px">${s}</div></div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--tx)">${t}</div><div style="font-size:12px;color:var(--tx3);margin-top:1px"${t==='Notifications'?' id="profile-notif-desc"':''}>${s}</div></div>
           ${ic('chevR',16)}
         </div>`).join('')}
       </div>
@@ -5324,6 +5381,14 @@ async function navOptimize() {
   if (optBtn) { optBtn.disabled = false; optBtn.innerHTML = `${ic('routeNav', 15)} Optimize Route`; }
   const startBtn = document.getElementById('nav-start-btn');
   if (startBtn && NavState.stops.length) startBtn.disabled = false;
+
+  if (NavState.stops.length) {
+    notifClientCreate({
+      category: 'route', title: 'Route optimized',
+      message: `Your route was optimized — ${NavState.stops.length} stop${NavState.stops.length === 1 ? '' : 's'}, est. ${NavState.totalDurMin ? Math.round(NavState.totalDurMin) + ' min' : '—'}.`,
+      priority: 'info', action_type: 'route',
+    });
+  }
 
   NavState.isLoading = false;
 }
@@ -8422,6 +8487,605 @@ function tsFormatSummaryText(s){
   return TS_SUMMARY_FIELDS.map(([key,label])=>`${label.toUpperCase()}:\n${s[key]||'—'}`).join('\n\n');
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   NOTIFICATIONS & ALERTS
+   ─ Opened from the Profile card ("Notifications") or the header bell icon.
+   ─ Server contract: GET/POST /api/notifications* — see server.js's
+     "NOTIFICATIONS & ALERTS" section for the full API.
+   ─ Real-time: one SSE connection per session (notifConnectSSE), opened right
+     after login/session-restore and closed on logout. Every arriving change
+     (created/updated/deleted/read-all) flows through notifHandleSSEMessage —
+     that's the single path that updates counts/badges, whether the change
+     came from this device, another tab, or another device entirely.
+   ─ Local cache (fo_notif_cache_<id> in localStorage) paints the list
+     instantly on open while a fresh page loads in the background.
+════════════════════════════════════════════════════════════════════════════ */
+
+const NotifState = {
+  origin: 'profile',   // 'profile' | 'bell' — where to return to on close
+  filter: 'all',        // 'all' | 'unread' | 'jobs' | 'route' | 'system' | 'account' | 'support'
+  items: [],
+  unreadCount: 0,
+  loading: false,
+  loadingMore: false,
+  hasMore: true,
+  sse: null,
+  actionSheetId: null,
+};
+
+const NOTIF_CATS = {
+  jobs:    { label: 'Jobs',    icon: 'briefcase',  bg: 'var(--primary-lt)', fg: 'var(--primary)' },
+  route:   { label: 'Route',   icon: 'routeNav',   bg: 'var(--teal-lt)',    fg: 'var(--teal-dk)' },
+  system:  { label: 'System',  icon: 'server',     bg: 'var(--violet-lt)',  fg: 'var(--violet-dk)' },
+  account: { label: 'Account', icon: 'user',       bg: 'var(--amber-lt)',   fg: 'var(--amber-dk)' },
+  support: { label: 'Support', icon: 'helpCircle', bg: 'var(--green-lt)',   fg: 'var(--green-dk)' },
+};
+const NOTIF_PRIORITY_COLOR = { info: 'var(--green)', reminder: 'var(--amber)', critical: 'var(--red)' };
+const NOTIF_FILTERS = [
+  { id: 'all',     label: 'All' },
+  { id: 'unread',  label: 'Unread' },
+  { id: 'jobs',    label: 'Jobs' },
+  { id: 'route',   label: 'Route' },
+  { id: 'system',  label: 'System' },
+  { id: 'account', label: 'Account' },
+  { id: 'support', label: 'Support' },
+];
+
+function fmtRelTime(iso) {
+  const d = new Date(iso);
+  const diffSec = Math.floor((Date.now() - d) / 1000);
+  if (diffSec < 45) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return diffMin + ' min ago';
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return diffHr + (diffHr === 1 ? ' hour ago' : ' hours ago');
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dayDiff = Math.round((startOfToday - startOfD) / 86400000);
+  if (dayDiff === 1) return 'Yesterday';
+  if (dayDiff > 1 && dayDiff < 7) return dayDiff + ' days ago';
+  return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+}
+
+// ── Local cache (instant paint on open; not a source of truth) ─────────────
+function notifCacheKey() { return 'fo_notif_cache_' + (CU ? CU.id : 'anon'); }
+function notifLoadCache() {
+  try {
+    const raw = localStorage.getItem(notifCacheKey());
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function notifSaveCache(items, unreadCount) {
+  try { localStorage.setItem(notifCacheKey(), JSON.stringify({ items: items.slice(0, 20), unreadCount })); } catch (e) { /* ignore */ }
+}
+
+// ── Profile row description / header badges ────────────────────────────────
+function notifProfileRowDesc() {
+  return NotifState.unreadCount > 0 ? (NotifState.unreadCount + ' unread') : 'All caught up';
+}
+function notifRefreshBadges() {
+  const bell = document.getElementById('bell-btn');
+  if (bell) bell.innerHTML = ic('bell', 19) + (NotifState.unreadCount > 0 ? `<span class="nbadge">${NotifState.unreadCount > 99 ? '99+' : NotifState.unreadCount}</span>` : '');
+  const profRow = document.getElementById('profile-notif-desc');
+  if (profRow) profRow.textContent = notifProfileRowDesc();
+}
+function notifUpdateHeaderSub() {
+  const el = document.getElementById('notif-header-sub');
+  if (el) el.textContent = NotifState.unreadCount > 0 ? (NotifState.unreadCount + ' unread') : 'All caught up';
+}
+
+// ── Open / close (mirrors showContactSupport / closeContactSupport exactly) ─
+function showNotifications(origin) {
+  NotifState.origin = origin || 'profile';
+  NotifState.filter = 'all';
+  if (NotifState.origin === 'profile') document.getElementById('profile-overlay').style.display = 'none';
+  document.getElementById('notifications-overlay').style.display = 'flex';
+  renderNotifications();
+}
+function closeNotifications(skipRestore) {
+  document.getElementById('notifications-overlay').style.display = 'none';
+  if (skipRestore) return;
+  if (NotifState.origin === 'profile') {
+    renderProfileOverlay();
+    document.getElementById('profile-overlay').style.display = 'flex';
+    navHide.attach(document.querySelector('#profile-overlay .app-scroll'));
+  }
+}
+
+function renderNotifications() {
+  const ov = document.getElementById('notifications-overlay');
+  ov.innerHTML = `
+    <div class="app-header" style="flex-shrink:0">
+      <button class="icon-btn" onclick="closeNotifications()">${ic('arrowL', 18)}</button>
+      <div class="app-brand-info">
+        <div class="app-brand-name">Notifications</div>
+        <div class="app-brand-role" id="notif-header-sub">Loading…</div>
+      </div>
+      <div class="app-header-actions">
+        <button class="notif-markall-btn" onclick="notifMarkAllRead()">Mark All Read</button>
+        <button class="icon-btn" onclick="notifToggleFilterDrawer()">${ic('filter', 16)}</button>
+      </div>
+    </div>
+    <div class="locality-drawer" id="notif-filter-drawer" style="display:none;top:0">
+      <div class="locality-drawer-header"><span class="locality-drawer-title">Filter</span></div>
+      <div class="locality-chips" id="notif-filter-chips"></div>
+    </div>
+    <div class="app-scroll" id="notif-scroll">
+      <div id="notif-list"></div>
+    </div>`;
+  navHide.attach(document.getElementById('notif-scroll'));
+  notifRenderFilterChips();
+
+  const cached = notifLoadCache();
+  if (cached && cached.items && cached.items.length) {
+    NotifState.items = cached.items;
+    NotifState.unreadCount = cached.unreadCount || 0;
+    notifRenderItems();
+    notifUpdateHeaderSub();
+  } else {
+    NotifState.items = [];
+    NotifState.loading = true;
+    notifRenderItems();
+  }
+  NotifState.hasMore = true;
+  notifFetchPage(true);
+
+  document.getElementById('notif-scroll').addEventListener('scroll', notifOnScroll);
+}
+
+function notifOnScroll(e) {
+  if (NotifState.loading || NotifState.loadingMore || !NotifState.hasMore) return;
+  const el = e.target;
+  if (el.scrollHeight - el.scrollTop - el.clientHeight < 150) notifFetchPage(false);
+}
+
+// ── Filter drawer (reuses .locality-drawer / .locality-chip styling as-is) ──
+function notifRenderFilterChips() {
+  const wrap = document.getElementById('notif-filter-chips');
+  if (!wrap) return;
+  wrap.innerHTML = NOTIF_FILTERS.map(f => `<button class="locality-chip${NotifState.filter === f.id ? ' active' : ''}" onclick="notifSetFilter('${f.id}')">${f.label}</button>`).join('');
+}
+function notifToggleFilterDrawer() {
+  const d = document.getElementById('notif-filter-drawer');
+  if (d) d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+function notifSetFilter(id) {
+  NotifState.filter = id;
+  notifRenderFilterChips();
+  const d = document.getElementById('notif-filter-drawer');
+  if (d) d.style.display = 'none';
+  NotifState.items = [];
+  NotifState.hasMore = true;
+  NotifState.loading = true;
+  notifRenderItems();
+  notifFetchPage(true);
+}
+
+// ── Fetch / pagination ───────────────────────────────────────────────────
+async function notifFetchPage(reset) {
+  if (!CU) return;
+  if (reset) { NotifState.loading = NotifState.items.length === 0; }
+  else { NotifState.loadingMore = true; notifRenderItems(); }
+
+  try {
+    const params = new URLSearchParams({ technician_id: CU.id, limit: '20' });
+    if (NotifState.filter === 'unread') params.set('unread', '1');
+    else if (NotifState.filter !== 'all') params.set('category', NotifState.filter);
+    if (!reset && NotifState.items.length) params.set('before', NotifState.items[NotifState.items.length - 1].created_at);
+
+    const r = await fetch('/api/notifications?' + params.toString());
+    const d = r.ok ? await r.json() : { items: [], has_more: false, unread_count: NotifState.unreadCount };
+    NotifState.items = reset ? (d.items || []) : NotifState.items.concat(d.items || []);
+    NotifState.hasMore = !!d.has_more;
+    NotifState.unreadCount = d.unread_count || 0;
+    if (reset) notifSaveCache(NotifState.items, NotifState.unreadCount);
+  } catch (e) { /* keep whatever was already loaded/cached */ }
+
+  NotifState.loading = false;
+  NotifState.loadingMore = false;
+  notifRenderItems();
+  notifUpdateHeaderSub();
+  notifRefreshBadges();
+}
+
+// ── Rendering ────────────────────────────────────────────────────────────
+function notifRenderItems() {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+  if (!NotifState.items.length) {
+    list.innerHTML = NotifState.loading ? notifSkeletonHTML(6) : notifEmptyStateHTML();
+    return;
+  }
+  let html = '';
+  if (NotifState.filter === 'all') {
+    NOTIF_CATEGORIES_ORDER.forEach(catKey => {
+      const inCat = NotifState.items.filter(n => n.category === catKey);
+      if (!inCat.length) return;
+      html += notifSectionHeaderHTML(catKey);
+      html += inCat.map(notifCardHTML).join('');
+    });
+  } else {
+    html = NotifState.items.map(notifCardHTML).join('');
+  }
+  if (NotifState.loadingMore) html += '<div class="loading" style="padding:16px 0"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div>';
+  list.innerHTML = html;
+}
+const NOTIF_CATEGORIES_ORDER = ['jobs', 'route', 'system', 'account', 'support'];
+
+function notifSectionHeaderHTML(catKey) {
+  const cat = NOTIF_CATS[catKey];
+  return `<div class="notif-section-hdr">
+    <div style="width:26px;height:26px;border-radius:4px;background:${cat.bg};color:${cat.fg};display:flex;align-items:center;justify-content:center;flex-shrink:0">${ic(cat.icon, 14)}</div>
+    <div class="notif-section-title">${cat.label}</div>
+  </div>`;
+}
+
+function notifCardHTML(n) {
+  const cat = NOTIF_CATS[n.category] || NOTIF_CATS.system;
+  const pcolor = NOTIF_PRIORITY_COLOR[n.priority] || NOTIF_PRIORITY_COLOR.info;
+  const unread = !n.is_read;
+  return `
+  <div class="notif-card-wrap fade-up" data-id="${n.id}">
+    <div class="notif-swipe-bg">
+      <span class="notif-swipe-ico left">${ic('check', 18)}</span>
+      <span class="notif-swipe-ico right">${ic('trash', 18)}</span>
+    </div>
+    <div class="notif-card${unread ? ' unread' : ''}" style="border-left-color:${pcolor}" onclick="notifCardClick('${n.id}')">
+      <div class="notif-cat-ico" style="background:${cat.bg};color:${cat.fg}">${ic(cat.icon, 17)}</div>
+      <div class="notif-body">
+        <div class="notif-title-row">
+          <span class="notif-title">${escHtml(n.title)}</span>
+          <span class="notif-time">${fmtRelTime(n.created_at)}</span>
+        </div>
+        <div class="notif-msg">${escHtml(n.message)}</div>
+      </div>
+      ${unread ? '<span class="notif-dot"></span>' : ''}
+    </div>
+  </div>`;
+}
+
+function notifEmptyStateHTML() {
+  return `<div style="text-align:center;padding:64px 20px 40px">
+    <div class="notif-empty-ico">${ic('bell', 38)}</div>
+    <div class="empty-main">No Notifications</div>
+    <div class="empty-sub">You're all caught up.<br>New updates will appear here.</div>
+  </div>`;
+}
+function notifSkeletonHTML(n) {
+  let h = '';
+  for (let i = 0; i < n; i++) h += '<div class="notif-skel"></div>';
+  return h;
+}
+
+// ── Local state mutation helpers (used by read/unread/delete + SSE) ────────
+function notifApplyLocalUpdate(id, patch) {
+  const idx = NotifState.items.findIndex(n => n.id === id);
+  if (idx === -1) return;
+  const wasUnread = !NotifState.items[idx].is_read;
+  Object.assign(NotifState.items[idx], patch);
+  const isUnreadNow = !NotifState.items[idx].is_read;
+  if (wasUnread && !isUnreadNow) NotifState.unreadCount = Math.max(0, NotifState.unreadCount - 1);
+  if (!wasUnread && isUnreadNow) NotifState.unreadCount += 1;
+  notifSaveCache(NotifState.items, NotifState.unreadCount);
+}
+function notifApplyLocalRemove(id) {
+  const idx = NotifState.items.findIndex(n => n.id === id);
+  if (idx === -1) return;
+  if (!NotifState.items[idx].is_read) NotifState.unreadCount = Math.max(0, NotifState.unreadCount - 1);
+  NotifState.items.splice(idx, 1);
+  notifSaveCache(NotifState.items, NotifState.unreadCount);
+}
+function notifPatchCardDOM(id) {
+  const wrap = document.querySelector(`.notif-card-wrap[data-id="${id}"]`);
+  if (!wrap) return;
+  const n = NotifState.items.find(x => x.id === id);
+  if (!n) return;
+  const card = wrap.querySelector('.notif-card');
+  card.classList.toggle('unread', !n.is_read);
+  let dot = card.querySelector('.notif-dot');
+  if (n.is_read) { if (dot) dot.remove(); }
+  else if (!dot) { dot = document.createElement('span'); dot.className = 'notif-dot'; card.appendChild(dot); }
+}
+
+// ── Read / unread / delete / mark-all (optimistic UI + best-effort network) ─
+async function notifMarkRead(id) {
+  notifApplyLocalUpdate(id, { is_read: true });
+  notifPatchCardDOM(id);
+  notifUpdateHeaderSub(); notifRefreshBadges();
+  try { await fetch(`/api/notifications/${id}/read`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ technician_id: CU.id }) }); } catch (e) { /* ignore */ }
+}
+async function notifMarkUnread(id) {
+  notifApplyLocalUpdate(id, { is_read: false });
+  notifPatchCardDOM(id);
+  notifUpdateHeaderSub(); notifRefreshBadges();
+  try { await fetch(`/api/notifications/${id}/unread`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ technician_id: CU.id }) }); } catch (e) { /* ignore */ }
+}
+async function notifDelete(id, alreadyAnimatedOut) {
+  notifApplyLocalRemove(id);
+  if (!alreadyAnimatedOut) notifRenderItems();
+  notifUpdateHeaderSub(); notifRefreshBadges();
+  try { await fetch(`/api/notifications/${id}?technician_id=${encodeURIComponent(CU.id)}`, { method: 'DELETE' }); } catch (e) { /* ignore */ }
+}
+async function notifMarkAllRead() {
+  if (!NotifState.items.some(n => !n.is_read) && NotifState.unreadCount === 0) { toast('Nothing to mark — you\'re all caught up.', 'info'); return; }
+  NotifState.items.forEach(n => n.is_read = true);
+  NotifState.unreadCount = 0;
+  notifSaveCache(NotifState.items, NotifState.unreadCount);
+  notifRenderItems(); notifUpdateHeaderSub(); notifRefreshBadges();
+  toast('All notifications marked as read.', 'ok');
+  try { await fetch('/api/notifications/read-all', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ technician_id: CU.id }) }); } catch (e) { /* ignore */ }
+}
+
+// ── Tap-to-navigate ──────────────────────────────────────────────────────
+function notifCardClick(id) {
+  if (cardClickGuardId === id && Date.now() < cardClickGuardUntil) return;
+  const n = NotifState.items.find(x => x.id === id);
+  if (!n) return;
+  notifTap(n);
+}
+function notifTap(n) {
+  if (!n.is_read) notifMarkRead(n.id);
+  switch (n.action_type) {
+    case 'job_open':
+      closeNotifications(true);
+      techNav('open');
+      loadOpen().then(() => {
+        if (n.action_data && n.action_data.ticket_id) openSiteModal(n.action_data.ticket_id);
+        else toast('This job may no longer be available.', 'info');
+      });
+      break;
+    case 'job_ongoing':
+      closeNotifications(true);
+      techNav('tasks');
+      break;
+    case 'job_cancelled':
+      closeNotifications(true);
+      techNav('tasks'); tchTab('canc', document.getElementById('tt-canc'));
+      break;
+    case 'job_done':
+      closeNotifications(true);
+      techNav('tasks'); tchTab('done', document.getElementById('tt-done'));
+      break;
+    case 'route':
+      closeNotifications(true);
+      techNav('tools'); showRouteOverlay();
+      break;
+    case 'profile':
+      closeNotifications(true);
+      techNav('profile');
+      break;
+    case 'contact_support':
+      closeNotifications(true);
+      techNav('profile');
+      document.getElementById('profile-overlay').style.display = 'none';
+      renderHelpSupportHub();
+      showContactSupport();
+      break;
+    case 'troubleshooting':
+      closeNotifications(true);
+      techNav('profile');
+      document.getElementById('profile-overlay').style.display = 'none';
+      renderHelpSupportHub();
+      hcOpen();
+      break;
+    default:
+      showNotifDetailSheet(n);
+  }
+}
+
+// ── Long-press action sheet (Mark as Unread/Read, Delete) ───────────────────
+function notifOpenActionSheet(id) {
+  const n = NotifState.items.find(x => x.id === id);
+  if (!n) return;
+  NotifState.actionSheetId = id;
+  document.getElementById('notif-sheet-toggle-btn').innerHTML = ic('bell', 16) + `<span>${n.is_read ? 'Mark as Unread' : 'Mark as Read'}</span>`;
+  document.getElementById('notif-sheet-delete-btn').innerHTML = ic('trash', 16) + '<span>Delete</span>';
+  document.getElementById('notif-action-sheet').classList.add('open');
+}
+function notifCloseActionSheet() {
+  document.getElementById('notif-action-sheet').classList.remove('open');
+  NotifState.actionSheetId = null;
+}
+function notifSheetToggleRead() {
+  const id = NotifState.actionSheetId;
+  const n = NotifState.items.find(x => x.id === id);
+  notifCloseActionSheet();
+  if (!id || !n) return;
+  if (n.is_read) notifMarkUnread(id); else notifMarkRead(id);
+}
+function notifSheetDelete() {
+  const id = NotifState.actionSheetId;
+  notifCloseActionSheet();
+  if (!id) return;
+  const wrap = document.querySelector(`.notif-card-wrap[data-id="${id}"]`);
+  if (wrap) {
+    wrap.style.overflow = 'hidden';
+    wrap.style.maxHeight = '0px'; wrap.style.opacity = '0'; wrap.style.marginBottom = '0px';
+    setTimeout(() => { notifDelete(id, true); notifRenderItems(); }, 250);
+  } else {
+    notifDelete(id);
+  }
+}
+
+// ── Tap detail sheet (fallback for notifications with no dedicated screen) ──
+function showNotifDetailSheet(n) {
+  const cat = NOTIF_CATS[n.category] || NOTIF_CATS.system;
+  document.getElementById('notif-detail-card-body').innerHTML = `
+    <div class="notif-detail-ico" style="background:${cat.bg};color:${cat.fg}">${ic(cat.icon, 20)}</div>
+    <div class="notif-detail-title">${escHtml(n.title)}</div>
+    <div class="notif-detail-msg">${escHtml(n.message)}</div>
+    <div class="notif-detail-time">${fmtRelTime(n.created_at)}</div>
+    <button class="notif-detail-close" onclick="closeNotifDetailSheet()">Close</button>`;
+  document.getElementById('notif-detail-sheet').classList.add('open');
+}
+function closeNotifDetailSheet() {
+  document.getElementById('notif-detail-sheet').classList.remove('open');
+}
+
+// ── Swipe gestures: right = mark read (spring back), left = delete (animate out) ──
+// Mirrors this file's existing drag-handling conventions (see the "Slide to
+// Reserve" slider): delegated document listeners, touch+mouse both handled,
+// translateX during the drag, cubic-bezier spring on release. A small
+// horizontal-vs-vertical intent check (8px deadzone, 1.3x ratio) means a
+// vertical scroll through the list is never hijacked as a swipe. Uses the
+// same cardClickGuardId/cardClickGuardUntil the Site Details modal already
+// uses, so a drag release never also fires the tap-to-navigate handler.
+(function () {
+  let activeWrap = null, startX = 0, startY = 0, curX = 0, decided = false, intentHorizontal = false;
+  let lpTimer = null;
+  const ACTION_THRESH = 88;
+
+  function armLongPress(id) {
+    lpTimer = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(8);
+      notifOpenActionSheet(id);
+      lpTimer = null;
+    }, 500);
+  }
+  function cancelLongPress() { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } }
+
+  function down(e) {
+    const wrap = e.target.closest && e.target.closest('.notif-card-wrap');
+    if (!wrap) return;
+    const ov = document.getElementById('notifications-overlay');
+    if (!ov || ov.style.display !== 'flex') return;
+    activeWrap = wrap; decided = false; intentHorizontal = false; curX = 0;
+    const p = e.touches ? e.touches[0] : e;
+    startX = p.clientX; startY = p.clientY;
+    const card = wrap.querySelector('.notif-card');
+    card.style.transition = 'none';
+    armLongPress(wrap.dataset.id);
+    document.addEventListener('mousemove', move);
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('mouseup', up);
+    document.addEventListener('touchend', up);
+  }
+  function move(e) {
+    if (!activeWrap) return;
+    const p = e.touches ? e.touches[0] : e;
+    const dx = p.clientX - startX, dy = p.clientY - startY;
+    if (!decided) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        decided = true;
+        intentHorizontal = Math.abs(dx) > Math.abs(dy) * 1.3;
+        if (intentHorizontal) cancelLongPress();
+      } else return;
+    }
+    if (!intentHorizontal) { cancelLongPress(); return; }
+    if (e.cancelable) e.preventDefault();
+    curX = dx;
+    const card = activeWrap.querySelector('.notif-card');
+    card.style.transform = `translateX(${curX}px)`;
+    const bg = activeWrap.querySelector('.notif-swipe-bg');
+    bg.classList.toggle('reveal-right', curX > 10);
+    bg.classList.toggle('reveal-left', curX < -10);
+  }
+  function up() {
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('mouseup', up);
+    document.removeEventListener('touchend', up);
+    cancelLongPress();
+    if (!activeWrap) return;
+    const wrap = activeWrap, id = wrap.dataset.id, card = wrap.querySelector('.notif-card');
+    card.style.transition = 'transform .25s cubic-bezier(.34,1.4,.64,1)';
+    if (intentHorizontal && Math.abs(curX) >= ACTION_THRESH) { cardClickGuardId = id; cardClickGuardUntil = Date.now() + 400; }
+    if (intentHorizontal && curX >= ACTION_THRESH) {
+      card.style.transform = 'translateX(0)';
+      notifMarkRead(id);
+      toast('Marked as read.', 'ok');
+    } else if (intentHorizontal && curX <= -ACTION_THRESH) {
+      card.style.transform = `translateX(${-window.innerWidth}px)`;
+      wrap.style.overflow = 'hidden';
+      setTimeout(() => {
+        wrap.style.maxHeight = '0px'; wrap.style.opacity = '0'; wrap.style.marginBottom = '0px';
+        setTimeout(() => { notifDelete(id, true); notifRenderItems(); }, 240);
+      }, 120);
+    } else {
+      card.style.transform = 'translateX(0)';
+      const bg = wrap.querySelector('.notif-swipe-bg');
+      if (bg) bg.classList.remove('reveal-right', 'reveal-left');
+    }
+    activeWrap = null; decided = false; intentHorizontal = false; curX = 0;
+  }
+  document.addEventListener('mousedown', down);
+  document.addEventListener('touchstart', down, { passive: true });
+})();
+
+// ── Client-triggered notifications ──────────────────────────────────────
+// The couple of notification types only the browser itself can detect
+// (a route optimization just run, a new version just noticed) — everything
+// else is created server-side. Fire-and-forget; the SSE message is what
+// actually updates the badge/list, so nothing is done with the response here.
+function notifClientCreate(payload) {
+  if (!CU) return;
+  fetch('/api/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ technician_id: CU.id, ...payload }) }).catch(() => {});
+}
+function notifCheckAppVersionChanged(newVersion) {
+  if (!CU || !newVersion) return;
+  const key = 'fo_notif_seen_version_' + CU.id;
+  let seen = null;
+  try { seen = localStorage.getItem(key); } catch (e) { /* ignore */ }
+  try { localStorage.setItem(key, newVersion); } catch (e) { /* ignore */ }
+  if (seen === null || seen === newVersion) return; // first run on this device, or unchanged — don't announce
+  notifClientCreate({
+    category: 'system', title: 'New app version available',
+    message: `Version ${newVersion} is available.`,
+    priority: 'info', action_type: 'app_update', dedup_key: `app_update_${newVersion}`,
+  });
+}
+
+// ── Real-time (SSE) ──────────────────────────────────────────────────────
+function notifConnectSSE() {
+  if (!CU || NotifState.sse || typeof EventSource === 'undefined') return;
+  try {
+    const es = new EventSource('/api/notifications/stream?technician_id=' + encodeURIComponent(CU.id));
+    es.onmessage = (e) => { try { notifHandleSSEMessage(JSON.parse(e.data)); } catch (err) { /* ignore malformed */ } };
+    es.onerror = () => { /* native EventSource reconnects on its own */ };
+    NotifState.sse = es;
+  } catch (e) { NotifState.sse = null; }
+}
+function notifDisconnectSSE() {
+  if (NotifState.sse) { try { NotifState.sse.close(); } catch (e) { /* ignore */ } NotifState.sse = null; }
+}
+function notifHandleSSEMessage(msg) {
+  if (!msg || !msg.type) return;
+  if (msg.type === 'created' && msg.notification) {
+    if (!NotifState.items.find(n => n.id === msg.notification.id)) {
+      NotifState.items.unshift(msg.notification);
+      if (!msg.notification.is_read) NotifState.unreadCount += 1;
+    }
+  } else if (msg.type === 'updated' && msg.notification) {
+    const idx = NotifState.items.findIndex(n => n.id === msg.notification.id);
+    if (idx !== -1) NotifState.items[idx] = msg.notification;
+  } else if (msg.type === 'deleted' && msg.notification) {
+    const idx = NotifState.items.findIndex(n => n.id === msg.notification.id);
+    if (idx !== -1) NotifState.items.splice(idx, 1);
+  } else if (msg.type === 'read-all') {
+    NotifState.items.forEach(n => n.is_read = true);
+    NotifState.unreadCount = 0;
+  }
+  notifSaveCache(NotifState.items, NotifState.unreadCount);
+  notifRefreshBadges();
+  const ov = document.getElementById('notifications-overlay');
+  if (ov && ov.style.display === 'flex') { notifRenderItems(); notifUpdateHeaderSub(); }
+}
+
+// ── Bootstrap (called once dashboard is reached: fresh login, PIN-change
+// success, or a restored session — see the three call sites alongside
+// initDutyStatus()/startSyncPolling() in this file) ─────────────────────
+function notifInit() {
+  if (!CU) return;
+  fetch('/api/notifications?technician_id=' + encodeURIComponent(CU.id) + '&limit=1')
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d) { NotifState.unreadCount = d.unread_count || 0; notifRefreshBadges(); } })
+    .catch(() => {});
+  notifConnectSSE();
+  notifCheckAppVersionChanged(APP_VERSION);
+}
+
+
 </script>
 
 <!-- ══════════════════════════════════════ MY ROUTE PANEL (sub-page of Tools) ══════════════════════════════════════ -->
@@ -8479,6 +9143,25 @@ function tsFormatSummaryText(s){
 
 <!-- ══════════════════════════════════════ CONTACT SUPPORT — dynamic Supabase-backed directory, opened from the Help & Support hub ══════════════════════════════════════ -->
 <div id="contact-support-overlay" style="display:none;position:fixed;inset:0;z-index:126;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+
+<!-- ══════════════════════════════════════ NOTIFICATIONS & ALERTS — opened from the Profile card or the header bell icon ══════════════════════════════════════ -->
+<div id="notifications-overlay" style="display:none;position:fixed;inset:0;z-index:127;background:var(--bg);max-width:480px;margin:0 auto;flex-direction:column">
+</div>
+
+<!-- Long-press action sheet (Mark as Unread / Delete) -->
+<div id="notif-action-sheet" class="notif-sheet-backdrop" onclick="if(event.target===this)notifCloseActionSheet()">
+  <div class="notif-sheet-card">
+    <div class="notif-sheet-handle"></div>
+    <button class="notif-sheet-btn" id="notif-sheet-toggle-btn" onclick="notifSheetToggleRead()"></button>
+    <button class="notif-sheet-btn danger" id="notif-sheet-delete-btn" onclick="notifSheetDelete()"></button>
+    <button class="notif-sheet-btn cancel" onclick="notifCloseActionSheet()">Cancel</button>
+  </div>
+</div>
+
+<!-- Tap detail sheet — fallback for notifications with no dedicated destination screen -->
+<div id="notif-detail-sheet" class="notif-sheet-backdrop" onclick="if(event.target===this)closeNotifDetailSheet()">
+  <div class="notif-detail-card" id="notif-detail-card-body"></div>
 </div>
 
 <!-- ══════════════════════════════════════ HELP & SUPPORT — troubleshooting knowledge base, opened from the Help & Support hub ══════════════════════════════════════ -->

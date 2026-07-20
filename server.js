@@ -68,7 +68,7 @@ function defaultSupportCategories() {
 // local-JSON mode (and the new sync engine's local fallback) actually works.
 function readDB() {
     if (!fs.existsSync(DB_PATH)) {
-        return { users: [], tickets: [], task_batches: [], task_sync_logs: [], route_reservations: [], technician_statuses: [], support_categories: defaultSupportCategories(), support_contacts: [] };
+        return { users: [], tickets: [], task_batches: [], task_sync_logs: [], route_reservations: [], technician_statuses: [], support_categories: defaultSupportCategories(), support_contacts: [], notifications: [] };
     }
     const raw = fs.readFileSync(DB_PATH, 'utf8');
     const db  = raw.trim() ? JSON.parse(raw) : {};
@@ -85,6 +85,8 @@ function readDB() {
     // Contact Support module (see contact_support_migration.sql)
     db.support_categories = db.support_categories || defaultSupportCategories();
     db.support_contacts   = db.support_contacts   || [];
+    // Notifications & Alerts (see supabase_migration_notifications.sql)
+    db.notifications = db.notifications || [];
     return db;
 }
 
@@ -869,6 +871,7 @@ app.post('/api/auth/tech/change-pin', async (req, res) => {
             writeDB(db);
         }
 
+        notifyPinChanged(tech_code);
         res.json({ id: user.tech_code, display_name: user.display_name, tech_code: user.tech_code, role: 'technician' });
     } catch (err) {
         console.error('[POST /auth/tech/change-pin]', err.message);
@@ -1021,6 +1024,7 @@ app.post('/api/users/:tech_code/personal-info', async (req, res) => {
             user.address    = address    || '';
             writeDB(db);
         }
+        notifyProfileUpdated(tech_code);
         res.json({ message: 'Personal info saved.' });
     } catch (err) {
         console.error('[POST /users/personal-info]', err.message);
@@ -1048,6 +1052,7 @@ app.post('/api/users/:tech_code/photo', upload.single('photo'), async (req, res)
             user.photo_url = photo_url;
             writeDB(db);
         }
+        notifyProfileUpdated(tech_code);
         res.json({ message: 'Photo updated.', photo_url });
     } catch (err) {
         console.error('[POST /users/photo]', err.message);
@@ -1321,6 +1326,14 @@ app.post('/api/tickets/claim', async (req, res) => {
                     }
                 });
 
+            // Notifications & Alerts — additive and non-blocking; a failure here must never affect the claim itself.
+            createNotificationInternal({
+                user_id: technician_id, category: 'jobs', title: 'Job claimed successfully',
+                message: `Your reservation for ${ticketNumber} was successful.`,
+                priority: 'info', action_type: 'job_ongoing', action_data: { ticket_id: id },
+                dedup_key: `job_claimed_${id}`,
+            }).catch(e => console.error('[notify job_claimed]', e.message));
+
             return res.json({
                 message:   `Ticket ${ticketNumber} claimed by ${user.display_name}`,
                 ticket_id: ticketNumber
@@ -1357,6 +1370,15 @@ app.post('/api/tickets/claim', async (req, res) => {
         }
 
         writeDB(db);
+
+        // Notifications & Alerts — additive and non-blocking; a failure here must never affect the claim itself.
+        createNotificationInternal({
+            user_id: technician_id, category: 'jobs', title: 'Job claimed successfully',
+            message: `Your reservation for ${t.ticket_id} was successful.`,
+            priority: 'info', action_type: 'job_ongoing', action_data: { ticket_id: id },
+            dedup_key: `job_claimed_${id}`,
+        }).catch(e => console.error('[notify job_claimed]', e.message));
+
         res.json({ message: `Ticket ${t.ticket_id} claimed by ${technician_id}`, ticket_id: t.ticket_id });
     } catch (err) {
         console.error('[POST /claim]', err.message);
@@ -1514,8 +1536,11 @@ app.post('/api/tickets/cancel', async (req, res) => {
     try {
         let ticketNumber = id;
         if (supabase) {
-            const { data: row } = await supabase.from('tickets').select('ticket_id').eq('id', id).maybeSingle();
+            const { data: row } = await supabase.from('tickets').select('ticket_id, assigned_to, status').eq('id', id).maybeSingle();
             ticketNumber = row?.ticket_id || ticketNumber;
+            // assigned_to on this table is the technician's Supabase row id (uuid), not their
+            // tech_code — resolve it below, only when the ticket was actually ON_GOING.
+            const previouslyAssignedUuid = row?.status === 'ON_GOING' ? row?.assigned_to : null;
 
             const { error } = await supabase.from('tickets').update({
                 status:               'CANCELLED',
@@ -1525,18 +1550,44 @@ app.post('/api/tickets/cancel', async (req, res) => {
                 assigned_to:          null
             }).eq('id', id).in('status', ['OPEN', 'ON_GOING']);
             if (error) throw error;
+
+            // Notifications & Alerts — additive and non-blocking.
+            if (previouslyAssignedUuid) {
+                supabase.from('users').select('tech_code').eq('id', previouslyAssignedUuid).maybeSingle()
+                    .then(({ data: u }) => {
+                        if (u && u.tech_code && u.tech_code !== cancelled_by) {
+                            createNotificationInternal({
+                                user_id: u.tech_code, category: 'jobs', title: 'Job cancelled',
+                                message: `Ticket ${ticketNumber} was cancelled: ${reason}`,
+                                priority: 'critical', action_type: 'job_cancelled', action_data: { ticket_id: id },
+                                dedup_key: `job_cancelled_${id}`,
+                            }).catch(e => console.error('[notify job_cancelled]', e.message));
+                        }
+                    }).catch(e => console.error('[notify job_cancelled lookup]', e.message));
+            }
         } else {
             const db = readDB();
             const t  = db.tickets.find(x => x.id === id);
             if (!t) return res.status(404).json({ error: 'Ticket not found' });
             if (!['OPEN', 'ON_GOING'].includes(t.status))
                 return res.status(409).json({ error: 'Only OPEN or ON_GOING tickets can be cancelled' });
+            const previouslyAssigned = t.status === 'ON_GOING' ? t.assigned_to : null;
             ticketNumber           = t.ticket_id || ticketNumber;
             t.status              = 'CANCELLED';
             t.cancellation_reason = reason;
             t.cancelled_by        = cancelled_by || 'unknown';
             t.cancelled_at        = new Date().toISOString();
             writeDB(db);
+
+            // Notifications & Alerts — additive and non-blocking.
+            if (previouslyAssigned && previouslyAssigned !== (cancelled_by || 'unknown')) {
+                createNotificationInternal({
+                    user_id: previouslyAssigned, category: 'jobs', title: 'Job cancelled',
+                    message: `Ticket ${ticketNumber} was cancelled: ${reason}`,
+                    priority: 'critical', action_type: 'job_cancelled', action_data: { ticket_id: id },
+                    dedup_key: `job_cancelled_${id}`,
+                }).catch(e => console.error('[notify job_cancelled]', e.message));
+            }
         }
 
         // Telegram notification (non-blocking)
@@ -2526,6 +2577,7 @@ app.post('/api/routes/reserve', async (req, res) => {
                 expires_at: expiresAt
             }).select().single();
             if (error) throw error;
+            notifyRouteSitesChanged(technician_id, site_ids.length, 0);
             return res.json({ message: `Route reserved for ${locality}`, route: data });
         }
         const db = readDB();
@@ -2549,6 +2601,7 @@ app.post('/api/routes/reserve', async (req, res) => {
         };
         db.route_reservations.push(newRoute);
         writeDB(db);
+        notifyRouteSitesChanged(technician_id, site_ids.length, 0);
         res.json({ message: `Route reserved for ${locality}`, route: newRoute });
     } catch (err) {
         console.error('[POST /routes/reserve]', err.message);
@@ -2565,20 +2618,26 @@ app.post('/api/routes/update-sites', async (req, res) => {
     try {
         if (supabase) {
             const cutoff = new Date(Date.now() - ROUTE_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+            const { data: existing } = await supabase.from('route_reservations')
+                .select('site_ids').eq('technician_id', technician_id).eq('status', 'ACTIVE').gte('last_activity', cutoff).maybeSingle();
+            const oldIds = existing?.site_ids || [];
             const { error } = await supabase.from('route_reservations')
                 .update({ site_ids, last_activity: nowIso() })
                 .eq('technician_id', technician_id)
                 .eq('status', 'ACTIVE')
                 .gte('last_activity', cutoff);
             if (error) throw error;
+            notifyRouteSitesChanged(technician_id, site_ids.filter(s => !oldIds.includes(s)).length, oldIds.filter(s => !site_ids.includes(s)).length);
             return res.json({ message: 'Route updated' });
         }
         const db = readDB();
         const route = getActiveRouteLocal(db, technician_id);
         if (!route) return res.status(404).json({ error: 'No active route found' });
+        const oldIds = route.site_ids || [];
         route.site_ids = site_ids;
         route.last_activity = nowIso();
         writeDB(db);
+        notifyRouteSitesChanged(technician_id, site_ids.filter(s => !oldIds.includes(s)).length, oldIds.filter(s => !site_ids.includes(s)).length);
         res.json({ message: 'Route updated' });
     } catch (err) {
         console.error('[POST /routes/update-sites]', err.message);
@@ -2691,6 +2750,7 @@ app.post('/api/duty/toggle', async (req, res) => {
                     current_gps: current_gps || null
                 });
             }
+            notifyAvailabilityChanged(technician_id, is_on_duty);
             return res.json({ message: `Status set to ${is_on_duty ? 'On Duty' : 'Off Duty'}` });
         }
         const db = readDB();
@@ -2700,6 +2760,7 @@ app.post('/api/duty/toggle', async (req, res) => {
         rec.technician_name = technician_name || technician_id;
         if (current_gps) rec.current_gps = current_gps;
         writeDB(db);
+        notifyAvailabilityChanged(technician_id, is_on_duty);
         res.json({ message: `Status set to ${is_on_duty ? 'On Duty' : 'Off Duty'}` });
     } catch (err) {
         console.error('[POST /duty/toggle]', err.message);
@@ -2845,6 +2906,416 @@ app.get('/api/sync/poll', async (req, res) => {
 });
 
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  NOTIFICATIONS & ALERTS  (Profile → Notifications, header bell icon)
+//  -----------------------------------------------------------------------
+//  ADDITIVE feature, dual-mode like everything else in this file: Supabase
+//  when configured, else database.json's `notifications` array. Schema,
+//  indexes, RLS and the Realtime publication are in
+//  supabase_migration_notifications.sql.
+//
+//  Real-time delivery: the client holds one Server-Sent-Events connection
+//  per technician (GET /api/notifications/stream). When Supabase is
+//  configured, a single postgres_changes subscription below relays every
+//  insert/update/delete on `notifications` to the right SSE connections —
+//  that's the "Supabase Realtime" requirement. In local-JSON mode there's
+//  no database change feed to subscribe to, so each mutating function below
+//  calls broadcastNotification() itself right after writing to disk. Either
+//  way the client-side handling is identical (one EventSource, one message
+//  shape), so the frontend doesn't need to know which mode is active.
+//
+//  Supabase mode requires this table (see the migration file for full DDL):
+//    notifications(id, user_id, category, title, message, priority,
+//                   action_type, action_data, dedup_key, is_read, created_at)
+//  No other table is touched — sample-notification seeding (see
+//  seedNotificationsIfNeeded below) just checks whether this table already
+//  has any rows for the technician, so nothing else needs a schema change.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const NOTIF_CATEGORIES = ['jobs', 'route', 'system', 'account', 'support'];
+const NOTIF_PRIORITIES = ['info', 'reminder', 'critical'];
+
+// ── Sample data (requirement: seed once per technician for testing) ────────
+// Wording matches the six sample lines verbatim in `message`; `title` uses
+// the matching type name from the Notifications spec. Three are left unread
+// so a first-time visit shows the same "3 unread" the Profile card always
+// displayed before this feature was wired up.
+function defaultSampleNotifications(userId) {
+    const now = Date.now();
+    const iso = (msAgo) => new Date(now - msAgo).toISOString();
+    return [
+        {
+            id: generateId(), user_id: userId, category: 'jobs',
+            title: 'New nearby job available',
+            message: 'New nearby Field Support site available.',
+            priority: 'info', action_type: 'job_open', action_data: null,
+            dedup_key: null, is_read: false, created_at: iso(8 * 60 * 1000),
+        },
+        {
+            id: generateId(), user_id: userId, category: 'jobs',
+            title: 'Job claimed successfully',
+            message: 'Your job reservation was successful.',
+            priority: 'info', action_type: 'job_ongoing', action_data: null,
+            dedup_key: null, is_read: false, created_at: iso(70 * 60 * 1000),
+        },
+        {
+            id: generateId(), user_id: userId, category: 'jobs',
+            title: 'Job completed',
+            message: 'Site #DICT-104 completed successfully.',
+            priority: 'info', action_type: 'job_done', action_data: null,
+            dedup_key: null, is_read: true, created_at: iso(22 * 60 * 60 * 1000),
+        },
+        {
+            id: generateId(), user_id: userId, category: 'system',
+            title: 'New app version available',
+            message: 'Version 1.0.1 is available.',
+            priority: 'info', action_type: 'app_update', action_data: null,
+            dedup_key: null, is_read: true, created_at: iso(2 * 24 * 60 * 60 * 1000),
+        },
+        {
+            id: generateId(), user_id: userId, category: 'support',
+            title: 'Support ticket replied',
+            message: 'Support has replied to your inquiry.',
+            priority: 'info', action_type: 'contact_support', action_data: null,
+            dedup_key: null, is_read: false, created_at: iso(3 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000),
+        },
+        {
+            id: generateId(), user_id: userId, category: 'account',
+            title: 'Availability status changed',
+            message: 'Your availability is now ON.',
+            priority: 'info', action_type: 'profile', action_data: null,
+            dedup_key: null, is_read: true, created_at: iso(5 * 24 * 60 * 60 * 1000),
+        },
+    ];
+}
+
+// ── Seed-once check ──────────────────────────────────────────────────────
+// Deliberately self-contained: "has this technician ever had any
+// notifications at all?" rather than a flag on another table. The existing
+// duty/toggle handler above does a manual select-then-update-or-insert
+// against technician_statuses rather than a single upsert(onConflict:...) —
+// a strong sign technician_id has no unique constraint there in the real
+// schema, and that table's other columns may be NOT NULL without defaults.
+// Piggy-backing a flag on it risks a runtime error this code can't predict.
+// Checking this table instead needs nothing from any other table's schema.
+// (Edge case: if a technician deletes every notification they've ever had,
+// the next load reseeds the 6 samples — harmless, and simpler than the
+// alternative of a cross-table dependency this file can't verify is safe.)
+async function hasSeededNotifications(technicianId) {
+    if (supabase) {
+        const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', technicianId);
+        return !!count;
+    }
+    const db = readDB();
+    return db.notifications.some(n => n.user_id === technicianId);
+}
+async function seedNotificationsIfNeeded(technicianId) {
+    const already = await hasSeededNotifications(technicianId);
+    if (already) return;
+    const samples = defaultSampleNotifications(technicianId);
+    if (supabase) {
+        await supabase.from('notifications').insert(samples.map(({ id, ...rest }) => rest));
+    } else {
+        const db = readDB();
+        db.notifications.push(...samples);
+        writeDB(db);
+    }
+}
+
+// ── SSE fan-out ─────────────────────────────────────────────────────────────
+// technician_id (tech_code) → Set<res>. A technician can have more than one
+// open connection (e.g. two tabs), so every connection for that id gets the
+// event.
+const notifSSEClients = new Map();
+function notifSSEAdd(techId, res) {
+    if (!notifSSEClients.has(techId)) notifSSEClients.set(techId, new Set());
+    notifSSEClients.get(techId).add(res);
+}
+function notifSSERemove(techId, res) {
+    const set = notifSSEClients.get(techId);
+    if (!set) return;
+    set.delete(res);
+    if (!set.size) notifSSEClients.delete(techId);
+}
+function broadcastNotification(techId, payload) {
+    const set = notifSSEClients.get(techId);
+    if (!set || !set.size) return;
+    const line = 'data: ' + JSON.stringify(payload) + '\n\n';
+    for (const res of set) {
+        try { res.write(line); } catch (e) { /* connection likely already gone; req.on('close') will clean it up */ }
+    }
+}
+
+// When Supabase is configured, subscribe once to every change on the table
+// and relay it to whichever technician it belongs to — this is what actually
+// makes it "Supabase Realtime" rather than a plain in-process event bus. In
+// local-JSON mode there's no equivalent to subscribe to, so each helper
+// below (create/markRead/markUnread/delete) broadcasts manually instead.
+if (supabase) {
+    supabase
+        .channel('notifications-realtime-relay')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload) => {
+            const uid = (payload.new && payload.new.user_id) || (payload.old && payload.old.user_id);
+            if (!uid) return;
+            const type = payload.eventType === 'INSERT' ? 'created' : payload.eventType === 'UPDATE' ? 'updated' : 'deleted';
+            broadcastNotification(uid, { type, notification: payload.new || payload.old });
+        })
+        .subscribe();
+}
+
+// ── CRUD helpers (dual-mode) ────────────────────────────────────────────────
+
+/** Paginated list + the technician's TRUE overall unread count (ignores the page filters, used for badges). */
+async function getNotificationsPage({ userId, category, unreadOnly, limit, before }) {
+    limit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+
+    if (supabase) {
+        let q = supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit + 1);
+        if (category && category !== 'all') q = q.eq('category', category);
+        if (unreadOnly) q = q.eq('is_read', false);
+        if (before) q = q.lt('created_at', before);
+        const { data, error } = await q;
+        if (error) throw error;
+        const items = data || [];
+        const hasMore = items.length > limit;
+        const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('is_read', false);
+        return { items: items.slice(0, limit), hasMore, unreadCount: count || 0 };
+    }
+
+    const db = readDB();
+    let rows = db.notifications.filter(n => n.user_id === userId);
+    const unreadCount = rows.filter(n => !n.is_read).length;
+    if (category && category !== 'all') rows = rows.filter(n => n.category === category);
+    if (unreadOnly) rows = rows.filter(n => !n.is_read);
+    if (before) rows = rows.filter(n => n.created_at < before);
+    rows = rows.slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    const hasMore = rows.length > limit;
+    return { items: rows.slice(0, limit), hasMore, unreadCount };
+}
+
+/** Inserts one notification. If dedup_key is set and a row with that (user_id, dedup_key) already
+ *  exists, the insert is skipped — this is the "avoid duplicate notifications" requirement. */
+async function createNotificationInternal({ user_id, category, title, message, priority, action_type, action_data, dedup_key }) {
+    if (!NOTIF_CATEGORIES.includes(category)) throw new Error('Invalid category');
+    if (!NOTIF_PRIORITIES.includes(priority)) priority = 'info';
+
+    if (supabase) {
+        if (dedup_key) {
+            const { data: existing } = await supabase.from('notifications').select('id').eq('user_id', user_id).eq('dedup_key', dedup_key).maybeSingle();
+            if (existing) return { notification: existing, created: false };
+        }
+        const row = { user_id, category, title, message, priority, action_type: action_type || null, action_data: action_data || null, dedup_key: dedup_key || null, is_read: false, created_at: nowIso() };
+        const { data, error } = await supabase.from('notifications').insert(row).select().single();
+        if (error) throw error;
+        // No manual broadcast here — the postgres_changes subscription above already relays this insert.
+        return { notification: data, created: true };
+    }
+
+    const db = readDB();
+    if (dedup_key) {
+        const existing = db.notifications.find(n => n.user_id === user_id && n.dedup_key === dedup_key);
+        if (existing) return { notification: existing, created: false };
+    }
+    const row = { id: generateId(), user_id, category, title, message, priority, action_type: action_type || null, action_data: action_data || null, dedup_key: dedup_key || null, is_read: false, created_at: nowIso() };
+    db.notifications.push(row);
+    writeDB(db);
+    broadcastNotification(user_id, { type: 'created', notification: row });
+    return { notification: row, created: true };
+}
+
+async function setNotificationRead(id, userId, isRead) {
+    if (supabase) {
+        const { data, error } = await supabase.from('notifications').update({ is_read: isRead }).eq('id', id).eq('user_id', userId).select().maybeSingle();
+        if (error) throw error;
+        return data;
+    }
+    const db = readDB();
+    const row = db.notifications.find(n => n.id === id && n.user_id === userId);
+    if (!row) return null;
+    row.is_read = isRead;
+    writeDB(db);
+    broadcastNotification(userId, { type: 'updated', notification: row });
+    return row;
+}
+
+async function markAllReadInternal(userId) {
+    if (supabase) {
+        const { error } = await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
+        if (error) throw error;
+        return;
+    }
+    const db = readDB();
+    let changed = false;
+    db.notifications.forEach(n => { if (n.user_id === userId && !n.is_read) { n.is_read = true; changed = true; } });
+    if (changed) writeDB(db);
+    broadcastNotification(userId, { type: 'read-all' });
+}
+
+async function deleteNotificationInternal(id, userId) {
+    if (supabase) {
+        const { error } = await supabase.from('notifications').delete().eq('id', id).eq('user_id', userId);
+        if (error) throw error;
+        return;
+    }
+    const db = readDB();
+    const before = db.notifications.length;
+    db.notifications = db.notifications.filter(n => !(n.id === id && n.user_id === userId));
+    if (db.notifications.length !== before) writeDB(db);
+    broadcastNotification(userId, { type: 'deleted', notification: { id } });
+}
+
+// ── Small helpers used by hooks in OTHER existing endpoints below ──────────
+// (job claim/cancel are wired inline where they happen; these few are used
+// more than once or read a little more naturally pulled out.) All of these
+// are fire-and-forget: callers .catch() them and never await, so a
+// notification failure can never affect the feature it's attached to.
+function notifyAvailabilityChanged(technicianId, isOnDuty) {
+    const bucket = Math.floor(Date.now() / (2 * 60 * 1000)); // 2-minute bucket guards against rapid double-taps
+    createNotificationInternal({
+        user_id: technicianId, category: 'account', title: 'Availability status changed',
+        message: `Your availability is now ${isOnDuty ? 'ON' : 'OFF'}.`,
+        priority: 'info', action_type: 'profile', action_data: null,
+        dedup_key: `avail_${isOnDuty}_${bucket}`,
+    }).catch(e => console.error('[notify availability]', e.message));
+}
+function notifyProfileUpdated(technicianId) {
+    const bucket = Math.floor(Date.now() / (2 * 60 * 1000));
+    createNotificationInternal({
+        user_id: technicianId, category: 'account', title: 'Profile updated',
+        message: 'Your personal info was updated successfully.',
+        priority: 'info', action_type: 'profile', action_data: null,
+        dedup_key: `profile_updated_${bucket}`,
+    }).catch(e => console.error('[notify profile updated]', e.message));
+}
+function notifyPinChanged(technicianId) {
+    createNotificationInternal({
+        user_id: technicianId, category: 'account', title: 'PIN changed successfully',
+        message: 'Your PIN was changed successfully.',
+        priority: 'info', action_type: 'profile', action_data: null,
+        dedup_key: null,
+    }).catch(e => console.error('[notify pin changed]', e.message));
+}
+function notifyRouteSitesChanged(technicianId, addedCount, removedCount) {
+    if (addedCount > 0) {
+        createNotificationInternal({
+            user_id: technicianId, category: 'route', title: 'New site added to your route',
+            message: addedCount === 1 ? 'A new site was added to your route.' : `${addedCount} new sites were added to your route.`,
+            priority: 'info', action_type: 'route', action_data: null,
+            dedup_key: null,
+        }).catch(e => console.error('[notify route added]', e.message));
+    }
+    if (removedCount > 0) {
+        createNotificationInternal({
+            user_id: technicianId, category: 'route', title: 'Site removed from route',
+            message: removedCount === 1 ? 'A site was removed from your route.' : `${removedCount} sites were removed from your route.`,
+            priority: 'reminder', action_type: 'route', action_data: null,
+            dedup_key: null,
+        }).catch(e => console.error('[notify route removed]', e.message));
+    }
+}
+
+// ── Routes ───────────────────────────────────────────────────────────────
+
+// GET /api/notifications?technician_id=&category=&unread=1&limit=&before=
+app.get('/api/notifications', async (req, res) => {
+    try {
+        const { technician_id, category, unread, limit, before } = req.query;
+        if (!technician_id) return res.status(400).json({ error: 'technician_id is required' });
+        await seedNotificationsIfNeeded(technician_id);
+        const { items, hasMore, unreadCount } = await getNotificationsPage({
+            userId: technician_id, category, unreadOnly: unread === '1' || unread === 'true', limit, before,
+        });
+        res.json({ items, has_more: hasMore, unread_count: unreadCount });
+    } catch (err) {
+        console.error('[GET /api/notifications]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/notifications — create (used by a few server-side hooks below, and by
+// the client for the couple of notification types only the browser can detect,
+// e.g. "Route optimized" and "New app version available").
+app.post('/api/notifications', async (req, res) => {
+    try {
+        const { technician_id, category, title, message, priority, action_type, action_data, dedup_key } = req.body;
+        if (!technician_id || !category || !title || !message) return res.status(400).json({ error: 'technician_id, category, title and message are required' });
+        const result = await createNotificationInternal({ user_id: technician_id, category, title, message, priority, action_type, action_data, dedup_key });
+        res.json(result);
+    } catch (err) {
+        console.error('[POST /api/notifications]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/notifications/read-all', async (req, res) => {
+    try {
+        const { technician_id } = req.body;
+        if (!technician_id) return res.status(400).json({ error: 'technician_id is required' });
+        await markAllReadInternal(technician_id);
+        res.json({ message: 'All notifications marked as read' });
+    } catch (err) {
+        console.error('[POST /api/notifications/read-all]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/notifications/:id/read', async (req, res) => {
+    try {
+        const { technician_id } = req.body;
+        if (!technician_id) return res.status(400).json({ error: 'technician_id is required' });
+        const row = await setNotificationRead(req.params.id, technician_id, true);
+        if (!row) return res.status(404).json({ error: 'Notification not found' });
+        res.json({ notification: row });
+    } catch (err) {
+        console.error('[POST /api/notifications/:id/read]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/notifications/:id/unread', async (req, res) => {
+    try {
+        const { technician_id } = req.body;
+        if (!technician_id) return res.status(400).json({ error: 'technician_id is required' });
+        const row = await setNotificationRead(req.params.id, technician_id, false);
+        if (!row) return res.status(404).json({ error: 'Notification not found' });
+        res.json({ notification: row });
+    } catch (err) {
+        console.error('[POST /api/notifications/:id/unread]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/notifications/:id', async (req, res) => {
+    try {
+        const { technician_id } = req.query;
+        if (!technician_id) return res.status(400).json({ error: 'technician_id is required' });
+        await deleteNotificationInternal(req.params.id, technician_id);
+        res.json({ message: 'Notification deleted' });
+    } catch (err) {
+        console.error('[DELETE /api/notifications/:id]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/notifications/stream?technician_id=  — Server-Sent Events.
+// Kept open for as long as the app is in the foreground; the client
+// reconnects on its own (native EventSource behaviour) if it drops.
+app.get('/api/notifications/stream', (req, res) => {
+    const { technician_id } = req.query;
+    if (!technician_id) return res.status(400).json({ error: 'technician_id is required' });
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+    });
+    res.write('retry: 4000\n\n');
+    notifSSEAdd(technician_id, res);
+    const heartbeat = setInterval(() => { try { res.write(':hb\n\n'); } catch (e) { /* ignore */ } }, 25000);
+    req.on('close', () => { clearInterval(heartbeat); notifSSERemove(technician_id, res); });
+});
+
+
 app.listen(PORT, () => {
     console.log(`\n🚀  FieldOps running → http://localhost:${PORT}`);
     console.log(`    Mode : ${supabase ? 'Supabase (cloud database)' : 'Local JSON  (database.json)'}`);
@@ -2852,8 +3323,9 @@ app.listen(PORT, () => {
     console.log(`    Telegram (task proofs) : per-technician, configured in App Preferences`);
     if (supabase) {
         console.log(`    Guided Troubleshooting : storage bucket 'troubleshooting' must exist (public) — see supabase_migration_troubleshooting.sql`);
-        console.log(`    Media Retention : 15-day Storage purge runs nightly via Supabase Cron — see supabase_migration_media_retention.sql\n`);
+        console.log(`    Media Retention : 15-day Storage purge runs nightly via Supabase Cron — see supabase_migration_media_retention.sql`);
+        console.log(`    Notifications & Alerts : Realtime via Supabase postgres_changes → relayed to clients over SSE — see supabase_migration_notifications.sql\n`);
     } else {
-        console.log('');
+        console.log(`    Notifications & Alerts : local mode — real-time delivered over SSE only (no cross-device push)\n`);
     }
 });
