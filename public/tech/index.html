@@ -1309,6 +1309,37 @@ button{cursor:pointer}
 .tc-timer{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--teal-lt);border:1px solid var(--teal);border-radius:10px;padding:10px 12px;margin:2px 0 12px}
 .tc-timer-lbl{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--teal-dk);display:flex;align-items:center;gap:5px}
 .tc-timer-val{font-family:var(--fm);font-size:16px;font-weight:700;color:var(--teal-dk);letter-spacing:.01em}
+
+/* ══════════════════════════════════════
+   PWA INSTALL PROMPT
+   Bottom-anchored sheet for "Add to Home Screen" — one variant drives
+   the native Chromium install flow (beforeinstallprompt), the other
+   shows manual instructions for iOS Safari, which has no such API.
+   Shell mirrors .notif-sheet-backdrop/.notif-sheet-card (same blur,
+   radius, slide-up animation) but is kept as its own class pair so
+   neither feature can regress the other on future edits.
+══════════════════════════════════════ */
+.pwa-sheet-backdrop{position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+.pwa-sheet-backdrop.open{display:flex}
+.pwa-sheet-card{background:var(--card);width:100%;max-width:480px;border-radius:4px 4px 0 0;padding:22px 22px calc(var(--sab) + 22px);box-shadow:var(--s4);animation:fadeUp .28s cubic-bezier(.34,1.2,.64,1) both}
+.pwa-sheet-handle{width:36px;height:4px;border-radius:4px;background:var(--bd2);margin:0 auto 18px}
+.pwa-sheet-icon{width:52px;height:52px;border-radius:4px;background:linear-gradient(135deg,var(--teal),var(--teal-dk));color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 6px 18px rgba(20,184,166,.3)}
+.pwa-sheet-title{font-size:1.05rem;font-weight:800;color:var(--tx);letter-spacing:-.02em;margin-bottom:4px}
+.pwa-sheet-desc{font-size:.8rem;color:var(--tx2);margin-bottom:14px;line-height:1.5}
+.pwa-benefit-list{list-style:none;margin-bottom:22px;display:flex;flex-direction:column;gap:11px}
+.pwa-benefit-item{display:flex;align-items:center;gap:10px;font-size:.82rem;color:var(--tx);font-weight:600;line-height:1.4}
+.pwa-benefit-ico{width:28px;height:28px;border-radius:4px;background:var(--teal-lt);color:var(--teal-dk);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pwa-sheet-actions{display:flex;flex-direction:column;gap:10px}
+.pwa-btn-install{width:100%;padding:14px;background:linear-gradient(135deg,var(--teal),var(--teal-dk));border:none;color:#fff;border-radius:4px;font-size:.87rem;font-weight:800;letter-spacing:.01em;transition:.18s;box-shadow:0 4px 14px rgba(20,184,166,.3);cursor:pointer;font-family:var(--ff)}
+.pwa-btn-install:hover{box-shadow:0 6px 20px rgba(20,184,166,.38)}
+.pwa-btn-install:active{transform:scale(.97)}
+.pwa-btn-later{width:100%;padding:13px;background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx2);border-radius:4px;font-size:.85rem;font-weight:700;cursor:pointer;transition:.18s;font-family:var(--ff)}
+.pwa-btn-later:hover{border-color:var(--bd2);color:var(--tx)}
+.pwa-btn-later:active{transform:scale(.97)}
+.pwa-steps-list{list-style:none;margin-bottom:22px;display:flex;flex-direction:column;gap:13px}
+.pwa-step-item{display:flex;align-items:center;gap:12px;font-size:.83rem;color:var(--tx);line-height:1.45}
+.pwa-step-num{width:24px;height:24px;border-radius:4px;background:var(--teal-lt);color:var(--teal-dk);font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--fm)}
+.pwa-inline-ico{display:inline-flex;vertical-align:middle;color:var(--primary);margin:0 1px}
 </style>
 </style>
 </head>
@@ -1832,9 +1863,157 @@ const IC={
   // ── Notifications & Alerts icons ──
   briefcase:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
   server:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg>`,
+  // ── PWA Install Prompt icons ──
+  zap:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  wifiOff:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`,
+  share:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`,
 };
 const ic=(n,s=16)=>IC[n]?IC[n].replace('<svg',`<svg width="${s}" height="${s}" style="flex-shrink:0"`):'';
 const icEl=(n,s=16)=>{const d=document.createElement('span');d.style.cssText='display:inline-flex;align-items:center;flex-shrink:0';d.innerHTML=ic(n,s);return d;};
+
+/* ══════════════════════════════════════════════════════════════════════
+   PWA INSTALL PROMPT
+   ────────────────────────────────────────────────────────────────────
+   Two paths, gated by the same eligibility/cooldown check:
+     • Android/Chromium — capture the browser's beforeinstallprompt
+       event as soon as it fires (registered here, top-level, so it's
+       never missed regardless of load timing), then trigger it
+       ourselves from our own "Install" button.
+     • iOS Safari — there is no beforeinstallprompt API at all, so we
+       detect the browser and show manual "Add to Home Screen" steps
+       instead.
+   Either sheet is only ever offered once the tech/admin dashboard has
+   actually been reached (see pwaOnDashboardReached, called from the
+   login/session-restore paths below) so it never interrupts sign-in.
+   Fully additive: no existing screen, function, or storage key is
+   touched by any of this.
+══════════════════════════════════════════════════════════════════════ */
+const PWA_DISMISSED_AT_KEY='fo_pwa_install_dismissed_at'; // ms timestamp of the last time the user closed either sheet
+const PWA_INSTALLED_KEY='fo_pwa_installed';                // 'true' once installed (native event or standalone detection)
+const PWA_LATER_CHOSEN_KEY='fo_pwa_later_chosen';          // 'true' once the user has tapped "Later" at least once
+const PWA_DISMISS_COOLDOWN_MS=7*24*60*60*1000;              // 7 days
+
+let pwaDeferredPrompt=null;   // the saved beforeinstallprompt event, ready to replay on demand
+let pwaReachedDashboard=false; // set once per page load, the first time either dashboard is shown
+let pwaSheetOpen=false;        // true while either sheet is on screen (guards against stacking/duplicates)
+let pwaIOSOffered=false;       // iOS has no event to gate on, so this stops us offering it twice in one load
+
+function pwaIsStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone===true // legacy iOS Safari flag
+    || document.referrer.startsWith('android-app://');
+}
+function pwaIsIOSSafari(){
+  const ua=navigator.userAgent;
+  const isIOSDevice=/iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1); // iPadOS 13+ reports as Mac
+  const isSafari=/^((?!chrome|crios|fxios|edgios|android).)*safari/i.test(ua);
+  return isIOSDevice && isSafari;
+}
+// Best-effort extra installed signal for Chromium browsers (requires
+// related_applications configured in manifest.json to have any effect —
+// harmless no-op otherwise). Fire-and-forget at boot.
+async function pwaCheckRelatedApps(){
+  try{
+    if(navigator.getInstalledRelatedApps){
+      const related=await navigator.getInstalledRelatedApps();
+      if(related && related.length>0) localStorage.setItem(PWA_INSTALLED_KEY,'true');
+    }
+  }catch(e){/* API unsupported/unavailable — ignore */}
+}
+function pwaShouldOffer(){
+  try{
+    if(pwaIsStandalone()){ localStorage.setItem(PWA_INSTALLED_KEY,'true'); return false; }
+    if(localStorage.getItem(PWA_INSTALLED_KEY)==='true') return false;
+    const dismissedAt=localStorage.getItem(PWA_DISMISSED_AT_KEY);
+    if(dismissedAt && (Date.now()-Number(dismissedAt))<PWA_DISMISS_COOLDOWN_MS) return false;
+    return true;
+  }catch(e){ return false; } // if storage is unavailable we can't honor the cooldown, so err on the side of not nagging
+}
+// Called once per page load, the first time the tech or admin dashboard
+// is actually shown (fresh login, PIN-change login, or restored
+// session) — never on the auth screens themselves.
+function pwaOnDashboardReached(){
+  if(pwaReachedDashboard) return;
+  pwaReachedDashboard=true;
+  setTimeout(pwaMaybeOfferInstall,2000); // let the dashboard settle before offering anything
+}
+function pwaMaybeOfferInstall(){
+  if(pwaSheetOpen || !pwaReachedDashboard || !pwaShouldOffer()) return;
+  if(pwaDeferredPrompt) pwaShowInstallSheet();
+  else if(!pwaIOSOffered && pwaIsIOSSafari()) pwaShowIOSSheet();
+}
+function pwaShowInstallSheet(){
+  pwaSheetOpen=true;
+  document.getElementById('pwa-install-sheet').classList.add('open');
+}
+function pwaCloseInstallSheet(){
+  pwaSheetOpen=false;
+  document.getElementById('pwa-install-sheet').classList.remove('open');
+}
+function pwaShowIOSSheet(){
+  pwaIOSOffered=true;
+  pwaSheetOpen=true;
+  document.getElementById('pwa-ios-sheet').classList.add('open');
+}
+function pwaCloseIOSSheet(){
+  pwaSheetOpen=false;
+  document.getElementById('pwa-ios-sheet').classList.remove('open');
+}
+// "Later" — closes the sheet and starts the 7-day cooldown. Also used
+// for a backdrop tap and the hardware Back button (see BACK_GUARD_LAYERS
+// below), since both are just another way of saying "not now".
+function pwaDismissLater(){
+  try{
+    localStorage.setItem(PWA_DISMISSED_AT_KEY,String(Date.now()));
+    localStorage.setItem(PWA_LATER_CHOSEN_KEY,'true');
+  }catch(e){/* ignore — worst case we ask again next load */}
+  pwaCloseInstallSheet();
+}
+// iOS "Got It" — same cooldown, kept as a separate function since it's
+// an acknowledgement rather than a literal "Later" choice.
+function pwaDismissIOS(){
+  try{ localStorage.setItem(PWA_DISMISSED_AT_KEY,String(Date.now())); }catch(e){}
+  pwaCloseIOSSheet();
+}
+async function pwaTriggerInstall(){
+  if(!pwaDeferredPrompt){ pwaCloseInstallSheet(); return; } // shouldn't happen — button only shows with a live prompt saved
+  const promptEvent=pwaDeferredPrompt;
+  pwaDeferredPrompt=null; // an event can only be used once — clear immediately so we can never double-fire it
+  pwaCloseInstallSheet();
+  promptEvent.prompt();
+  try{
+    const choice=await promptEvent.userChoice;
+    if(choice && choice.outcome==='accepted'){
+      try{ localStorage.setItem(PWA_INSTALLED_KEY,'true'); }catch(e){}
+    } else {
+      try{ localStorage.setItem(PWA_DISMISSED_AT_KEY,String(Date.now())); }catch(e){} // native dialog dismissed — same cooldown as Later
+    }
+  }catch(e){/* userChoice can reject if the prompt was interrupted */}
+}
+
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault(); // stop the browser's own mini-infobar; we show our own UI on our own timing instead
+  pwaDeferredPrompt=e;
+  pwaMaybeOfferInstall(); // covers the case where this fires after the dashboard is already showing
+});
+window.addEventListener('appinstalled',function(){
+  try{ localStorage.setItem(PWA_INSTALLED_KEY,'true'); }catch(e){}
+  pwaDeferredPrompt=null;
+  pwaCloseInstallSheet();
+});
+pwaCheckRelatedApps();
+
+// Service worker registration — backs the "Offline access" claim in the
+// install sheet and helps installability. Registered on window 'load' so
+// it never competes with the app's own boot-time requests, and it's
+// entirely best-effort: if it fails (unsupported browser, sw.js not
+// deployed yet, non-HTTPS dev environment) the app runs exactly as it
+// did before this feature existed — nothing else depends on it.
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js').catch(()=>{/* offline shell just won't be available */});
+  });
+}
 
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('ico-logo').innerHTML=ic('logo',28);
@@ -1848,6 +2027,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('navico-tools').innerHTML=ic('settings',21);
   document.getElementById('navico-profile').innerHTML=ic('user',21);
   document.getElementById('sm-map-expand').innerHTML=ic('expand',15);
+  document.getElementById('pwa-sheet-icon').innerHTML=ic('download',24);
+  document.getElementById('pwa-bico-1').innerHTML=ic('zap',15);
+  document.getElementById('pwa-bico-2').innerHTML=ic('wifiOff',15);
+  document.getElementById('pwa-bico-3').innerHTML=ic('expand',15);
+  document.getElementById('pwa-bico-4').innerHTML=ic('trendUp',15);
+  document.getElementById('pwa-ios-icon').innerHTML=ic('download',24);
+  document.getElementById('pwa-share-ico').innerHTML=ic('share',14);
   loadTechDropdown();
   loadAppVersion();
 
@@ -1861,10 +2047,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(CR==='admin'){
       document.getElementById('adm-dn').textContent=CU.name;
       go('admin-db');loadAdminData();
+      pwaOnDashboardReached();
     } else {
       document.getElementById('tch-dn').textContent=CU.name;
       renderAvatar();loadPersonalInfoAndAvatar();
       go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();notifInit();
+      pwaOnDashboardReached();
     }
   }
 });
@@ -1876,7 +2064,7 @@ let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[]
    fetches it once at boot into APP_VERSION; the fallback below only
    covers the rare case the fetch fails (offline boot, static path not
    yet configured) and must be bumped in lockstep with version.json. ── */
-let APP_VERSION='1.2.0';
+let APP_VERSION='1.3.0';
 async function loadAppVersion(){
   try{
     const r=await fetch('/version.json',{cache:'no-store'});
@@ -2159,6 +2347,7 @@ async function loginAdmin(){
     document.getElementById('adm-dn').textContent=d.display_name;
     showAdmLogin();
     go('admin-db');loadAdminData();
+    pwaOnDashboardReached();
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
 }
 
@@ -2188,6 +2377,7 @@ async function loginTech(){
     renderAvatar();loadPersonalInfoAndAvatar();
     showTchLogin();
     go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();notifInit();
+    pwaOnDashboardReached();
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
 }
 
@@ -2216,6 +2406,7 @@ async function changePinTech(){
     renderAvatar();loadPersonalInfoAndAvatar();
     showTchLogin();
     go('tech-db');techNav('open');loadOpen();loadMine();loadDone();loadCanc();initDutyStatus();startSyncPolling();startTimerLiveClock();notifInit();
+    pwaOnDashboardReached();
   }catch(err){e.innerHTML=ic('x',13)+' Server not reachable.';e.classList.add('show');}
 }
 
@@ -3520,6 +3711,8 @@ function _reserveProcessingBackGuard(){
 // (closing one layer per Back press, same as normal drill-down navigation).
 const BACK_GUARD_LAYERS=[
   ()=>_reserveProcessingVisible() && _reserveProcessingBackGuard,
+  ()=>document.getElementById('pwa-install-sheet')?.classList.contains('open') && pwaDismissLater,
+  ()=>document.getElementById('pwa-ios-sheet')?.classList.contains('open') && pwaDismissIOS,
   ()=>document.getElementById('modal-cancel')?.classList.contains('open') && closeModal,
   ()=>document.getElementById('modal-offduty')?.style.display==='flex' && closeOffDutyModal,
   ()=>_isOverlayVisible('docscan-enhance-overlay') && docScanEnhanceBack,
@@ -9180,6 +9373,44 @@ function notifInit() {
     <div style="display:flex;flex-direction:column;gap:8px">
       <button onclick="offDutyKeepRoute()" style="width:100%;padding:13px;border-radius:4px;background:var(--srf2);border:1.5px solid var(--bd);color:var(--tx);font-size:.85rem;font-weight:700;cursor:pointer;font-family:var(--ff);text-align:left;display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:4px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0" id="modal-offduty-keep-ico"></span><div><div>Keep route reserved</div><div style="font-size:.7rem;color:var(--tx3);margin-top:2px">Sites stay locked until your next session</div></div></button>
       <button onclick="offDutyReleaseRoute()" style="width:100%;padding:13px;border-radius:4px;background:var(--red-lt);border:1.5px solid var(--red-bd);color:var(--red-dk);font-size:.85rem;font-weight:700;cursor:pointer;font-family:var(--ff);text-align:left;display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:4px;background:var(--red-lt);color:var(--red-dk);display:flex;align-items:center;justify-content:center;flex-shrink:0" id="modal-offduty-rel-ico"></span><div><div>Release route</div><div style="font-size:.7rem;color:var(--tx3);margin-top:2px">Sites become available to other technicians</div></div></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ PWA INSTALL PROMPT (Android/Chromium) — shown to first-time visitors once the browser reports the app installable; triggers the native beforeinstallprompt dialog ══════════════════════════════════════ -->
+<div id="pwa-install-sheet" class="pwa-sheet-backdrop" onclick="if(event.target===this)pwaDismissLater()">
+  <div class="pwa-sheet-card">
+    <div class="pwa-sheet-handle"></div>
+    <div class="pwa-sheet-icon" id="pwa-sheet-icon"></div>
+    <div class="pwa-sheet-title">Install FieldOps</div>
+    <div class="pwa-sheet-desc">Install FieldOps for:</div>
+    <ul class="pwa-benefit-list">
+      <li class="pwa-benefit-item"><span class="pwa-benefit-ico" id="pwa-bico-1"></span>Faster launch from your Home Screen</li>
+      <li class="pwa-benefit-item"><span class="pwa-benefit-ico" id="pwa-bico-2"></span>Offline access (where supported)</li>
+      <li class="pwa-benefit-item"><span class="pwa-benefit-ico" id="pwa-bico-3"></span>Full-screen app experience</li>
+      <li class="pwa-benefit-item"><span class="pwa-benefit-ico" id="pwa-bico-4"></span>Better overall performance</li>
+    </ul>
+    <div class="pwa-sheet-actions">
+      <button class="pwa-btn-install" onclick="pwaTriggerInstall()">Install</button>
+      <button class="pwa-btn-later" onclick="pwaDismissLater()">Later</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ PWA INSTALL PROMPT (iOS Safari) — Safari has no beforeinstallprompt API, so this shows manual "Add to Home Screen" steps instead ══════════════════════════════════════ -->
+<div id="pwa-ios-sheet" class="pwa-sheet-backdrop" onclick="if(event.target===this)pwaDismissIOS()">
+  <div class="pwa-sheet-card">
+    <div class="pwa-sheet-handle"></div>
+    <div class="pwa-sheet-icon" id="pwa-ios-icon"></div>
+    <div class="pwa-sheet-title">Install FieldOps</div>
+    <div class="pwa-sheet-desc">To install:</div>
+    <ol class="pwa-steps-list">
+      <li class="pwa-step-item"><span class="pwa-step-num">1</span><span>Tap the Share button <span class="pwa-inline-ico" id="pwa-share-ico"></span></span></li>
+      <li class="pwa-step-item"><span class="pwa-step-num">2</span><span>Select <strong>Add to Home Screen</strong></span></li>
+      <li class="pwa-step-item"><span class="pwa-step-num">3</span><span>Tap <strong>Add</strong></span></li>
+    </ol>
+    <div class="pwa-sheet-actions">
+      <button class="pwa-btn-install" onclick="pwaDismissIOS()">Got It</button>
     </div>
   </div>
 </div>
