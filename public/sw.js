@@ -17,10 +17,11 @@
    version.json / APP_VERSION bumps already used elsewhere) — the old
    cache is deleted automatically on activate.
 ══════════════════════════════════════════════════════════════════════ */
-const CACHE_VERSION='fieldops-shell-v1.3.0';
+const CACHE_VERSION='fieldops-shell-v1.4.0';
 const APP_SHELL=[
   '/',
   '/manifest.json',
+  '/sync-engine.js',
   '/icons/FO_192x192.png',
   '/icons/FO_512x512.png'
 ];
@@ -87,4 +88,18 @@ self.addEventListener('fetch',(event)=>{
       }).catch(()=>cached);
     })
   );
+});
+
+// Chromium-only signal that connectivity is back. iOS/Safari never fires
+// this — SyncEngine's own 'online' listener and periodic retry (in
+// sync-engine.js) are what cover those platforms, so this is purely an
+// extra nudge where the browser supports it, not something else depends on.
+self.addEventListener('sync',(event)=>{
+  if(event.tag==='fieldops-outbox'){
+    event.waitUntil(
+      self.clients.matchAll().then((clients)=>
+        clients.forEach((c)=>c.postMessage({type:'fieldops-sync-tick'}))
+      )
+    );
+  }
 });

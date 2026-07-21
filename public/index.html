@@ -1793,6 +1793,7 @@ button{cursor:pointer}
   </div>
 </div>
 
+<script src="sync-engine.js"></script>
 <script>
 const IC={
   logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
@@ -2014,6 +2015,7 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js').catch(()=>{/* offline shell just won't be available */});
   });
 }
+SyncEngine.init();
 
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('ico-logo').innerHTML=ic('logo',28);
@@ -2064,7 +2066,7 @@ let CU=null,CR=null,AT=[],AF='ALL',cancelTid=null,cancelRole='tech',openCache=[]
    fetches it once at boot into APP_VERSION; the fallback below only
    covers the rare case the fetch fails (offline boot, static path not
    yet configured) and must be bumped in lockstep with version.json. ── */
-let APP_VERSION='1.3.0';
+let APP_VERSION='1.4.0';
 async function loadAppVersion(){
   try{
     const r=await fetch('/version.json',{cache:'no-store'});
@@ -3007,6 +3009,10 @@ async function claimJob(id,wrap){
     if(r.ok){
       toast('Job claimed — ticket '+(d.ticket_id||'')+'!','ok');
       if(label)label.textContent='Claimed ✓';
+      fetch(`/api/troubleshooting/draft?job_id=${encodeURIComponent(id)}&technician_id=${encodeURIComponent(CU.id)}`)
+        .then(r=>r.ok?r.json():null)
+        .then(s=>s?.draft?.id&&SyncEngine.setDraftRef(id,s.draft.id))
+        .catch(()=>{});  // best-effort — the checklist screen re-fetches this itself on open
       loadOpen();loadMine();
       setTimeout(()=>{techNav('tasks');tchTab('mine',document.getElementById('tt-mine'));},700);
     }
@@ -3819,10 +3825,10 @@ async function submitJob(id){
   for(let i=0;i<camFiles.length;i++)fd.append('proof',camFiles[i].blob,camFiles[i].name);
 
   // Guided Troubleshooting — pull the final (technician-confirmed) summary and
-  // already-uploaded evidence straight from the server, so nothing here gets
-  // re-uploaded and nothing is lost even if the checklist was finished in an
-  // earlier session. Best-effort: if this lookup fails, submission still
-  // proceeds and the server-side gate below is the real enforcement anyway.
+  // already-uploaded evidence, so nothing here gets re-uploaded. Falls back to
+  // the on-device snapshot cached when the checklist was last opened if the
+  // server can't be reached right now; the server-side gate is still the
+  // real enforcement regardless of which source this came from.
   try{
     const dr=await fetch(`/api/troubleshooting/draft?job_id=${encodeURIComponent(id)}&technician_id=${encodeURIComponent(CU.id)}`);
     if(dr.ok){
@@ -3832,13 +3838,27 @@ async function submitJob(id){
       }
       if(media?.length)fd.append('troubleshooting_media',JSON.stringify(media.map(m=>({storage_url:m.storage_url,media_type:m.media_type}))));
     }
-  }catch(e){/* best-effort — server still enforces completion regardless */}
+  }catch(e){
+    const cached=await SyncEngine.cacheGet('ts-draft:'+id);
+    if(cached?.draft?.ai_summary){
+      try{fd.append('troubleshooting_summary',tsFormatSummaryText(JSON.parse(cached.draft.ai_summary)));}catch(err){}
+    }
+    if(cached?.media?.length)fd.append('troubleshooting_media',JSON.stringify(cached.media.map(m=>({storage_url:m.storage_url,media_type:m.media_type}))));
+  }
 
-  try{
-    const r=await fetch('/api/tickets/submit',{method:'POST',body:fd});const d=await r.json();
-    if(r.ok){toast('Job completed and proof sent!','ok');CamModule.clearAttachments(id);loadMine();loadDone();}
-    else{toast(d.error||'Submission failed.','err');btn.innerHTML=ic('check',14)+' Submit & Complete';btn.disabled=false;}
-  }catch(e){toast('Cannot reach server.','err');btn.innerHTML=ic('check',14)+' Submit & Complete';btn.disabled=false;}
+  const result=await SyncEngine.requestForm(id,'submit','/api/tickets/submit',fd);
+  if(result.ok&&!result.queued){
+    toast('Job completed and proof sent!','ok');
+    CamModule.clearAttachments(id);loadMine();loadDone();
+  }else if(result.queued){
+    // outbox now holds the photos/notes — safe to drop the local CamModule copies
+    toast('Offline — submission saved on device and will send automatically once you\'re back online.','info');
+    CamModule.clearAttachments(id);
+    btn.innerHTML=ic('check',14)+' Queued — Will Sync';
+  }else{
+    toast(result.error||'Submission failed.','err');
+    btn.innerHTML=ic('check',14)+' Submit & Complete';btn.disabled=false;
+  }
 }
 function updCnt(id,inp){const el=document.getElementById('cnt-'+id);const n=inp.files.length;el.textContent=n>0?`${n} file${n>1?'s':''} selected`:'Up to 5 files';el.style.color=n>0?'var(--primary)':'';}
 
@@ -4161,6 +4181,10 @@ async function claimFromRoute(id){
     const d=await r.json();
     if(r.ok){
       toast('Job claimed — ticket '+(d.ticket_id||'')+'!','ok');
+      fetch(`/api/troubleshooting/draft?job_id=${encodeURIComponent(id)}&technician_id=${encodeURIComponent(CU.id)}`)
+        .then(r=>r.ok?r.json():null)
+        .then(s=>s?.draft?.id&&SyncEngine.setDraftRef(id,s.draft.id))
+        .catch(()=>{});  // best-effort — the checklist screen re-fetches this itself on open
       await loadMyRoute();renderRouteOverlay();loadOpen();
       await loadMine();
       // Redesigned flow: Claim now jumps straight to the site's submit
@@ -8352,33 +8376,48 @@ function tsStoppedEarly(){
   return TSState.responses[TS_FLAT[last].id]?.result==='failed' && last<TS_FLAT.length-1;
 }
 
+// Shared by the live load and the offline fallback below, so both paths
+// populate TSState identically from a {draft,responses,media} snapshot.
+function tsApplyDraft(draft,responses,media){
+  TSState.draftId=draft.id;
+  TSState.completed=!!draft.completed;
+  responses.forEach(resp=>{TSState.responses[resp.check]={result:resp.result,notes:resp.notes||'',media:[]};});
+  media.forEach(m=>{
+    const key=m.check;
+    if(key){
+      if(!TSState.responses[key])TSState.responses[key]={result:null,notes:'',media:[]};
+      TSState.responses[key].media.push(m);
+    }
+  });
+  if(draft.ai_summary){try{TSState.aiSummary=JSON.parse(draft.ai_summary);}catch(e){TSState.aiSummary=null;}}
+  TSState.index=Math.min(Math.max(draft.current_step||0,0),TS_FLAT.length-1);
+  TSState.view=(TSState.completed&&TSState.aiSummary)?'summary':'step';
+}
 async function tsOpen(jobId,siteId,siteName,ticketId,coordinates){
   TSState.jobId=jobId;TSState.siteId=siteId;TSState.siteName=siteName;TSState.ticketId=ticketId;TSState.coordinates=coordinates||'';
   TSState.responses={};TSState.aiSummary=null;TSState.completed=false;TSState.view='step';TSState.index=0;
   document.getElementById('ts-overlay').style.display='flex';
   camHideNav();
   tsRenderLoading();
+  const cacheKey='ts-draft:'+jobId;
   try{
     const r=await fetch(`/api/troubleshooting/draft?job_id=${encodeURIComponent(jobId)}&technician_id=${encodeURIComponent(CU.id)}`);
     if(!r.ok)throw 0;
-    const {draft,responses,media}=await r.json();
-    TSState.draftId=draft.id;
-    TSState.completed=!!draft.completed;
-    responses.forEach(resp=>{TSState.responses[resp.check]={result:resp.result,notes:resp.notes||'',media:[]};});
-    media.forEach(m=>{
-      const key=m.check;
-      if(key){
-        if(!TSState.responses[key])TSState.responses[key]={result:null,notes:'',media:[]};
-        TSState.responses[key].media.push(m);
-      }
-    });
-    if(draft.ai_summary){try{TSState.aiSummary=JSON.parse(draft.ai_summary);}catch(e){TSState.aiSummary=null;}}
-    TSState.index=Math.min(Math.max(draft.current_step||0,0),TS_FLAT.length-1);
-    TSState.view=(TSState.completed&&TSState.aiSummary)?'summary':'step';
+    const snapshot=await r.json();
+    SyncEngine.setDraftRef(ticketId,snapshot.draft.id);
+    SyncEngine.cacheSet(cacheKey,snapshot);
+    tsApplyDraft(snapshot.draft,snapshot.responses,snapshot.media);
     tsRender();
   }catch(e){
-    toast('Could not load troubleshooting checklist — check your connection.','err');
-    tsClose();
+    const cached=await SyncEngine.cacheGet(cacheKey);
+    if(cached){
+      tsApplyDraft(cached.draft,cached.responses,cached.media);
+      toast('Offline — showing your last saved checklist. New entries will sync once you\'re back online.','info');
+      tsRender();
+    }else{
+      toast('Could not load troubleshooting checklist — check your connection.','err');
+      tsClose();
+    }
   }
 }
 function tsClose(){
@@ -8460,9 +8499,12 @@ async function tsSetResult(result){
   if(!TSState.responses[c.id])TSState.responses[c.id]={result:null,notes:'',media:[]};
   TSState.responses[c.id].result=result;
   tsRenderStep();
-  try{
-    await fetch('/api/troubleshooting/response',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,phase:c.phaseId,check:c.id,result,notes:TSState.responses[c.id].notes})});
-  }catch(e){/* best-effort — local state already reflects the change */}
+  // local state already reflects the change either way — synced live or
+  // queued by SyncEngine and replayed once connectivity returns
+  await SyncEngine.request(TSState.ticketId,'response',{
+    url:'/api/troubleshooting/response',
+    json:{draft_id:TSState.draftId,phase:c.phaseId,check:c.id,result,notes:TSState.responses[c.id].notes}
+  });
 }
 
 function tsNoteInput(value){
@@ -8499,9 +8541,10 @@ function tsRefreshNextButton(){
 async function tsSaveResponse(c){
   const r=TSState.responses[c.id];
   if(!r||!r.result)return;
-  try{
-    await fetch('/api/troubleshooting/response',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,phase:c.phaseId,check:c.id,result:r.result,notes:r.notes})});
-  }catch(e){/* best-effort autosave */}
+  await SyncEngine.request(TSState.ticketId,'response',{
+    url:'/api/troubleshooting/response',
+    json:{draft_id:TSState.draftId,phase:c.phaseId,check:c.id,result:r.result,notes:r.notes}
+  });
 }
 
 async function tsAttachMedia(inputEl){
@@ -8514,16 +8557,18 @@ async function tsAttachMedia(inputEl){
   tsRenderStep();
   const form=new FormData();
   form.append('file',file);form.append('draft_id',TSState.draftId);form.append('job_id',TSState.jobId);form.append('check',c.id);
-  try{
-    const res=await fetch('/api/troubleshooting/media',{method:'POST',body:form});
-    if(!res.ok)throw 0;
-    const saved=await res.json();
-    const idx=TSState.responses[c.id].media.findIndex(m=>m.id===tempId);
-    if(idx>-1)TSState.responses[c.id].media[idx]=saved;
-  }catch(e){
-    const idx=TSState.responses[c.id].media.findIndex(m=>m.id===tempId);
+  const result=await SyncEngine.requestForm(TSState.ticketId,'media','/api/troubleshooting/media',form);
+  const idx=TSState.responses[c.id].media.findIndex(m=>m.id===tempId);
+  if(result.ok&&!result.queued){
+    if(idx>-1)TSState.responses[c.id].media[idx]=result.data;
+  }else if(result.queued){
+    // offline — keep the photo visible on-device and mark it pending sync,
+    // instead of the old behavior of silently dropping it from the checklist
+    if(idx>-1)TSState.responses[c.id].media[idx]={...TSState.responses[c.id].media[idx],_uploading:false,_pendingSync:true};
+    toast('Offline — photo saved on device, will upload once you\'re back online.','info');
+  }else{
     if(idx>-1)TSState.responses[c.id].media.splice(idx,1);
-    toast('Photo upload failed — please try again.','err');
+    toast(result.error||'Photo upload failed — please try again.','err');
   }
   inputEl.value='';
   tsRenderStep();
@@ -8570,9 +8615,10 @@ function tsGotoStep(i){
   tsSaveProgress();
 }
 async function tsSaveProgress(){
-  try{
-    await fetch('/api/troubleshooting/progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,current_phase:TS_FLAT[TSState.index].phaseId,current_step:TSState.index})});
-  }catch(e){/* best-effort */}
+  await SyncEngine.request(TSState.ticketId,'progress',{
+    url:'/api/troubleshooting/progress',
+    json:{draft_id:TSState.draftId,current_phase:TS_FLAT[TSState.index].phaseId,current_step:TSState.index}
+  });
 }
 
 function tsGenerateSummary(){
@@ -8658,20 +8704,24 @@ function tsSummaryEdit(key,value){
   TSState.noteTimer=setTimeout(tsSaveSummaryDraft,700);
 }
 async function tsSaveSummaryDraft(){
-  try{
-    await fetch('/api/troubleshooting/progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,ai_summary:JSON.stringify(TSState.aiSummary)})});
-  }catch(e){/* best-effort */}
+  await SyncEngine.request(TSState.ticketId,'progress',{
+    url:'/api/troubleshooting/progress',
+    json:{draft_id:TSState.draftId,ai_summary:JSON.stringify(TSState.aiSummary)}
+  });
 }
 async function tsConfirmSummary(){
   const btn=document.querySelector('#ts-overlay .ts-nav-btn.primary');
   if(btn){btn.disabled=true;btn.innerHTML=ic('upload',15)+' Saving...';}
-  try{
-    await fetch('/api/troubleshooting/progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_id:TSState.draftId,ai_summary:JSON.stringify(TSState.aiSummary),completed:true,status:'completed'})});
+  const result=await SyncEngine.request(TSState.ticketId,'progress',{
+    url:'/api/troubleshooting/progress',
+    json:{draft_id:TSState.draftId,ai_summary:JSON.stringify(TSState.aiSummary),completed:true,status:'completed'}
+  });
+  if(result.ok){
     TSState.completed=true;
-    toast('Troubleshooting completed.','ok');
+    toast(result.queued?'Offline — checklist saved on device and will sync automatically.':'Troubleshooting completed.',result.queued?'info':'ok');
     tsClose();
-  }catch(e){
-    toast('Could not save — check your connection and try again.','err');
+  }else{
+    toast(result.error||'Could not save — check your connection and try again.','err');
     if(btn){btn.disabled=false;btn.innerHTML=ic('check',15)+' Confirm &amp; Continue';}
   }
 }
